@@ -1,0 +1,16 @@
+services:
+  ml:
+    build: .
+    container_name: ml-playground
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --ServerApp.token=mlsecret
