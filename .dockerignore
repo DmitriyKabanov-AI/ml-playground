@@ -1,0 +1,58 @@
+# ---------- git ----------
+.git
+.gitignore
+.gitattributes
+.github
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+wheelhouse/
+
+# ---------- venv ----------
+.venv/
+venv/
+env/
+ENV/
+
+# ---------- Jupyter ----------
+.ipynb_checkpoints/
+notebooks/**/*.nbconvert.ipynb
+
+# ---------- Секрет с токеном ----------
+config/.env
+
+# ---------- Node / frontend ----------
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/coverage/
+
+# ---------- IDE / OS ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---------- Логи / временное ----------
+*.log
+*.tmp
+*.bak
+tmp/
+temp/
+structure.txt
+preview.log
+preview.err.log
+ps-output.txt

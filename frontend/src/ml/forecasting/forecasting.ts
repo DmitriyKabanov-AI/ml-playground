@@ -1,7 +1,7 @@
-import { ridge } from '../lib/linalg';
-import { dot } from '../lib/ml-utils';
-import { mean, std, sum } from '../lib/stats';
-import type { WalmartRow, WalmartStore } from '../types';
+import { ridge } from '@/lib/linalg';
+import { dot } from '@/lib/ml-utils';
+import { mean, std, sum } from '@/lib/stats';
+import type { WalmartRow, WalmartStore } from '@/types';
 
 const M = 52;
 export interface FModel {

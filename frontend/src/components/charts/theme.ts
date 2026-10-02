@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useUI } from '../../store/ui';
+import { useUI } from '@/store/ui';
 
 export function useChartTheme() {
   const theme = useUI((s) => s.theme);

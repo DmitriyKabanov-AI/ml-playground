@@ -1,15 +1,15 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CloudSun, Flower2, Lightbulb, ShoppingCart, TrendingUp } from 'lucide-react';
-import { Card, DataTable, ErrorState, KpiCard, PageHeader, PageLoader } from '../components/ui';
-import { useIris, useRegressionData, useWalmart, useWeather } from '../data/hooks';
-import { analyzeClassification } from '../ml/classification';
-import { analyzeRegression } from '../ml/regression';
-import { seasonality, walmartLeaderboard } from '../ml/forecasting';
-import { analyzeWeather, skillByHorizon, weatherLeaderboard } from '../ml/weather';
-import { fmtMoney, fmtPct } from '../lib/format';
-import { mean } from '../lib/stats';
-import { useChartTheme } from '../components/charts/theme';
+import { Card, DataTable, ErrorState, KpiCard, PageHeader, PageLoader } from '@/components/ui';
+import { useIris, useRegressionData, useWalmart, useWeather } from '@/data/hooks';
+import { analyzeClassification } from '@/ml/classification';
+import { analyzeRegression } from '@/ml/regression';
+import { seasonality, walmartLeaderboard } from '@/ml/forecasting';
+import { analyzeWeather, skillByHorizon, weatherLeaderboard } from '@/ml/forecasting';
+import { fmtMoney, fmtPct } from '@/lib/format';
+import { mean } from '@/lib/stats';
+import { useChartTheme } from '@/components/charts/theme';
 
 export default function OverviewPage() {
   const qs = [useIris(), useRegressionData(), useWalmart(), useWeather()] as const;

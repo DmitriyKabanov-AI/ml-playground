@@ -1,6 +1,6 @@
-import { Rng } from '../lib/rng';
-import { clamp } from '../lib/stats';
-import type { IrisDataset, RegressionDataset, WalmartDataset, WeatherDataset } from '../types';
+import { Rng } from '@/lib/rng';
+import { clamp } from '@/lib/stats';
+import type { IrisDataset, RegressionDataset, WalmartDataset, WeatherDataset } from '@/types';
 
 /* ───────── Iris-подобный набор (статистики реального Iris) ───────── */
 export function generateIris(): IrisDataset {

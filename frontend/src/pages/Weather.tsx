@@ -3,13 +3,13 @@ import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { CloudRain, Droplets, Gauge, Thermometer, Wind, Target, Zap, type LucideIcon } from 'lucide-react';
-import { Await, Card, KpiCard, PageHeader, SelectField, Segmented } from '../components/ui';
-import { axisProps, useChartTheme } from '../components/charts/theme';
-import { useWeather } from '../data/hooks';
-import { analyzeWeather, HORIZON } from '../ml/weather';
-import { addDays, fmtDay, fmtWeekday } from '../lib/format';
-import { mean } from '../lib/stats';
-import type { WeatherDataset } from '../types';
+import { Await, Card, KpiCard, PageHeader, SelectField, Segmented } from '@/components/ui';
+import { axisProps, useChartTheme } from '@/components/charts/theme';
+import { useWeather } from '@/data/hooks';
+import { analyzeWeather, HORIZON } from '@/ml/forecasting';
+import { addDays, fmtDay, fmtWeekday } from '@/lib/format';
+import { mean } from '@/lib/stats';
+import type { WeatherDataset } from '@/types';
 
 const ICONS: Record<string, LucideIcon> = { temp: Thermometer, humidity: Droplets, pressure: Gauge, wind: Wind, precip: CloudRain };
 

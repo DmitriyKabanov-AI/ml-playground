@@ -1,4 +1,4 @@
-import { mean, std, sum } from './stats';
+import { mean, std, sum } from '@/lib/stats';
 
 export const dot = (a: number[], b: number[]) => {
   let s = 0;

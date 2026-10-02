@@ -1,5 +1,5 @@
-import type { IrisDataset, RegressionDataset, WalmartDataset, WeatherDataset } from '../types';
-import { generateIris, generateRegression, generateWalmart, generateWeather } from './generators';
+import type { IrisDataset, RegressionDataset, WalmartDataset, WeatherDataset } from '@/types';
+import { generateIris, generateRegression, generateWalmart, generateWeather } from '@/data/generators';
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
 export const isRemote = Boolean(API);

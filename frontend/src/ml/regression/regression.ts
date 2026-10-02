@@ -1,8 +1,8 @@
-import { Rng } from '../lib/rng';
-import { histogram, mae, mape, mean, r2, rmse } from '../lib/stats';
-import { ridge } from '../lib/linalg';
-import { dist2, dot, makeScaler, memoRef } from '../lib/ml-utils';
-import type { RegressionDataset } from '../types';
+import { Rng } from '@/lib/rng';
+import { histogram, mae, mape, mean, r2, rmse } from '@/lib/stats';
+import { ridge } from '@/lib/linalg';
+import { dist2, dot, makeScaler, memoRef } from '@/lib/ml-utils';
+import type { RegressionDataset } from '@/types';
 
 type Fitted = (x: number[]) => number;
 interface RegSpec {

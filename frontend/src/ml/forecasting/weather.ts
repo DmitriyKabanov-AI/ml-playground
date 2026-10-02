@@ -1,7 +1,7 @@
-import { ridge } from '../lib/linalg';
-import { dot, memoRef } from '../lib/ml-utils';
-import { clamp, mean, sum } from '../lib/stats';
-import type { WeatherDataset } from '../types';
+import { ridge } from '@/lib/linalg';
+import { dot, memoRef } from '@/lib/ml-utils';
+import { clamp, mean, sum } from '@/lib/stats';
+import type { WeatherDataset } from '@/types';
 
 export const HORIZON = 7;
 const W = (2 * Math.PI) / 365.25;

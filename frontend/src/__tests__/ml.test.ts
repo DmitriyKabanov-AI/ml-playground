@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ridge } from '../lib/linalg';
-import { generateIris, generateRegression, generateWalmart, generateWeather } from '../data/generators';
-import { analyzeClassification } from './classification';
-import { analyzeRegression } from './regression';
-import { runForecast } from './forecasting';
-import { analyzeWeather } from './weather';
+import { ridge } from '@/lib/linalg';
+import { generateIris, generateRegression, generateWalmart, generateWeather } from '@/data/generators';
+import { analyzeClassification } from '@/ml/classification';
+import { analyzeRegression } from '@/ml/regression';
+import { runForecast } from '@/ml/forecasting';
+import { analyzeWeather } from '@/ml/forecasting';
 
 describe('linalg', () => {
   it('ridge восстанавливает y = 2x + 1', () => {

@@ -3,12 +3,12 @@ import {
   Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { CalendarDays, Percent, Scale, TrendingUp } from 'lucide-react';
-import { Await, Card, DataTable, KpiCard, PageHeader, SelectField, Segmented } from '../components/ui';
-import { axisProps, useChartTheme } from '../components/charts/theme';
-import { useWalmart } from '../data/hooks';
-import { FORECAST_MODELS, runForecast, seasonality } from '../ml/forecasting';
-import { fmtCompact, fmtDay, fmtMoney } from '../lib/format';
-import type { WalmartDataset } from '../types';
+import { Await, Card, DataTable, KpiCard, PageHeader, SelectField, Segmented } from '@/components/ui';
+import { axisProps, useChartTheme } from '@/components/charts/theme';
+import { useWalmart } from '@/data/hooks';
+import { FORECAST_MODELS, runForecast, seasonality } from '@/ml/forecasting';
+import { fmtCompact, fmtDay, fmtMoney } from '@/lib/format';
+import type { WalmartDataset } from '@/types';
 
 export default function WalmartPage() {
   const q = useWalmart();

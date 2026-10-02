@@ -2,9 +2,9 @@ import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import clsx from 'clsx';
 import { CloudSun, Database, Flower2, LayoutDashboard, Moon, ShoppingCart, Sun, TrendingUp, Activity } from 'lucide-react';
-import { useUI } from '../store/ui';
-import { isRemote } from '../data/source';
-import { PageLoader } from './ui';
+import { useUI } from '@/store/ui';
+import { isRemote } from '@/data/source';
+import { PageLoader } from '@/components/ui';
 
 const NAV = [
   { to: '/', label: 'Обзор', icon: LayoutDashboard },

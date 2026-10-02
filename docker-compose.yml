@@ -1,17 +1,46 @@
-services:
+﻿services:
   ml:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ml
+    image: ml-playground:latest
     container_name: ml-playground
+    restart: unless-stopped
     ports:
       - "8888:8888"
     volumes:
       - .:/app
-      - ./.kaggle:/root/.kaggle
+      - jupyter-data:/root/.local/share/jupyter
     working_dir: /app
-    command: >
-      jupyter lab
-      --ip=0.0.0.0
-      --port=8888
-      --no-browser
-      --allow-root
-      --ServerApp.token=mlsecret
+    env_file:
+      - config/.env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8888/api"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    image: ml-frontend:latest
+    container_name: ml-web
+    restart: unless-stopped
+    ports:
+      - "4173:80"
+    depends_on:
+      - ml
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+volumes:
+  jupyter-data:
+

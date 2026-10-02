@@ -4,13 +4,13 @@ import {
   Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis,
 } from 'recharts';
 import { Crosshair, Gauge, Layers, Target } from 'lucide-react';
-import { Await, Card, DataTable, KpiCard, PageHeader, SelectField, SliderField } from '../components/ui';
-import { axisProps, useChartTheme } from '../components/charts/theme';
-import { useIris } from '../data/hooks';
-import { analyzeClassification, type ModelResult } from '../ml/classification';
-import { fmtPct } from '../lib/format';
-import { argmax, mean } from '../lib/stats';
-import type { IrisDataset } from '../types';
+import { Await, Card, DataTable, KpiCard, PageHeader, SelectField, SliderField } from '@/components/ui';
+import { axisProps, useChartTheme } from '@/components/charts/theme';
+import { useIris } from '@/data/hooks';
+import { analyzeClassification, type ModelResult } from '@/ml/classification';
+import { fmtPct } from '@/lib/format';
+import { argmax, mean } from '@/lib/stats';
+import type { IrisDataset } from '@/types';
 
 export default function ClassificationPage() {
   const q = useIris();

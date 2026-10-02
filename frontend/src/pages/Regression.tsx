@@ -3,11 +3,11 @@ import {
   Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis,
 } from 'recharts';
 import { Activity, Percent, Ruler, Sigma } from 'lucide-react';
-import { Await, Card, DataTable, KpiCard, PageHeader, Segmented } from '../components/ui';
-import { axisProps, useChartTheme } from '../components/charts/theme';
-import { useRegressionData } from '../data/hooks';
-import { analyzeRegression } from '../ml/regression';
-import type { RegressionDataset } from '../types';
+import { Await, Card, DataTable, KpiCard, PageHeader, Segmented } from '@/components/ui';
+import { axisProps, useChartTheme } from '@/components/charts/theme';
+import { useRegressionData } from '@/data/hooks';
+import { analyzeRegression } from '@/ml/regression';
+import type { RegressionDataset } from '@/types';
 
 export default function RegressionPage() {
   const q = useRegressionData();

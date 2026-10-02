@@ -1,2 +1,2 @@
-﻿export * from './forecasting';
-export * from './weather';
+export * from '@/ml/forecasting/forecasting';
+export * from '@/ml/forecasting/weather';

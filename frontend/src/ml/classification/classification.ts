@@ -1,7 +1,7 @@
-import { Rng } from '../lib/rng';
-import { argmax, mean, std, sum } from '../lib/stats';
-import { dist2, dot, makeScaler, memoRef, softmax } from '../lib/ml-utils';
-import type { IrisDataset } from '../types';
+import { Rng } from '@/lib/rng';
+import { argmax, mean, std, sum } from '@/lib/stats';
+import { dist2, dot, makeScaler, memoRef, softmax } from '@/lib/ml-utils';
+import type { IrisDataset } from '@/types';
 
 export type Predictor = (x: number[]) => number[];
 export interface ClassifierSpec {

@@ -1,1 +1,1 @@
-﻿export * from './regression';
+export * from '@/ml/regression/regression';

@@ -3,7 +3,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { Sparkline } from './charts/Sparkline';
+import { Sparkline } from '@/components/charts/Sparkline';
 
 export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
   return (
