@@ -1,6 +1,66 @@
-.kaggle/
-data/
+# --- Node / Vite ---
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# --- Env ---
+.env
+.env.local
+.env.*.local
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- OS / Editors ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# --- Python / Jupyter ---
 __pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.venv/
+.pytest_cache/
 .ipynb_checkpoints/
-.Trash-*
-*.joblib
+*.egg-info/
+
+# --- ML-артефакты ---
+models/*.joblib
+models/*.pkl
+models/*.h5
+models/*.pt
+models/*.onnx
+
+# --- Данные (тяжёлые файлы) ---
+data/**/*.csv
+data/**/*.parquet
+data/**/*.zip
+data/**/*.tar.gz
+data/**/*.gz
+
+# --- Секреты ---
+.kaggle/
+access_token
+**/access_token
+!**/*.example
+
+# --- Прочее ---
+*.pid
+*.seed
+_backup_*/
+_trash_*/
