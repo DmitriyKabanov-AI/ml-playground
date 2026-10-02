@@ -1,8 +1,6 @@
-.venv/
+.kaggle/
+data/
 __pycache__/
 .ipynb_checkpoints/
+.Trash-*
 *.joblib
-data/
-*.csv
-RusWeather-GF/
-RusWeather-GF.zip

@@ -1,12 +1,31 @@
-numpy
-pandas
-scikit-learn
-matplotlib
-seaborn
-jupyterlab
-joblib
-kagglehub
-prophet
-plotly
-ipywidgets
-datasets 
+# === Core numerics ===
+numpy==2.1.3
+pandas==2.2.3
+scipy==1.14.1
+
+# === ML ===
+scikit-learn==1.5.2
+lightgbm==4.5.0
+
+# === Visualization ===
+matplotlib==3.9.2
+seaborn==0.13.2
+plotly==5.24.1
+
+# === Notebooks / Jupyter ===
+jupyterlab==4.3.0
+ipykernel==6.29.5
+ipywidgets==8.1.5
+
+# === Serialization ===
+joblib==1.4.2
+
+# === Kaggle (для загрузки датасетов) ===
+kagglehub==0.3.4
+kaggle==1.6.17
+
+# === Временные ряды ===
+prophet==1.1.6
+
+# === HF datasets (если используется) ===
+datasets==3.1.0
