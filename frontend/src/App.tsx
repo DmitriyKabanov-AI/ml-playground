@@ -3,10 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 
 const Overview = lazy(() => import('./pages/Overview'));
-const Classification = lazy(() => import('./pages/Classification'));
-const Regression = lazy(() => import('./pages/Regression'));
-const Walmart = lazy(() => import('./pages/Walmart'));
-const Weather = lazy(() => import('./pages/Weather'));
+const TaskDetail = lazy(() => import('./pages/TaskDetail'));
 
 export default function App() {
   return (
@@ -14,10 +11,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Overview />} />
-          <Route path="classification" element={<Classification />} />
-          <Route path="regression" element={<Regression />} />
-          <Route path="walmart" element={<Walmart />} />
-          <Route path="weather" element={<Weather />} />
+          <Route path="tasks/:task" element={<TaskDetail />} />
           <Route path="*" element={<Overview />} />
         </Route>
       </Routes>

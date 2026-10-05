@@ -1,17 +1,19 @@
-import type { IrisDataset, RegressionDataset, WalmartDataset, WeatherDataset } from '@/types';
-import { generateIris, generateRegression, generateWalmart, generateWeather } from '@/data/generators';
+import type { TaskMetrics, TaskSummary } from '@/types';
 
-const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
-export const isRemote = Boolean(API);
+const API = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/$/, '');
 
 async function getJson<T>(path: string): Promise<T> {
   const r = await fetch(`${API}${path}`);
-  if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
+  if (!r.ok) {
+    let detail = '';
+    try {
+      const j = (await r.json()) as { detail?: string };
+      detail = j.detail ? ` — ${j.detail}` : '';
+    } catch { /* ignore */ }
+    throw new Error(`${path}: HTTP ${r.status}${detail}`);
+  }
   return r.json() as Promise<T>;
 }
-const pick = <T,>(path: string, demo: () => T) => (): Promise<T> => (API ? getJson<T>(path) : Promise.resolve(demo()));
 
-export const loadIris = pick<IrisDataset>('/iris', generateIris);
-export const loadRegression = pick<RegressionDataset>('/regression', generateRegression);
-export const loadWalmart = pick<WalmartDataset>('/walmart', generateWalmart);
-export const loadWeather = pick<WeatherDataset>('/weather', generateWeather);
+export const loadTasks = () => getJson<TaskSummary[]>('/tasks');
+export const loadTaskMetrics = (task: string) => getJson<TaskMetrics>(`/tasks/${task}/metrics`);

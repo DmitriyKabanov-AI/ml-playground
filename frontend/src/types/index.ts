@@ -42,3 +42,33 @@ export interface WeatherDataset {
   variables: WeatherVariable[];
   cities: WeatherCity[];
 }
+/* ---------- Контракты реального API ---------- */
+
+export interface TaskSummary {
+  task: string;
+  n_models: number;
+  n_active: number;
+}
+
+export interface ModelRow {
+  id: number;
+  name: string;
+  metrics: Record<string, number>;
+  status: 'active' | 'inactive';
+}
+
+export interface ActiveModel {
+  id: number;
+  name: string;
+  metrics: Record<string, number>;
+  meta: Record<string, unknown>;
+}
+
+export interface TaskMetrics {
+  task: string;
+  category: 'classification' | 'regression' | 'forecasting';
+  active: ActiveModel;
+  all_models: ModelRow[];
+}
+
+export type Category = TaskMetrics['category'];

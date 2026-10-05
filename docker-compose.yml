@@ -1,4 +1,24 @@
 ﻿services:
+  # ---------- PostgreSQL ----------
+  db:
+    image: postgres:16-alpine
+    container_name: ml-db
+    restart: unless-stopped
+    env_file:
+      - config/.env
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------- Jupyter Lab ----------
   ml:
     build:
       context: .
@@ -17,12 +37,43 @@
       - config/.env
     environment:
       PYTHONUNBUFFERED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8888/api"]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 40s
+
+  # ---------- FastAPI (inference) ----------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    image: ml-api:latest
+    container_name: ml-api
+    restart: unless-stopped
+    ports:
+      - "8004:8000"
+    env_file:
+      - config/.env
+    volumes:
+      # Монтируем models/ снаружи — не тащим 3.4 ГБ в образ
+      - ./models:/app/models:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------- Фронт: React → nginx ----------
   web:
     build:
       context: .
@@ -34,13 +85,14 @@
     ports:
       - "4173:80"
     depends_on:
-      - ml
+      - api
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
+
 volumes:
   jupyter-data:
-
+  pg-data:

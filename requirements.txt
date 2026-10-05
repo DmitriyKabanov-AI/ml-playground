@@ -29,3 +29,12 @@ prophet==1.1.6
 
 # === HF datasets (если используется) ===
 datasets==3.1.0
+
+# === Database ===
+psycopg2-binary==2.9.10
+SQLAlchemy==2.0.36
+
+# === Web API ===
+fastapi==0.115.4
+uvicorn[standard]==0.32.0
+pydantic==2.9.2

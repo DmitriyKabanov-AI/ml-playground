@@ -1,77 +1,168 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CloudSun, Flower2, ShoppingCart, TrendingUp } from 'lucide-react';
-import { Card, DataTable, ErrorState, KpiCard, PageHeader, PageLoader } from '@/components/ui';
-import { useIris, useRegressionData, useWalmart, useWeather } from '@/data/hooks';
-import { analyzeClassification } from '@/ml/classification';
-import { analyzeRegression } from '@/ml/regression';
-import { walmartLeaderboard } from '@/ml/forecasting';
-import { analyzeWeather, skillByHorizon, weatherLeaderboard } from '@/ml/forecasting';
-import { fmtMoney, fmtPct } from '@/lib/format';
-import { useChartTheme } from '@/components/charts/theme';
+import { ArrowRight, BarChart3, Sparkles, TrendingUp } from 'lucide-react';
+import { Await, PageHeader } from '@/components/ui';
+import { useTasks } from '@/data/hooks';
+import type { Category, TaskSummary } from '@/types';
 
-export default function OverviewPage() {
-  const qs = [useIris(), useRegressionData(), useWalmart(), useWeather()] as const;
-  const err = qs.find((q) => q.isError);
-  if (err) return <ErrorState error={err.error} />;
-  if (qs.some((q) => q.isPending)) return <PageLoader />;
-  return <View iris={qs[0].data!} reg={qs[1].data!} wal={qs[2].data!} wea={qs[3].data!} />;
-}
-
-type Props = {
-  iris: NonNullable<ReturnType<typeof useIris>['data']>;
-  reg: NonNullable<ReturnType<typeof useRegressionData>['data']>;
-  wal: NonNullable<ReturnType<typeof useWalmart>['data']>;
-  wea: NonNullable<ReturnType<typeof useWeather>['data']>;
+const CATEGORY_META: Record<
+  Category,
+  { label: string; metric: string; accent: string; Icon: typeof Sparkles }
+> = {
+  classification: {
+    label: 'Классификация',
+    metric: 'f1_macro',
+    accent: 'text-cyan-400',
+    Icon: Sparkles,
+  },
+  regression: {
+    label: 'Регрессия',
+    metric: 'rmse',
+    accent: 'text-amber-400',
+    Icon: TrendingUp,
+  },
+  forecasting: {
+    label: 'Прогнозирование',
+    metric: 'skill_avg',
+    accent: 'text-violet-400',
+    Icon: BarChart3,
+  },
 };
 
-function View({ iris, reg, wal, wea }: Props) {
-  const t = useChartTheme();
-  const cls = useMemo(() => analyzeClassification(iris), [iris]);
-  const rg = useMemo(() => analyzeRegression(reg), [reg]);
-  const board = useMemo(() => walmartLeaderboard(wal.stores, 13), [wal]);
-  const wan = useMemo(() => analyzeWeather(wea), [wea]);
-  const wboard = useMemo(() => weatherLeaderboard(wan), [wan]);
+function categoryOf(task: string): Category {
+  const c = task.split('_', 1)[0];
+  if (c === 'classification' || c === 'regression' || c === 'forecasting') return c;
+  return 'classification';
+}
 
-  const bestCls = [...cls.results].sort((a, b) => b.accuracy - a.accuracy)[0];
-  const bestReg = [...rg.results].sort((a, b) => b.r2 - a.r2)[0];
-  const bestWal = board[0];
-  const bestWea = wboard[0];
-  const bestWeaSkill = skillByHorizon(wan, bestWea.id);
-
-  const rows = [
-    { task: 'Классификация (Iris)', model: bestCls.name, metric: 'Accuracy', value: fmtPct(bestCls.accuracy), n: cls.results.length },
-    { task: 'Регрессия', model: bestReg.name, metric: 'R²', value: bestReg.r2.toFixed(3), n: rg.results.length },
-    { task: 'Walmart (13 нед.)', model: bestWal.name, metric: 'WMAE', value: fmtMoney(bestWal.wmae), n: board.length },
-    { task: 'Погода (7 дней)', model: bestWea.name, metric: 'Skill vs persistence', value: `${(bestWea.skill * 100).toFixed(0)}%`, n: wboard.length },
-  ];
-
+export default function OverviewPage() {
+  const q = useTasks();
   return (
     <>
-      <PageHeader title="Обзор" subtitle="Сводка по четырём ML-задачам: все числа вычислены из текущих данных." />
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Link to="/classification"><KpiCard label="Классификация · accuracy" value={fmtPct(bestCls.accuracy)} hint={bestCls.name} icon={Flower2} spark={cls.results.map((r) => r.accuracy)} color={t.series[0]} /></Link>
-        <Link to="/regression"><KpiCard label="Регрессия · R²" value={bestReg.r2.toFixed(3)} hint={bestReg.name} icon={TrendingUp} spark={rg.results.map((r) => r.r2)} color={t.series[1]} /></Link>
-        <Link to="/walmart"><KpiCard label="Walmart · WMAE" value={fmtMoney(bestWal.wmae)} hint={bestWal.name} icon={ShoppingCart} spark={[...board].reverse().map((b) => b.wmae)} color={t.series[2]} /></Link>
-        <Link to="/weather"><KpiCard label="Погода · skill" value={`${(bestWea.skill * 100).toFixed(0)}%`} hint={bestWea.name} icon={CloudSun} spark={bestWeaSkill} color={t.series[3]} /></Link>
-      </div>
-
-      <div className="mt-4 grid gap-4">
-        <Card title="Лучшие модели">
-          <DataTable
-            rows={rows}
-            rowKey={(r) => r.task}
-            columns={[
-              { key: 't', header: 'Задача', render: (r) => <span className="font-medium">{r.task}</span> },
-              { key: 'm', header: 'Лучшая модель', render: (r) => r.model },
-              { key: 'k', header: 'Метрика', render: (r) => <span className="text-muted">{r.metric}</span> },
-              { key: 'v', header: 'Значение', align: 'right', render: (r) => <b>{r.value}</b> },
-              { key: 'n', header: 'Моделей', align: 'right', render: (r) => r.n },
-            ]}
-          />
-        </Card>
-      </div>
+      <PageHeader
+        title="Все задачи"
+        subtitle="Модели из PostgreSQL. Клик по задаче — метрики и сравнение моделей."
+      />
+      <Await q={q}>{(tasks) => <View tasks={tasks} />}</Await>
     </>
+  );
+}
+
+function View({ tasks }: { tasks: TaskSummary[] }) {
+  const grouped = useMemo(() => {
+    const g: Record<Category, TaskSummary[]> = {
+      classification: [],
+      regression: [],
+      forecasting: [],
+    };
+    tasks.forEach((t) => g[categoryOf(t.task)].push(t));
+    return g;
+  }, [tasks]);
+
+  const totalModels = tasks.reduce((s, t) => s + t.n_models, 0);
+  const totalActive = tasks.reduce((s, t) => s + t.n_active, 0);
+
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Задач" value={tasks.length} />
+        <StatCard label="Моделей" value={totalModels} />
+        <StatCard
+          label="Активных"
+          value={totalActive}
+          hint={totalActive === tasks.length ? 'по одной на задачу' : 'есть расхождения'}
+          tone={totalActive === tasks.length ? 'good' : 'warn'}
+        />
+      </div>
+
+      {(Object.keys(grouped) as Category[]).map((cat) => {
+        const list = grouped[cat];
+        if (!list.length) return null;
+        const meta = CATEGORY_META[cat];
+        const { Icon } = meta;
+        return (
+          <section key={cat}>
+            <div className="mb-3 flex flex-wrap items-baseline gap-3">
+              <h2 className="text-lg font-semibold">{meta.label}</h2>
+              <span className="text-xs text-muted">
+                {list.length} задач · метрика:{' '}
+                <code className="rounded bg-line/60 px-1.5 py-0.5">{meta.metric}</code>
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((t) => {
+                const ok = t.n_active === 1;
+                return (
+                  <Link
+                    key={t.task}
+                    to={`/tasks/${t.task}`}
+                    className="group rounded-2xl border border-line bg-card p-4 shadow-sm transition hover:border-accent/60 hover:bg-card/80"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold" title={t.task}>
+                          {t.task}
+                        </div>
+                        <div className="mt-0.5 text-xs text-muted">
+                          моделей: {t.n_models} · активных: {t.n_active}
+                        </div>
+                      </div>
+                      <ArrowRight
+                        size={16}
+                        className="mt-1 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent"
+                      />
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between text-xs">
+                      <span className={`inline-flex items-center gap-1.5 ${meta.accent}`}>
+                        <Icon size={14} />
+                        {meta.metric}
+                      </span>
+                      <span
+                        className={
+                          'rounded-full px-2 py-0.5 text-[10px] font-medium ' +
+                          (ok
+                            ? 'bg-emerald-500/15 text-emerald-400'
+                            : 'bg-amber-500/15 text-amber-500')
+                        }
+                      >
+                        {ok ? 'ok' : 'check'}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  tone = 'default',
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  tone?: 'default' | 'good' | 'warn';
+}) {
+  const toneCls =
+    tone === 'good'
+      ? 'text-emerald-400'
+      : tone === 'warn'
+        ? 'text-amber-400'
+        : 'text-fg';
+  return (
+    <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
+      <div className="text-xs text-muted">{label}</div>
+      <div className={`mt-1 text-2xl font-semibold tabular-nums ${toneCls}`}>{value}</div>
+      {hint && <div className="mt-0.5 text-xs text-muted">{hint}</div>}
+    </div>
   );
 }
