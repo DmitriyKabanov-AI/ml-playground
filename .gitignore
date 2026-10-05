@@ -1,3 +1,7 @@
+﻿# =====================================================================
+#  .gitignore — исключаем из git всё, что тяжело и/или секретно
+# =====================================================================
+
 # ---------- Python ----------
 __pycache__/
 *.py[cod]
@@ -31,6 +35,28 @@ ENV/
 # ---------- Секрет с токеном ----------
 config/.env
 
+# ---------- ML модели (слишком большие для git) ----------
+models/**/*.joblib
+models/**/*.pkl
+models/**/*.h5
+models/**/*.pt
+models/**/*.onnx
+models/**/*.pb
+*.joblib
+
+# ---------- Датасеты (слишком большие для git) ----------
+data/**/*.csv
+data/**/*.parquet
+data/**/*.zip
+data/**/*.gz
+data/**/*.tar
+*.csv.gz
+*.parquet
+
+# Но .gitkeep в data/ и models/ оставляем — они держат структуру папок
+!data/**/.gitkeep
+!models/**/.gitkeep
+
 # ---------- Node / frontend ----------
 node_modules/
 frontend/node_modules/
@@ -62,3 +88,7 @@ structure.txt
 preview.log
 preview.err.log
 ps-output.txt
+
+# ---------- Trash / корзина ----------
+.Trash-*/
+.Trash-0/

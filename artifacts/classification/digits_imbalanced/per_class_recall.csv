@@ -1,0 +1,11 @@
+class,recall,support,is_rare
+0,1.0,44,False
+1,0.978,46,False
+2,0.977,44,False
+3,1.0,46,False
+4,0.978,45,False
+5,0.978,46,False
+6,0.978,45,False
+7,1.0,45,False
+8,0.625,8,True
+9,1.0,45,False

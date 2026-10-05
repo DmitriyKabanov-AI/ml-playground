@@ -1,0 +1,157 @@
+{
+  "dataset_name": "RusWeather-GF",
+  "full_name": "Russian Weather - Gap-Filled",
+  "title": "Gap-Filled Daily Weather Dataset for Russia (1980-2023): Temperature and Precipitation from 593 Stations",
+  "version": "1.0",
+  "date_created": "2025-01-01",
+  "authors": [
+    {
+      "name": "Tkachenko, M.A.",
+      "affiliation": "V.V. Dokuchaev Soil Science Institute, Moscow, Russia",
+      "address": "Pyzhevsky Lane 7, Moscow, Russia",
+      "email": "usa4eva.m@mail.ru"
+    },
+    {
+      "name": "Fomin, D.S.",
+      "affiliation": "V.V. Dokuchaev Soil Science Institute, Moscow, Russia",
+      "address": "Pyzhevsky Lane 7, Moscow, Russia"
+    }
+  ],
+  "description": "Daily temperature and precipitation observations from 593 Russian weather stations with 100% gap-filling coverage and FABDEM elevation data.",
+  
+  "keywords": [
+    "RusWeather-GF",
+    "meteorology",
+    "Russia",
+    "gap-filled",
+    "temperature",
+    "precipitation",
+    "daily data",
+    "weather stations",
+    "FABDEM",
+    "climate",
+    "time series"
+  ],
+  
+  "temporal_coverage": {
+    "start": "1980-01-01",
+    "end": "2023-12-31",
+    "duration_years": 44,
+    "resolution": "daily"
+  },
+  
+  "spatial_coverage": {
+    "region": "Russia",
+    "extent": "19°-180°E, 41°-82°N",
+    "number_of_stations": 593
+  },
+  
+  "dataset_size": {
+    "total_records": 8893613,
+    "variables": 10
+  },
+  
+  "variables": {
+    "station_id": {
+      "description": "WMO station identifier",
+      "type": "string"
+    },
+    "date": {
+      "description": "Observation date",
+      "format": "YYYY-MM-DD",
+      "type": "date"
+    },
+    "year": {
+      "description": "Year",
+      "type": "integer"
+    },
+    "month": {
+      "description": "Month (1-12)",
+      "type": "integer"
+    },
+    "day": {
+      "description": "Day of month (1-31)",
+      "type": "integer"
+    },
+    "temperature": {
+      "description": "Daily mean air temperature",
+      "units": "°C",
+      "type": "float",
+      "gap_filling": "100% complete",
+      "original_missing": "~1.6%"
+    },
+    "precipitation": {
+      "description": "Daily precipitation sum",
+      "units": "mm",
+      "type": "float",
+      "gap_filling": "100% complete",
+      "original_missing": "~1.8%"
+    },
+    "lat": {
+      "description": "Station latitude",
+      "units": "decimal degrees",
+      "type": "float"
+    },
+    "lon": {
+      "description": "Station longitude",
+      "units": "decimal degrees",
+      "type": "float"
+    },
+    "elevation": {
+      "description": "Station elevation above sea level",
+      "units": "m",
+      "type": "float",
+      "source": "FABDEM v1.2"
+    }
+  },
+  
+  "data_quality": {
+    "completeness": "100% (all missing values filled)",
+    "gap_filling_methods": {
+      "short_gaps": "Inverse Distance Weighting (≤7 days)",
+      "medium_gaps": "Random Forest regression (8-30 days)",
+      "long_gaps": "Climatological approach (>30 days)"
+    },
+    "validation": {
+      "temporal_consistency": "autocorrelation Δ < 0.01",
+      "spatial_consistency": "correlation r > 0.999"
+    }
+  },
+  
+  "data_sources": {
+    "meteorological_data": {
+      "name": "RIHMI-WDC",
+      "full_name": "All-Russian Research Institute of Hydrometeorological Information - World Data Centre"
+    },
+    "elevation_data": {
+      "name": "FABDEM v1.2",
+      "full_name": "Forest And Buildings removed Copernicus Digital Elevation Model",
+      "url": "https://data.bris.ac.uk/data/dataset/s5hqmjcdj8yo2ibzi9b4ew3sn"
+    }
+  },
+  
+  "license": {
+    "name": "CC BY 4.0",
+    "full_name": "Creative Commons Attribution 4.0 International",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  
+  "file_format": "CSV (comma-separated values)",
+  "encoding": "UTF-8",
+  
+  "recommended_citation": "Tkachenko, M.A., Fomin, D.S. (2025). RusWeather-GF: Gap-Filled Daily Weather Dataset for Russia (1980-2023) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.17789545",
+  
+  "doi": "10.5281/zenodo.17789545",
+  
+  "contact": {
+    "email": "usa4eva.m@mail.ru",
+    "corresponding_author": "Tkachenko, M.A."
+  },
+  
+  "institution": {
+    "name": "V.V. Dokuchaev Soil Science Institute",
+    "name_ru": "Почвенный институт имени В.В. Докучаева",
+    "address": "Pyzhevsky Lane 7, Moscow, Russia",
+    "address_ru": "Пыжевский переулок д.7, Москва, Россия"
+  }
+}
