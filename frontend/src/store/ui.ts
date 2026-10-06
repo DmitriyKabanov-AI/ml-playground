@@ -1,21 +1,45 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light'
+
 interface UIState {
-  theme: Theme;
-  toggleTheme: () => void;
+  theme: Theme
+  toggleTheme: () => void
+  setTheme: (theme: Theme) => void
 }
 
-const initial: Theme =
-  typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+function getSystemTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
 
-export const useUI = create<UIState>()(
+function applyTheme(theme: Theme): void {
+  if (typeof document === 'undefined') return
+  document.documentElement.classList.toggle('dark', theme === 'dark')
+}
+
+export const useUIStore = create<UIState>()(
   persist(
-    (set) => ({
-      theme: initial,
-      toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+    (set, get) => ({
+      theme: getSystemTheme(),
+      toggleTheme: () => {
+        const next: Theme = get().theme === 'dark' ? 'light' : 'dark'
+        applyTheme(next)
+        set({ theme: next })
+      },
+      setTheme: (theme) => {
+        applyTheme(theme)
+        set({ theme })
+      },
     }),
-    { name: 'mlhub-ui' },
+    {
+      name: 'mlhub-ui',
+      onRehydrateStorage: () => (state) => {
+        if (state) applyTheme(state.theme)
+      },
+    },
   ),
-);
+)
+
+applyTheme(useUIStore.getState().theme)

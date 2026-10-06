@@ -1,12 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
-import { loadTaskMetrics, loadTasks } from '@/data/source';
+import { useQuery } from '@tanstack/react-query'
+import type { UseQueryResult } from '@tanstack/react-query'
+import { api } from './source'
+import type { TaskMetrics, TaskSummary } from '../types'
 
-export const useTasks = () =>
-  useQuery({ queryKey: ['tasks'], queryFn: loadTasks });
+export function useTasks(): UseQueryResult<TaskSummary[]> {
+  return useQuery<TaskSummary[]>({
+    queryKey: ['tasks'],
+    queryFn: api.tasks,
+  })
+}
 
-export const useTaskMetrics = (task: string | undefined) =>
-  useQuery({
-    queryKey: ['task', task],
-    queryFn: () => loadTaskMetrics(task!),
-    enabled: !!task,
-  });
+export function useTaskMetrics(task: string | undefined): UseQueryResult<TaskMetrics> {
+  return useQuery<TaskMetrics>({
+    queryKey: ['task-metrics', task],
+    queryFn: () => api.taskMetrics(task as string),
+    enabled: Boolean(task),
+  })
+}

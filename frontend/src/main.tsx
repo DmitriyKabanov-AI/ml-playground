@@ -1,22 +1,26 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import App from '@/App';
-import { useUI } from '@/store/ui';
-import './index.css';
-
-const applyTheme = (t: string) => document.documentElement.classList.toggle('dark', t === 'dark');
-applyTheme(useUI.getState().theme);
-useUI.subscribe((s) => applyTheme(s.theme));
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import App from './App'
+import './index.css'
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: Infinity, refetchOnWindowFocus: false, retry: 1 } },
-});
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,
-);
+)
