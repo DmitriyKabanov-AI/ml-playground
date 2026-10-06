@@ -9,9 +9,24 @@ const CATEGORY_META: Record<
   Category,
   { label: string; metric: string; accent: string; Icon: typeof Sparkles }
 > = {
-  classification: { label: 'Классификация', metric: 'f1_macro',   accent: 'text-cyan-400',   Icon: Sparkles },
-  regression:     { label: 'Регрессия',     metric: 'rmse',       accent: 'text-amber-400',  Icon: TrendingUp },
-  forecasting:    { label: 'Прогнозирование', metric: 'skill_avg', accent: 'text-violet-400', Icon: BarChart3 },
+  classification: {
+    label: 'Классификация',
+    metric: 'f1_macro',
+    accent: 'text-cyan-400',
+    Icon: Sparkles,
+  },
+  regression: {
+    label: 'Регрессия',
+    metric: 'rmse',
+    accent: 'text-amber-400',
+    Icon: TrendingUp,
+  },
+  forecasting: {
+    label: 'Прогнозирование',
+    metric: 'skill_avg',
+    accent: 'text-violet-400',
+    Icon: BarChart3,
+  },
 };
 
 function categoryOf(task: string): Category {
@@ -35,8 +50,12 @@ export default function OverviewPage() {
 
 function View({ tasks }: { tasks: TaskSummary[] }) {
   const grouped = useMemo(() => {
-    const g: Record<Category, TaskSummary[]> = { classification: [], regression: [], forecasting: [] };
-    tasks.forEach((t) => g[t.category ?? categoryOf(t.task)].push(t));
+    const g: Record<Category, TaskSummary[]> = {
+      classification: [],
+      regression: [],
+      forecasting: [],
+    };
+    tasks.forEach((t) => g[categoryOf(t.task)].push(t));
     return g;
   }, [tasks]);
 
@@ -95,24 +114,17 @@ function View({ tasks }: { tasks: TaskSummary[] }) {
                       />
                     </div>
 
-                    {t.best && (
-                      <div className="mt-3 rounded-lg bg-line/40 px-2.5 py-1.5 text-xs">
-                        <span className="text-muted">лучшая: </span>
-                        <span className="font-semibold">{t.best.name}</span>
-                        <span className="ml-1 tabular-nums text-accent">
-                          {t.best.metric} = {typeof t.best.value === 'number' ? t.best.value.toFixed(4) : '—'}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="mt-3 flex items-center justify-between text-xs">
+                    <div className="mt-4 flex items-center justify-between text-xs">
                       <span className={`inline-flex items-center gap-1.5 ${meta.accent}`}>
-                        <Icon size={14} /> {meta.metric}
+                        <Icon size={14} />
+                        {meta.metric}
                       </span>
                       <span
                         className={
                           'rounded-full px-2 py-0.5 text-[10px] font-medium ' +
-                          (ok ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-500')
+                          (ok
+                            ? 'bg-emerald-500/15 text-emerald-400'
+                            : 'bg-amber-500/15 text-amber-500')
                         }
                       >
                         {ok ? 'ok' : 'check'}
@@ -130,9 +142,22 @@ function View({ tasks }: { tasks: TaskSummary[] }) {
 }
 
 function StatCard({
-  label, value, hint, tone = 'default',
-}: { label: string; value: number; hint?: string; tone?: 'default' | 'good' | 'warn' }) {
-  const toneCls = tone === 'good' ? 'text-emerald-400' : tone === 'warn' ? 'text-amber-400' : 'text-fg';
+  label,
+  value,
+  hint,
+  tone = 'default',
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  tone?: 'default' | 'good' | 'warn';
+}) {
+  const toneCls =
+    tone === 'good'
+      ? 'text-emerald-400'
+      : tone === 'warn'
+        ? 'text-amber-400'
+        : 'text-fg';
   return (
     <div className="rounded-2xl border border-line bg-card p-4 shadow-sm">
       <div className="text-xs text-muted">{label}</div>

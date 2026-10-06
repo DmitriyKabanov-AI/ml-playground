@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: 244 246 251;
+  --card: 255 255 255;
+  --line: 226 232 240;
+  --fg: 15 23 42;
+  --muted: 100 116 139;
+  --accent: 79 70 229;
+  color-scheme: light;
+}
+.dark {
+  --surface: 8 11 21;
+  --card: 16 21 37;
+  --line: 34 45 70;
+  --fg: 226 232 245;
+  --muted: 139 151 177;
+  --accent: 129 140 248;
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-surface text-fg font-sans antialiased;
+}
+.recharts-surface:focus,
+.recharts-wrapper:focus { outline: none; }
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--line)); border-radius: 8px; }

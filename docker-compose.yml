@@ -1,4 +1,4 @@
-﻿services:
+services:
   # ---------- PostgreSQL ----------
   db:
     image: postgres:16-alpine
@@ -63,6 +63,8 @@
     volumes:
       # Монтируем models/ снаружи — не тащим 3.4 ГБ в образ
       - ./models:/app/models:ro
+      # artifacts/ — для отдачи расширенного report
+      - ./artifacts:/app/artifacts:ro
     depends_on:
       db:
         condition: service_healthy

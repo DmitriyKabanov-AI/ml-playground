@@ -1,4 +1,4 @@
-﻿"""
+"""
 ML Hub API — метаданные моделей + inference.
 Эндпоинты:
   GET  /health
@@ -22,6 +22,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel
+
+from scripts.api_reports import get_report
 
 
 def get_conn():
@@ -144,7 +146,7 @@ def metrics_for_task(task: str):
     active = next((r for r in rows if r["status"] == "active"), rows[0])
     category = task.split("_", 1)[0]  # classification / regression / forecasting
 
-    return {
+    payload = {
         "task": task,
         "category": category,
         "active": {
@@ -163,6 +165,12 @@ def metrics_for_task(task: str):
             for r in rows
         ],
     }
+
+    rep = get_report(task)
+    if rep is not None:
+        payload["report"] = rep
+
+    return payload
 
 
 # ---------- inference ----------
