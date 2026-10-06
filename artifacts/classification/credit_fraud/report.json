@@ -43,7 +43,7 @@
       "Amount"
     ],
     "seed": 42,
-    "generated_at": "2026-10-06T09:08:06.139933",
+    "generated_at": "2026-10-06T14:51:38.554965",
     "n_samples": 284807,
     "n_features": 29,
     "n_classes": 2,
@@ -103,6 +103,7 @@
       "best_roc_auc": 0.9556964957232403,
       "accuracy_misleads": true,
       "roc_auc_misleads": true,
+      "naive_accuracy_gap_max": 0.022162298811831183,
       "best_threshold": 0.5,
       "tp_fraud": 89,
       "fn_fraud": 34,
@@ -130,10 +131,10 @@
         "f2_macro": 0.609541296614231,
         "mcc": 0.22840352241612177,
         "kappa": 0.11072535488904278,
-        "roc_auc": 0.9727058533405577,
-        "pr_auc": 0.7036100008744879,
         "specificity": 0.9762658450456534,
-        "sensitivity": 0.8861788617886179
+        "sensitivity": 0.8861788617886179,
+        "roc_auc": 0.9727058533405577,
+        "pr_auc": 0.7036100008744879
       },
       "per_class": {
         "normal": {
@@ -304,10 +305,10 @@
         "f2_macro": 0.8809284396058321,
         "mcc": 0.8364182865414335,
         "kappa": 0.8276521775310651,
-        "roc_auc": 0.9556964957232403,
-        "pr_auc": 0.8400245513838679,
         "specificity": 0.9999577934411007,
-        "sensitivity": 0.7235772357723578
+        "sensitivity": 0.7235772357723578,
+        "roc_auc": 0.9556964957232403,
+        "pr_auc": 0.8400245513838679
       },
       "per_class": {
         "normal": {
@@ -478,10 +479,10 @@
         "f2_macro": 0.6047635120147097,
         "mcc": 0.35016728364503336,
         "kappa": 0.2833598012701346,
-        "roc_auc": 0.3455670588445217,
-        "pr_auc": 0.18030177944389003,
         "specificity": 0.9998593114703358,
-        "sensitivity": 0.17886178861788618
+        "sensitivity": 0.17886178861788618,
+        "roc_auc": 0.3455670588445217,
+        "pr_auc": 0.18030177944389003
       },
       "per_class": {
         "normal": {
@@ -652,10 +653,10 @@
         "f2_macro": 0.49982701297824583,
         "mcc": 0.0,
         "kappa": 0.0,
-        "roc_auc": 0.5,
-        "pr_auc": 0.0017274795651807534,
         "specificity": 1.0,
-        "sensitivity": 0.0
+        "sensitivity": 0.0,
+        "roc_auc": 0.5,
+        "pr_auc": 0.0017274795651807534
       },
       "per_class": {
         "normal": {
@@ -689,8 +690,8 @@
       },
       "roc_auc": 0.5,
       "pr_auc": 0.0017274795651807534,
-      "mean_confidence": 1.0,
-      "median_confidence": 1.0
+      "mean_confidence": NaN,
+      "median_confidence": NaN
     }
   ],
   "by_metric": {
@@ -1151,7 +1152,7 @@
   },
   "artifacts": {
     "model_joblib": "models/classification/credit_fraud/credit_fraud_randomforest.joblib",
-    "model_meta": "models/classification/credit_fraud/credit_fraud_randomforest_20261006_0907.json",
+    "model_meta": "models/classification/credit_fraud/credit_fraud_randomforest_20261006_1448.json",
     "metrics_csv": "artifacts/classification/credit_fraud/metrics_all_models.csv",
     "metrics_json": "artifacts/classification/credit_fraud/metrics_all_models.json"
   }

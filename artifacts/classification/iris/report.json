@@ -19,7 +19,7 @@
       "petal width (cm)"
     ],
     "seed": 42,
-    "generated_at": "2026-10-06T08:45:03.527380",
+    "generated_at": "2026-10-06T13:58:07.918354",
     "n_samples": 150,
     "n_features": 4,
     "n_classes": 3,
@@ -41,7 +41,7 @@
     "narrative": {
       "context": "Ирисы Фишера: 150 образцов, 3 класса по 50 штук. Признаки — длина/ширина чашелистика и лепестка. Классы сбалансированы, поэтому accuracy, balanced accuracy, macro-F1 и weighted-F1 совпадают: нет класса-«любимчика», за счёт которого можно накрутить точность.",
       "hero_metric": "macro-F1",
-      "main_conclusion": "Лучшая модель — GradBoost: macro-F1 = 0.9743, accuracy = 0.9737, MCC = 0.9615. Точности по классам различаются мало (см. per_class_accuracy), ROC AUC OvR близка к 1.0 — классы хорошо разделимы как по argmax, так и по вероятностям. При таком балансе accuracy — честная метрика, дополнительная робастность через macro-F1 нужна для симметрии с несбалансированными задачами.",
+      "main_conclusion": "Лучшая модель — GradBoost: macro-F1 = 0.9743, accuracy = 0.9737, ROC AUC OvR (macro) = 0.9908, MCC = 0.9615. Точности по классам различаются мало (см. per_class_accuracy), ROC AUC OvR близка к 1.0 — классы хорошо разделимы как по argmax, так и по вероятностям. При таком балансе accuracy — честная метрика, дополнительная робастность через macro-F1 нужна для симметрии с несбалансированными задачами.",
       "rules": {
         "balance_ok": "accuracy ≈ macro-F1 (|Δ| < 0.05) → данные сбалансированы",
         "mcc_close_to_1": "MCC и kappa > 0.9 → модель сильно лучше случайного угадывания",
@@ -53,7 +53,7 @@
     "best_model": "GradBoost",
     "best_metric": "f1_macro",
     "best_metric_value": 0.974320987654321,
-    "verdict": "Лучшая по macro-F1 = GradBoost (0.9743 · accuracy 0.9737 · MCC 0.9615)",
+    "verdict": "Лучшая по macro-F1 = GradBoost (0.9743 · accuracy 0.9737 · ROC AUC OvR 0.9908 · MCC 0.9615)",
     "diagnostic_verdict": {
       "is_balanced": true,
       "accuracy_vs_balanced_accuracy_gap": 0.0006747638326586314,
@@ -85,7 +85,11 @@
         "f0.5_macro": 0.923734853884533,
         "f2_macro": 0.9228219696969697,
         "mcc": 0.8824146296699634,
-        "kappa": 0.8814968814968815
+        "kappa": 0.8814968814968815,
+        "roc_auc_ovr_macro": 0.9958974358974361,
+        "roc_auc_ovr_weighted": 0.9957894736842107,
+        "roc_auc_ovo_macro": 0.9960552268244576,
+        "pr_auc_macro": 0.9927773081619234
       },
       "per_class": {
         "setosa": {
@@ -146,7 +150,11 @@
         "f0.5_macro": 0.8997035968917727,
         "f2_macro": 0.8963910605701649,
         "mcc": 0.8455188525375822,
-        "kappa": 0.841995841995842
+        "kappa": 0.841995841995842,
+        "roc_auc_ovr_macro": 0.9887179487179486,
+        "roc_auc_ovr_weighted": 0.988421052631579,
+        "roc_auc_ovo_macro": 0.9889053254437871,
+        "pr_auc_macro": 0.9827539981386134
       },
       "per_class": {
         "setosa": {
@@ -207,7 +215,11 @@
         "f0.5_macro": 0.9752118476280985,
         "f2_macro": 0.9741161616161617,
         "mcc": 0.9614989596875545,
-        "kappa": 0.9604989604989606
+        "kappa": 0.9604989604989606,
+        "roc_auc_ovr_macro": 0.9907692307692307,
+        "roc_auc_ovr_weighted": 0.9905263157894737,
+        "roc_auc_ovo_macro": 0.9910420775805391,
+        "pr_auc_macro": 0.9846058499904653
       },
       "per_class": {
         "setosa": {
@@ -265,6 +277,10 @@
     "f1_weighted": "GradBoost",
     "f0.5_macro": "GradBoost",
     "f2_macro": "GradBoost",
+    "roc_auc_ovr_macro": "LogReg",
+    "roc_auc_ovr_weighted": "LogReg",
+    "roc_auc_ovo_macro": "LogReg",
+    "pr_auc_macro": "LogReg",
     "mcc": "GradBoost",
     "kappa": "GradBoost"
   },
@@ -396,6 +412,6 @@
   },
   "artifacts": {
     "model_joblib": "models/classification/iris/iris_gradboost.joblib",
-    "model_meta": "models/classification/iris/iris_gradboost_20261006_0845.json"
+    "model_meta": "models/classification/iris/iris_gradboost_20261006_1358.json"
   }
 }

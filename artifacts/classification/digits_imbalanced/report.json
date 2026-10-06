@@ -2,7 +2,7 @@
   "meta": {
     "task": "digits_imbalanced",
     "title": "Digits · многоклассовый дисбаланс",
-    "subtitle": "Один редкий класс из десяти — weighted-F1 врёт, macro-F1 нет",
+    "subtitle": "Один редкий класс из десяти — accuracy и weighted-F1 его не видят",
     "dataset": "sklearn.datasets.load_digits",
     "target": "digit",
     "target_unit": "",
@@ -86,7 +86,7 @@
       "pix_63"
     ],
     "seed": 42,
-    "generated_at": "2026-10-06T09:10:27.498445",
+    "generated_at": "2026-10-06T14:58:22.340940",
     "n_samples": 1654,
     "n_features": 64,
     "n_classes": 10,
@@ -105,6 +105,18 @@
         "8": 31,
         "9": 180
       },
+      "class_distribution_train": {
+        "0": 134,
+        "1": 136,
+        "2": 133,
+        "3": 137,
+        "4": 136,
+        "5": 136,
+        "6": 136,
+        "7": 134,
+        "8": 23,
+        "9": 135
+      },
       "class_distribution_test": {
         "0": 44,
         "1": 46,
@@ -121,20 +133,21 @@
       "imbalance_ratio": 5.903225806451613,
       "rare_class": "8",
       "rare_class_support": 31,
+      "rare_class_support_train": 23,
       "rare_class_support_test": 8,
       "rare_class_ratio": 0.018742442563482467
     },
     "narrative": {
       "context": "Digits: 1797 изображений 8×8 пикселей (64 признака), 10 классов-цифр. Класс «8» искусственно разрежен до 15% исходного размера — получаем 9 «нормальных» классов по ~180 образцов и один редкий (~31). Это реалистичная ситуация: один редкий, но важный класс, который нельзя потерять.",
       "hero_metric": "macro-F1",
-      "why_macro_f1": "macro-F1 даёт всем 10 классам равный вес 1/10. Если модель путает редкий класс 8, его F1 проваливается — и это видно в итоговой цифре. weighted-F1 взвешивает по количеству образцов, поэтому редкий класс весит ~3% и его провал почти не влияет на итог.",
-      "why_not_weighted": "weighted-F1 лучшей модели = 0.9800 — выглядит почти идеально. Но macro-F1 = 0.9627, разрыв +0.0173. Именно этот разрыв и есть «цена» того, что редкий класс модель часто путает с соседним.",
-      "main_conclusion": "Лучшая модель по macro-F1 — LogReg(bal): macro-F1=0.9627, weighted-F1=0.9800, accuracy=0.9807. Recall класса «8» = 0.625 против среднего 0.988 по остальным классам — разрыв 0.363. weighted-F1 этого разрыва почти не видит. При таком дисбалансе macro-F1 и per-class recall — обязательные метрики.",
+      "why_macro_f1": "macro-F1 даёт всем 10 классам равный вес 1/10. Если модель путает редкий класс 8, его F1 проваливается — и это отражается в итоговой цифре, пусть и слабо при таком сильном дисбалансе.",
+      "why_not_weighted": "weighted-F1 лучшей модели = 0.9800 — выглядит почти идеально. Но macro-F1 = 0.9627, разрыв +0.0173. Сам по себе этот разрыв мал — редкий класс физически весит 1.9%. Настоящая цена дисбаланса видна в per-class recall: редкий класс 0.625 против 0.988 у остальных.",
+      "main_conclusion": "Лучшая модель по macro-F1 — LogReg(bal): macro-F1=0.9627, weighted-F1=0.9800, accuracy=0.9807. Recall класса «8» = 0.625 против среднего 0.988 по остальным классам — разрыв 0.363. accuracy и weighted-F1 этого разрыва почти не видят. При таком дисбалансе обязательны macro-F1 и per-class recall.",
       "rules": {
         "hero_macro": "Hero-метрика macro-F1 — всем классам равный вес",
         "weighted_ignored": "weighted-F1 показываем только для контраста",
         "per_class_recall": "Per-class recall называет класс-виновник",
-        "kappa_universal": "Cohen's κ устойчив к любому дисбалансу"
+        "topk_hint": "Top-3 accuracy показывает, что модель «почти права» на редком классе"
       }
     }
   },
@@ -180,7 +193,9 @@
         "f0.5_macro": 0.9733212995303919,
         "f2_macro": 0.9551821619800739,
         "mcc": 0.9784222988038443,
-        "kappa": 0.9783387835186397
+        "kappa": 0.9783387835186397,
+        "top2_accuracy": 0.9903381642512077,
+        "top3_accuracy": 0.9927536231884058
       },
       "per_class": {
         "0": {
@@ -404,7 +419,9 @@
         "f0.5_macro": 0.9677716518464509,
         "f2_macro": 0.9448439675926309,
         "mcc": 0.978449205331505,
-        "kappa": 0.9783333987518154
+        "kappa": 0.9783333987518154,
+        "top2_accuracy": 0.9855072463768116,
+        "top3_accuracy": 0.9927536231884058
       },
       "per_class": {
         "0": {
@@ -626,7 +643,9 @@
     "f0.5_macro": "LogReg(bal)",
     "f2_macro": "LogReg(bal)",
     "mcc": "RandomForest(bal)",
-    "kappa": "LogReg(bal)"
+    "kappa": "LogReg(bal)",
+    "top2_accuracy": "LogReg(bal)",
+    "top3_accuracy": "LogReg(bal)"
   },
   "per_class_recall": [
     {
@@ -814,7 +833,22 @@
       "true": "8",
       "predicted": "9",
       "correct": false,
-      "is_rare_true": true
+      "is_rare_true": true,
+      "confidence": 0.5401074608960426,
+      "top3": [
+        {
+          "class": "9",
+          "proba": 0.5401074608960426
+        },
+        {
+          "class": "8",
+          "proba": 0.405599813513024
+        },
+        {
+          "class": "3",
+          "proba": 0.0499703981128182
+        }
+      ]
     },
     {
       "index": 190,
@@ -887,7 +921,22 @@
       "true": "8",
       "predicted": "3",
       "correct": false,
-      "is_rare_true": true
+      "is_rare_true": true,
+      "confidence": 0.41334422679111354,
+      "top3": [
+        {
+          "class": "3",
+          "proba": 0.41334422679111354
+        },
+        {
+          "class": "9",
+          "proba": 0.24026764558329458
+        },
+        {
+          "class": "8",
+          "proba": 0.19234872885351445
+        }
+      ]
     },
     {
       "index": 352,
@@ -960,7 +1009,22 @@
       "true": "8",
       "predicted": "3",
       "correct": false,
-      "is_rare_true": true
+      "is_rare_true": true,
+      "confidence": 0.3629204738282197,
+      "top3": [
+        {
+          "class": "3",
+          "proba": 0.3629204738282197
+        },
+        {
+          "class": "5",
+          "proba": 0.34627216585547266
+        },
+        {
+          "class": "9",
+          "proba": 0.21295298970298587
+        }
+      ]
     },
     {
       "index": 214,
@@ -1033,7 +1097,22 @@
       "true": "8",
       "predicted": "8",
       "correct": true,
-      "is_rare_true": true
+      "is_rare_true": true,
+      "confidence": 0.7830935343166815,
+      "top3": [
+        {
+          "class": "8",
+          "proba": 0.7830935343166815
+        },
+        {
+          "class": "9",
+          "proba": 0.20814918702105273
+        },
+        {
+          "class": "3",
+          "proba": 0.005446902016265155
+        }
+      ]
     },
     {
       "index": 307,
@@ -1106,7 +1185,22 @@
       "true": "8",
       "predicted": "8",
       "correct": true,
-      "is_rare_true": true
+      "is_rare_true": true,
+      "confidence": 0.9666809672021727,
+      "top3": [
+        {
+          "class": "8",
+          "proba": 0.9666809672021727
+        },
+        {
+          "class": "9",
+          "proba": 0.026926551119035188
+        },
+        {
+          "class": "3",
+          "proba": 0.003148830583278816
+        }
+      ]
     },
     {
       "index": 369,
@@ -1179,7 +1273,22 @@
       "true": "8",
       "predicted": "8",
       "correct": true,
-      "is_rare_true": true
+      "is_rare_true": true,
+      "confidence": 0.9887923818234907,
+      "top3": [
+        {
+          "class": "8",
+          "proba": 0.9887923818234907
+        },
+        {
+          "class": "9",
+          "proba": 0.009413149617009989
+        },
+        {
+          "class": "0",
+          "proba": 0.0008768575000565526
+        }
+      ]
     },
     {
       "index": 137,
@@ -1252,7 +1361,22 @@
       "true": "2",
       "predicted": "1",
       "correct": false,
-      "is_rare_true": false
+      "is_rare_true": false,
+      "confidence": 0.5973817085766283,
+      "top3": [
+        {
+          "class": "1",
+          "proba": 0.5973817085766283
+        },
+        {
+          "class": "2",
+          "proba": 0.38261293440694644
+        },
+        {
+          "class": "9",
+          "proba": 0.01903624452524024
+        }
+      ]
     },
     {
       "index": 155,
@@ -1325,7 +1449,22 @@
       "true": "6",
       "predicted": "0",
       "correct": false,
-      "is_rare_true": false
+      "is_rare_true": false,
+      "confidence": 0.5188075424444938,
+      "top3": [
+        {
+          "class": "0",
+          "proba": 0.5188075424444938
+        },
+        {
+          "class": "6",
+          "proba": 0.29200765580292676
+        },
+        {
+          "class": "8",
+          "proba": 0.07903877300855977
+        }
+      ]
     }
   ],
   "charts": {
@@ -1336,7 +1475,7 @@
   },
   "artifacts": {
     "model_joblib": "models/classification/digits_imbalanced/digits_logreg.joblib",
-    "model_meta": "models/classification/digits_imbalanced/digits_logreg_20261006_0910.json",
+    "model_meta": "models/classification/digits_imbalanced/digits_logreg_20261006_1458.json",
     "metrics_csv": "artifacts/classification/digits_imbalanced/metrics_all_models.csv",
     "metrics_json": "artifacts/classification/digits_imbalanced/metrics_all_models.json",
     "per_class_csv": "artifacts/classification/digits_imbalanced/per_class_recall.csv"

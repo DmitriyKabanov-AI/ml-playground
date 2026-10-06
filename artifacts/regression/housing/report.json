@@ -17,7 +17,7 @@
       "Longitude"
     ],
     "seed": 42,
-    "generated_at": "2026-10-06T07:49:20.330394",
+    "generated_at": "2026-10-06T15:27:21.375509",
     "n_samples": 20640,
     "n_features": 8,
     "target_stats": {
@@ -149,17 +149,17 @@
       "metrics": {
         "mae": 0.3259970447262191,
         "rmse": 0.504018445179664,
-        "mape": 18.756433555552498,
+        "mape": 18.7564335555525,
         "r2": 0.8061409855247303,
         "medae": 0.1966591369047619,
-        "bias": 0.008939739683673066,
+        "bias": 0.008939739683673068,
         "max_error": 3.1758693750000004,
         "evs": 0.8062019733132291
       },
       "diagnostics": {
         "rmse_over_mae": 1.5460828658828853,
         "mae_over_medae": 1.657675559127939,
-        "abs_bias": 0.008939739683673066
+        "abs_bias": 0.008939739683673068
       },
       "cv": {
         "r2_mean": 0.8056,
@@ -203,10 +203,10 @@
     "max_error": "RandomForest"
   },
   "residual_diagnostics": {
-    "bias": 0.008939739683673066,
-    "median_residual": 0.04723473069985612,
+    "bias": 0.008939739683673068,
+    "median_residual": 0.04723473069985623,
     "std_residual": 0.5039391571764533,
-    "skew": -0.8683547668994073,
+    "skew": -0.8683547668994074,
     "kurtosis": 6.09336403056874,
     "pct_beyond_2mae": 13.662790697674417
   },
@@ -494,6 +494,6 @@
   },
   "artifacts": {
     "model": "models/regression/housing/housing_randomforest.joblib",
-    "meta": "models/regression/housing/housing_randomforest_20261006_0748.json"
+    "meta": "models/regression/housing/housing_randomforest_20261006_1527.json"
   }
 }
