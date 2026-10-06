@@ -81,13 +81,22 @@ def register_dataset(cur, task: str, meta: dict) -> int:
     version = str(meta.get("version") or meta.get("saved_at", "unknown"))[:10]
     name = str(meta.get("dataset") or meta.get("station_label") or task)
 
+    # UPSERT: одна строка на (name, version). Разные модели одной задачи
+    # переиспользуют один и тот же датасет.
     cur.execute("""
         INSERT INTO datasets (name, version, path, meta)
         VALUES (%s, %s, %s, %s)
-        RETURNING id
+        ON CONFLICT (name, version) DO NOTHING
     """, (name, version, meta.get("dataset_path"), Json({})))
-    return cur.fetchone()[0]
 
+    cur.execute("""
+        SELECT id FROM datasets WHERE name = %s AND version = %s
+    """, (name, version))
+    row = cur.fetchone()
+    if row is None:
+        # сюда мы попасть не должны, но пусть будет явная ошибка
+        raise RuntimeError(f"Не удалось получить dataset id для ({name}, {version})")
+    return row[0]
 
 def register_model(cur, task: str, meta: dict, json_path: Path):
     model_name = str(meta.get("model") or json_path.stem)

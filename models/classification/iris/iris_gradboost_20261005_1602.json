@@ -1,0 +1,30 @@
+{
+  "task": "iris_balanced",
+  "model": "GradBoost",
+  "features": [
+    "sepal length (cm)",
+    "sepal width (cm)",
+    "petal length (cm)",
+    "petal width (cm)"
+  ],
+  "classes": [
+    "setosa",
+    "versicolor",
+    "virginica"
+  ],
+  "metrics": {
+    "accuracy": 0.9736842105263158,
+    "balanced_accuracy": 0.9743589743589745,
+    "precision_macro": 0.9761904761904763,
+    "recall_macro": 0.9743589743589745,
+    "f1_macro": 0.974320987654321,
+    "f1_weighted": 0.9736452241715399,
+    "f0.5_macro": 0.9752118476280985,
+    "f2_macro": 0.9741161616161617,
+    "mcc": 0.9614989596875545,
+    "kappa": 0.9604989604989606
+  },
+  "seed": 42,
+  "saved_at": "2026-10-05T16:02:45.855560",
+  "model_path": "models/classification/iris/iris_gradboost.joblib"
+}

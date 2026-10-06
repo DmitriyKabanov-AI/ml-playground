@@ -45,7 +45,9 @@ FROM python:3.11-slim AS api
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    APP_DIR=/app \
+    PYTHONPATH=/app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
@@ -58,9 +60,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Код API + скрипты (run_api.py + register_models.py)
-COPY backend/ ./backend/
+# Код API + скрипты: main.py, run_api.py, register_models.py
 COPY scripts/ ./scripts/
+
+# Страховка: пакет `scripts` должен быть импортируемым,
+# иначе uvicorn не найдёт `scripts.main:app`.
+RUN touch scripts/__init__.py
 
 EXPOSE 8000
 

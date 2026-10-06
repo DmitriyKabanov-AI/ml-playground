@@ -2,9 +2,9 @@
 Entrypoint для API-контейнера:
   1. Ждёт готовности PostgreSQL
   2. Регистрирует модели в БД (идемпотентно)
-  3. Запускает uvicorn
+  3. Запускает uvicorn с приложением scripts/main.py
 
-Запуск: python scripts/run_api.py
+Запуск: python scripts/run_api.py   (cwd = /app)
 """
 import os
 import subprocess
@@ -13,6 +13,9 @@ import time
 from pathlib import Path
 
 import psycopg2
+
+# Корень проекта внутри контейнера. Нужен, чтобы uvicorn нашёл пакет `scripts`.
+APP_DIR = os.environ.get("APP_DIR", "/app")
 
 
 def wait_for_db(timeout_s: int = 60, interval_s: int = 2) -> None:
@@ -23,7 +26,7 @@ def wait_for_db(timeout_s: int = 60, interval_s: int = 2) -> None:
     password = os.environ["DB_PASSWORD"]
     dbname = os.environ["DB_NAME"]
 
-    print(f"=== ML Hub API entrypoint ===")
+    print("=== ML Hub API entrypoint ===")
     print(f"DB: {host}:{port}/{dbname}")
     print("Ждём PostgreSQL...")
 
@@ -50,7 +53,7 @@ def register_models() -> None:
     """Запускает scripts/register_models.py как отдельный процесс."""
     print()
     print("=== Регистрация моделей ===")
-    script = Path("/app/scripts/register_models.py")
+    script = Path(APP_DIR) / "scripts" / "register_models.py"
     if not script.exists():
         print(f"WARN: {script} не найден, пропускаем")
         return
@@ -65,10 +68,13 @@ def register_models() -> None:
 def start_api() -> None:
     """Запускает uvicorn через exec — процесс API становится главным."""
     print()
-    print("=== Стартуем uvicorn ===")
+    print("=== Стартуем uvicorn (scripts.main:app) ===")
+    # --app-dir добавляет корень проекта в sys.path,
+    # чтобы `scripts` был импортируемым пакетом независимо от cwd.
     os.execvp("uvicorn", [
         "uvicorn",
-        "backend.main:app",
+        "scripts.main:app",
+        "--app-dir", APP_DIR,
         "--host", "0.0.0.0",
         "--port", "8000",
         "--workers", "1",
