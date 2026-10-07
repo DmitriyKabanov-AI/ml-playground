@@ -1,0 +1,499 @@
+{
+  "meta": {
+    "task": "housing",
+    "title": "California Housing",
+    "subtitle": "Регрессия, 8 признаков",
+    "dataset": "sklearn.fetch_california_housing",
+    "target": "MedHouseVal",
+    "target_unit": "$100k",
+    "features": [
+      "MedInc",
+      "HouseAge",
+      "AveRooms",
+      "AveBedrms",
+      "Population",
+      "AveOccup",
+      "Latitude",
+      "Longitude"
+    ],
+    "seed": 42,
+    "generated_at": "2026-10-06T15:27:21.375509",
+    "n_samples": 20640,
+    "n_features": 8,
+    "target_stats": {
+      "count": 20640.0,
+      "mean": 2.068558169089147,
+      "std": 1.1539561587441387,
+      "min": 0.14999,
+      "25%": 1.196,
+      "50%": 1.797,
+      "75%": 2.6472499999999997,
+      "max": 5.00001
+    },
+    "narrative": {
+      "context": "Предсказываем медианную стоимость дома в округе Калифорнии.",
+      "hero_metric": "MAE",
+      "main_conclusion": "RandomForest и GradBoost выигрывают по разным метрикам. Разница <3%, но она системна. Причина «странностей» — обрезка target на 5.0."
+    }
+  },
+  "headline": {
+    "best_model": "RandomForest",
+    "best_metric": "mae",
+    "best_metric_value": 0.3259970447262191,
+    "verdict": "RF лучше по MAE/MAPE/MedAE/MaxErr, GB — по R²/RMSE."
+  },
+  "models": [
+    {
+      "name": "Linear",
+      "is_best": false,
+      "metrics": {
+        "mae": 0.5332001304956566,
+        "rmse": 0.7455813830127763,
+        "mape": 31.952187413615214,
+        "r2": 0.575787706032451,
+        "medae": 0.41023300084962144,
+        "bias": -0.003479297903749563,
+        "max_error": 9.875331025900937,
+        "evs": 0.5757969439986921
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.3983143295927039,
+        "mae_over_medae": 1.2997494823462803,
+        "abs_bias": 0.003479297903749563
+      },
+      "cv": {
+        "r2_mean": 0.6115,
+        "r2_std": 0.0124,
+        "mae_mean": 0.5291,
+        "mae_std": 0.0094
+      }
+    },
+    {
+      "name": "Ridge",
+      "is_best": false,
+      "metrics": {
+        "mae": 0.5331931195789733,
+        "rmse": 0.7455567442814782,
+        "mape": 31.9511744715612,
+        "r2": 0.575815742891368,
+        "medae": 0.4101338731419485,
+        "bias": -0.003475409524502237,
+        "max_error": 9.867735474575898,
+        "evs": 0.5758249602208916
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.398286506154082,
+        "mae_over_medae": 1.3000465323536778,
+        "abs_bias": 0.003475409524502237
+      },
+      "cv": {
+        "r2_mean": 0.6115,
+        "r2_std": 0.0124,
+        "mae_mean": 0.5291,
+        "mae_std": 0.0094
+      }
+    },
+    {
+      "name": "Lasso",
+      "is_best": false,
+      "metrics": {
+        "mae": 0.5331447750392391,
+        "rmse": 0.7446417662764214,
+        "mape": 31.934909183638123,
+        "r2": 0.5768562568705682,
+        "medae": 0.40986862536186897,
+        "bias": -0.0034414553980923017,
+        "max_error": 9.579559133327214,
+        "evs": 0.5768652949765743
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.3966971095639384,
+        "mae_over_medae": 1.3007699102816928,
+        "abs_bias": 0.0034414553980923017
+      },
+      "cv": {
+        "r2_mean": 0.6115,
+        "r2_std": 0.0123,
+        "mae_mean": 0.5291,
+        "mae_std": 0.0093
+      }
+    },
+    {
+      "name": "kNN(7)",
+      "is_best": false,
+      "metrics": {
+        "mae": 0.4440386652131783,
+        "rmse": 0.6544719268995516,
+        "mape": 24.65661698161791,
+        "r2": 0.673129908134017,
+        "medae": 0.2927149999999994,
+        "bias": -0.016593692898671103,
+        "max_error": 4.16001,
+        "evs": 0.6733400338646762
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.4739075179080328,
+        "mae_over_medae": 1.5169658719682257,
+        "abs_bias": 0.016593692898671103
+      },
+      "cv": {
+        "r2_mean": 0.688,
+        "r2_std": 0.0087,
+        "mae_mean": 0.4426,
+        "mae_std": 0.0049
+      }
+    },
+    {
+      "name": "RandomForest",
+      "is_best": true,
+      "metrics": {
+        "mae": 0.3259970447262191,
+        "rmse": 0.504018445179664,
+        "mape": 18.7564335555525,
+        "r2": 0.8061409855247303,
+        "medae": 0.1966591369047619,
+        "bias": 0.008939739683673068,
+        "max_error": 3.1758693750000004,
+        "evs": 0.8062019733132291
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.5460828658828853,
+        "mae_over_medae": 1.657675559127939,
+        "abs_bias": 0.008939739683673068
+      },
+      "cv": {
+        "r2_mean": 0.8056,
+        "r2_std": 0.0065,
+        "mae_mean": 0.3331,
+        "mae_std": 0.0055
+      }
+    },
+    {
+      "name": "GradBoost",
+      "is_best": false,
+      "metrics": {
+        "mae": 0.33258380819931666,
+        "rmse": 0.4940608400036786,
+        "mape": 19.39957164174253,
+        "r2": 0.8137252432802953,
+        "medae": 0.2168712335608448,
+        "bias": 0.003525447896134886,
+        "max_error": 3.6375575922143044,
+        "evs": 0.8137347279397219
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.485522830105996,
+        "mae_over_medae": 1.5335542789081238,
+        "abs_bias": 0.003525447896134886
+      },
+      "cv": {
+        "r2_mean": 0.8193,
+        "r2_std": 0.0049,
+        "mae_mean": 0.3336,
+        "mae_std": 0.0063
+      }
+    }
+  ],
+  "by_metric": {
+    "mae": "RandomForest",
+    "rmse": "GradBoost",
+    "mape": "RandomForest",
+    "r2": "GradBoost",
+    "medae": "RandomForest",
+    "max_error": "RandomForest"
+  },
+  "residual_diagnostics": {
+    "bias": 0.008939739683673068,
+    "median_residual": 0.04723473069985623,
+    "std_residual": 0.5039391571764533,
+    "skew": -0.8683547668994074,
+    "kurtosis": 6.09336403056874,
+    "pct_beyond_2mae": 13.662790697674417
+  },
+  "feature_importance": {
+    "RandomForest": [
+      {
+        "name": "MedInc",
+        "value": 0.5355863420724553
+      },
+      {
+        "name": "HouseAge",
+        "value": 0.05333150189394008
+      },
+      {
+        "name": "AveRooms",
+        "value": 0.04227852422881402
+      },
+      {
+        "name": "AveBedrms",
+        "value": 0.02658749082797917
+      },
+      {
+        "name": "Population",
+        "value": 0.028045919163380176
+      },
+      {
+        "name": "AveOccup",
+        "value": 0.13801595193034252
+      },
+      {
+        "name": "Latitude",
+        "value": 0.08831433699664015
+      },
+      {
+        "name": "Longitude",
+        "value": 0.0878399328864487
+      }
+    ],
+    "GradBoost": [
+      {
+        "name": "MedInc",
+        "value": 0.5819700827270037
+      },
+      {
+        "name": "HouseAge",
+        "value": 0.041049438042753905
+      },
+      {
+        "name": "AveRooms",
+        "value": 0.022896364595117288
+      },
+      {
+        "name": "AveBedrms",
+        "value": 0.007984247788130448
+      },
+      {
+        "name": "Population",
+        "value": 0.0062079477145217995
+      },
+      {
+        "name": "AveOccup",
+        "value": 0.12802503867428192
+      },
+      {
+        "name": "Latitude",
+        "value": 0.10017289799963368
+      },
+      {
+        "name": "Longitude",
+        "value": 0.11169398245855715
+      }
+    ],
+    "Ridge_coef": [
+      {
+        "name": "MedInc",
+        "value": 0.8543267867471541
+      },
+      {
+        "name": "HouseAge",
+        "value": 0.12262397117575999
+      },
+      {
+        "name": "AveRooms",
+        "value": -0.2942103580099375
+      },
+      {
+        "name": "AveBedrms",
+        "value": 0.3390079357063539
+      },
+      {
+        "name": "Population",
+        "value": -0.0022822059559219374
+      },
+      {
+        "name": "AveOccup",
+        "value": -0.0408330158093639
+      },
+      {
+        "name": "Latitude",
+        "value": -0.8961675853212419
+      },
+      {
+        "name": "Longitude",
+        "value": -0.8690707430381528
+      }
+    ]
+  },
+  "sample_predictions": [
+    {
+      "features": {
+        "MedInc": 15.0001,
+        "HouseAge": 52.0,
+        "AveRooms": 7.994475138121547,
+        "AveBedrms": 1.0276243093922652,
+        "Population": 483.0,
+        "AveOccup": 2.6685082872928176,
+        "Latitude": 37.79,
+        "Longitude": -122.44
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 15.0001,
+        "HouseAge": 40.0,
+        "AveRooms": 8.584541062801932,
+        "AveBedrms": 1.0,
+        "Population": 577.0,
+        "AveOccup": 2.78743961352657,
+        "Latitude": 37.46,
+        "Longitude": -122.21
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 10.9237,
+        "HouseAge": 44.0,
+        "AveRooms": 7.837962962962963,
+        "AveBedrms": 1.1064814814814814,
+        "Population": 498.0,
+        "AveOccup": 2.3055555555555554,
+        "Latitude": 34.14,
+        "Longitude": -118.43
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 11.615,
+        "HouseAge": 34.0,
+        "AveRooms": 7.2148337595907925,
+        "AveBedrms": 1.020460358056266,
+        "Population": 843.0,
+        "AveOccup": 2.156010230179028,
+        "Latitude": 34.12,
+        "Longitude": -118.37
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 11.8442,
+        "HouseAge": 31.0,
+        "AveRooms": 8.385678391959798,
+        "AveBedrms": 1.0577889447236182,
+        "Population": 2092.0,
+        "AveOccup": 2.628140703517588,
+        "Latitude": 34.1,
+        "Longitude": -118.45
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 10.6796,
+        "HouseAge": 28.0,
+        "AveRooms": 8.406175771971496,
+        "AveBedrms": 1.0475059382422802,
+        "Population": 1190.0,
+        "AveOccup": 2.826603325415677,
+        "Latitude": 34.14,
+        "Longitude": -118.49
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 15.0001,
+        "HouseAge": 32.0,
+        "AveRooms": 8.84504132231405,
+        "AveBedrms": 1.0351239669421488,
+        "Population": 1318.0,
+        "AveOccup": 2.7231404958677685,
+        "Latitude": 37.44,
+        "Longitude": -122.22
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 10.0743,
+        "HouseAge": 50.0,
+        "AveRooms": 7.868525896414343,
+        "AveBedrms": 0.9760956175298805,
+        "Population": 644.0,
+        "AveOccup": 2.5657370517928286,
+        "Latitude": 37.56,
+        "Longitude": -122.33
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 11.1557,
+        "HouseAge": 24.0,
+        "AveRooms": 7.921875,
+        "AveBedrms": 1.0885416666666667,
+        "Population": 539.0,
+        "AveOccup": 2.8072916666666665,
+        "Latitude": 37.24,
+        "Longitude": -122.04
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "MedInc": 10.5536,
+        "HouseAge": 28.0,
+        "AveRooms": 7.838874680306906,
+        "AveBedrms": 1.0383631713554988,
+        "Population": 1101.0,
+        "AveOccup": 2.815856777493606,
+        "Latitude": 33.77,
+        "Longitude": -118.46
+      },
+      "actual": 5.00001,
+      "predicted": 5.000009999999982,
+      "error": -1.7763568394002505e-14,
+      "abs_error": 1.7763568394002505e-14,
+      "within_mae": true
+    }
+  ],
+  "charts": {
+    "eda": "eda.png",
+    "actual_vs_predicted": "actual_vs_predicted.png",
+    "residuals": "residuals.png",
+    "feature_importance": "feature_importance.png"
+  },
+  "artifacts": {
+    "model": "models/regression/housing/housing_randomforest.joblib",
+    "meta": "models/regression/housing/housing_randomforest_20261006_1527.json"
+  }
+}

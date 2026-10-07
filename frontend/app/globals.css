@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 248 249 252;
+  --surface: 255 255 255;
+  --border: 226 229 237;
+}
+.dark {
+  --bg: 10 11 16;
+  --surface: 18 19 28;
+  --border: 38 40 54;
+}
+
+html, body { height: 100%; }
+body {
+  @apply bg-bg text-slate-900 dark:text-slate-100 antialiased;
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(99,102,241,0.08), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(139,92,246,0.08), transparent 40%);
+  background-attachment: fixed;
+}
+
+.glass {
+  @apply bg-surface/70 backdrop-blur-xl border border-border;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.12);
+}
+.dark .glass { background-color: rgb(18 19 28 / 0.75); }
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-primary-500/40 rounded-full; }
+
+.skeleton {
+  @apply bg-gradient-to-r from-border via-surface to-border bg-[length:1000px_100%] animate-shimmer rounded-lg;
+}
+
+::selection { background: rgba(99,102,241,0.35); }

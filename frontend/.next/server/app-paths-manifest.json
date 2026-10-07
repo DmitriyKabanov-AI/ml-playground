@@ -1,0 +1,7 @@
+{
+  "/breast-cancer-fn/page": "app/breast-cancer-fn/page.js",
+  "/breast-cancer-fp/page": "app/breast-cancer-fp/page.js",
+  "/iris/page": "app/iris/page.js",
+  "/credit-fraud/page": "app/credit-fraud/page.js",
+  "/page": "app/page.js"
+}

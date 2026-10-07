@@ -1,0 +1,417 @@
+{
+  "meta": {
+    "task": "iris_balanced",
+    "title": "Iris · Balanced Multi-class",
+    "subtitle": "При балансе классов accuracy = macro-F1 — метрики согласованы",
+    "dataset": "sklearn.datasets.load_iris",
+    "target": "species",
+    "target_unit": "",
+    "target_format": "category",
+    "classes": [
+      "setosa",
+      "versicolor",
+      "virginica"
+    ],
+    "features": [
+      "sepal length (cm)",
+      "sepal width (cm)",
+      "petal length (cm)",
+      "petal width (cm)"
+    ],
+    "seed": 42,
+    "generated_at": "2026-10-06T13:58:07.918354",
+    "n_samples": 150,
+    "n_features": 4,
+    "n_classes": 3,
+    "n_train": 112,
+    "n_test": 38,
+    "target_stats": {
+      "class_distribution": {
+        "setosa": 50,
+        "versicolor": 50,
+        "virginica": 50
+      },
+      "class_distribution_test": {
+        "setosa": 12,
+        "versicolor": 13,
+        "virginica": 13
+      },
+      "is_balanced": true
+    },
+    "narrative": {
+      "context": "Ирисы Фишера: 150 образцов, 3 класса по 50 штук. Признаки — длина/ширина чашелистика и лепестка. Классы сбалансированы, поэтому accuracy, balanced accuracy, macro-F1 и weighted-F1 совпадают: нет класса-«любимчика», за счёт которого можно накрутить точность.",
+      "hero_metric": "macro-F1",
+      "main_conclusion": "Лучшая модель — GradBoost: macro-F1 = 0.9743, accuracy = 0.9737, ROC AUC OvR (macro) = 0.9908, MCC = 0.9615. Точности по классам различаются мало (см. per_class_accuracy), ROC AUC OvR близка к 1.0 — классы хорошо разделимы как по argmax, так и по вероятностям. При таком балансе accuracy — честная метрика, дополнительная робастность через macro-F1 нужна для симметрии с несбалансированными задачами.",
+      "rules": {
+        "balance_ok": "accuracy ≈ macro-F1 (|Δ| < 0.05) → данные сбалансированы",
+        "mcc_close_to_1": "MCC и kappa > 0.9 → модель сильно лучше случайного угадывания",
+        "roc_auc_near_1": "ROC AUC OvR > 0.98 → классы хорошо разделимы"
+      }
+    }
+  },
+  "headline": {
+    "best_model": "GradBoost",
+    "best_metric": "f1_macro",
+    "best_metric_value": 0.974320987654321,
+    "verdict": "Лучшая по macro-F1 = GradBoost (0.9743 · accuracy 0.9737 · ROC AUC OvR 0.9908 · MCC 0.9615)",
+    "diagnostic_verdict": {
+      "is_balanced": true,
+      "accuracy_vs_balanced_accuracy_gap": 0.0006747638326586314,
+      "accuracy_vs_macro_f1_gap": 0.0006367771280051393,
+      "mcc": 0.9614989596875545,
+      "kappa": 0.9604989604989606,
+      "roc_auc_ovr_macro": 0.9907692307692307,
+      "mean_confidence": 0.9868079208747053,
+      "per_class_accuracy": {
+        "setosa": 1.0,
+        "versicolor": 0.9230769230769231,
+        "virginica": 1.0
+      },
+      "n_errors_on_test": 1,
+      "metrics_are_consistent": true
+    }
+  },
+  "models": [
+    {
+      "name": "LogReg",
+      "is_best": false,
+      "metrics": {
+        "accuracy": 0.9210526315789473,
+        "balanced_accuracy": 0.923076923076923,
+        "precision_macro": 0.9246031746031745,
+        "recall_macro": 0.923076923076923,
+        "f1_macro": 0.9229629629629629,
+        "f1_weighted": 0.9209356725146198,
+        "f0.5_macro": 0.923734853884533,
+        "f2_macro": 0.9228219696969697,
+        "mcc": 0.8824146296699634,
+        "kappa": 0.8814968814968815,
+        "roc_auc_ovr_macro": 0.9958974358974361,
+        "roc_auc_ovr_weighted": 0.9957894736842107,
+        "roc_auc_ovo_macro": 0.9960552268244576,
+        "pr_auc_macro": 0.9927773081619234
+      },
+      "per_class": {
+        "setosa": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 12
+        },
+        "versicolor": {
+          "precision": 0.8571428571428571,
+          "recall": 0.9230769230769231,
+          "f1": 0.8888888888888888,
+          "support": 13
+        },
+        "virginica": {
+          "precision": 0.9166666666666666,
+          "recall": 0.8461538461538461,
+          "f1": 0.88,
+          "support": 13
+        }
+      },
+      "confusion_matrix": [
+        [
+          12,
+          0,
+          0
+        ],
+        [
+          0,
+          12,
+          1
+        ],
+        [
+          0,
+          2,
+          11
+        ]
+      ],
+      "roc_auc_per_class": {
+        "setosa": 1.0,
+        "versicolor": 0.9938461538461539,
+        "virginica": 0.9938461538461538
+      },
+      "roc_auc_ovr_macro": 0.9958974358974361,
+      "mean_confidence": 0.843553496947174,
+      "median_confidence": 0.914095641881426
+    },
+    {
+      "name": "RandomForest",
+      "is_best": false,
+      "metrics": {
+        "accuracy": 0.8947368421052632,
+        "balanced_accuracy": 0.8974358974358975,
+        "precision_macro": 0.903030303030303,
+        "recall_macro": 0.8974358974358975,
+        "f1_macro": 0.8968253968253969,
+        "f1_weighted": 0.894110275689223,
+        "f0.5_macro": 0.8997035968917727,
+        "f2_macro": 0.8963910605701649,
+        "mcc": 0.8455188525375822,
+        "kappa": 0.841995841995842,
+        "roc_auc_ovr_macro": 0.9887179487179486,
+        "roc_auc_ovr_weighted": 0.988421052631579,
+        "roc_auc_ovo_macro": 0.9889053254437871,
+        "pr_auc_macro": 0.9827539981386134
+      },
+      "per_class": {
+        "setosa": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 12
+        },
+        "versicolor": {
+          "precision": 0.8,
+          "recall": 0.9230769230769231,
+          "f1": 0.8571428571428571,
+          "support": 13
+        },
+        "virginica": {
+          "precision": 0.9090909090909091,
+          "recall": 0.7692307692307693,
+          "f1": 0.8333333333333334,
+          "support": 13
+        }
+      },
+      "confusion_matrix": [
+        [
+          12,
+          0,
+          0
+        ],
+        [
+          0,
+          12,
+          1
+        ],
+        [
+          0,
+          3,
+          10
+        ]
+      ],
+      "roc_auc_per_class": {
+        "setosa": 1.0,
+        "versicolor": 0.9784615384615385,
+        "virginica": 0.9876923076923076
+      },
+      "roc_auc_ovr_macro": 0.9887179487179486,
+      "mean_confidence": 0.9489473684210525,
+      "median_confidence": 0.9966666666666667
+    },
+    {
+      "name": "GradBoost",
+      "is_best": true,
+      "metrics": {
+        "accuracy": 0.9736842105263158,
+        "balanced_accuracy": 0.9743589743589745,
+        "precision_macro": 0.9761904761904763,
+        "recall_macro": 0.9743589743589745,
+        "f1_macro": 0.974320987654321,
+        "f1_weighted": 0.9736452241715399,
+        "f0.5_macro": 0.9752118476280985,
+        "f2_macro": 0.9741161616161617,
+        "mcc": 0.9614989596875545,
+        "kappa": 0.9604989604989606,
+        "roc_auc_ovr_macro": 0.9907692307692307,
+        "roc_auc_ovr_weighted": 0.9905263157894737,
+        "roc_auc_ovo_macro": 0.9910420775805391,
+        "pr_auc_macro": 0.9846058499904653
+      },
+      "per_class": {
+        "setosa": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 12
+        },
+        "versicolor": {
+          "precision": 1.0,
+          "recall": 0.9230769230769231,
+          "f1": 0.96,
+          "support": 13
+        },
+        "virginica": {
+          "precision": 0.9285714285714286,
+          "recall": 1.0,
+          "f1": 0.9629629629629629,
+          "support": 13
+        }
+      },
+      "confusion_matrix": [
+        [
+          12,
+          0,
+          0
+        ],
+        [
+          0,
+          12,
+          1
+        ],
+        [
+          0,
+          0,
+          13
+        ]
+      ],
+      "roc_auc_per_class": {
+        "setosa": 1.0,
+        "versicolor": 0.9846153846153846,
+        "virginica": 0.9876923076923076
+      },
+      "roc_auc_ovr_macro": 0.9907692307692307,
+      "mean_confidence": 0.9868079208747053,
+      "median_confidence": 0.9999859728679366
+    }
+  ],
+  "by_metric": {
+    "accuracy": "GradBoost",
+    "balanced_accuracy": "GradBoost",
+    "precision_macro": "GradBoost",
+    "recall_macro": "GradBoost",
+    "f1_macro": "GradBoost",
+    "f1_weighted": "GradBoost",
+    "f0.5_macro": "GradBoost",
+    "f2_macro": "GradBoost",
+    "roc_auc_ovr_macro": "LogReg",
+    "roc_auc_ovr_weighted": "LogReg",
+    "roc_auc_ovo_macro": "LogReg",
+    "pr_auc_macro": "LogReg",
+    "mcc": "GradBoost",
+    "kappa": "GradBoost"
+  },
+  "error_by_class": {
+    "setosa": {
+      "support": 12,
+      "error_rate": 0.0,
+      "accuracy": 1.0
+    },
+    "versicolor": {
+      "support": 13,
+      "error_rate": 0.07692307692307693,
+      "accuracy": 0.9230769230769231
+    },
+    "virginica": {
+      "support": 13,
+      "error_rate": 0.0,
+      "accuracy": 1.0
+    }
+  },
+  "sample_predictions": [
+    {
+      "features": {
+        "sepal length (cm)": 6.4,
+        "sepal width (cm)": 2.8,
+        "petal length (cm)": 5.6,
+        "petal width (cm)": 2.2
+      },
+      "true": "virginica",
+      "predicted": "virginica",
+      "correct": true,
+      "confidence": 0.9999979245441436,
+      "proba": {
+        "setosa": 7.771449033729236e-07,
+        "versicolor": 1.2983109530290572e-06,
+        "virginica": 0.9999979245441436
+      }
+    },
+    {
+      "features": {
+        "sepal length (cm)": 7.3,
+        "sepal width (cm)": 2.9,
+        "petal length (cm)": 6.3,
+        "petal width (cm)": 1.8
+      },
+      "true": "virginica",
+      "predicted": "virginica",
+      "correct": true,
+      "confidence": 0.9999969343065249,
+      "proba": {
+        "setosa": 7.830679106788388e-07,
+        "versicolor": 2.2826255642768205e-06,
+        "virginica": 0.9999969343065249
+      }
+    },
+    {
+      "features": {
+        "sepal length (cm)": 6.5,
+        "sepal width (cm)": 3.0,
+        "petal length (cm)": 5.5,
+        "petal width (cm)": 1.8
+      },
+      "true": "virginica",
+      "predicted": "virginica",
+      "correct": true,
+      "confidence": 0.9999949122450554,
+      "proba": {
+        "setosa": 8.041466071223155e-07,
+        "versicolor": 4.283608337375897e-06,
+        "virginica": 0.9999949122450554
+      }
+    },
+    {
+      "features": {
+        "sepal length (cm)": 6.9,
+        "sepal width (cm)": 3.1,
+        "petal length (cm)": 5.1,
+        "petal width (cm)": 2.3
+      },
+      "true": "virginica",
+      "predicted": "virginica",
+      "correct": true,
+      "confidence": 0.9999948876617434,
+      "proba": {
+        "setosa": 8.287300244796343e-07,
+        "versicolor": 4.283608232070081e-06,
+        "virginica": 0.9999948876617434
+      }
+    },
+    {
+      "features": {
+        "sepal length (cm)": 6.7,
+        "sepal width (cm)": 3.1,
+        "petal length (cm)": 5.6,
+        "petal width (cm)": 2.4
+      },
+      "true": "virginica",
+      "predicted": "virginica",
+      "correct": true,
+      "confidence": 0.9999948876617434,
+      "proba": {
+        "setosa": 8.287300244796343e-07,
+        "versicolor": 4.283608232070081e-06,
+        "virginica": 0.9999948876617434
+      }
+    },
+    {
+      "features": {
+        "sepal length (cm)": 6.7,
+        "sepal width (cm)": 3.0,
+        "petal length (cm)": 5.0,
+        "petal width (cm)": 1.7
+      },
+      "true": "versicolor",
+      "predicted": "virginica",
+      "correct": false,
+      "confidence": 0.9999092688017291,
+      "proba": {
+        "setosa": 8.040777368875476e-07,
+        "versicolor": 8.992712053405411e-05,
+        "virginica": 0.9999092688017291
+      }
+    }
+  ],
+  "charts": {
+    "eda": "eda.png",
+    "confusion_matrices": "confusion_matrices.png",
+    "roc_ovr": "roc_ovr.png"
+  },
+  "artifacts": {
+    "model_joblib": "models/classification/iris/iris_gradboost.joblib",
+    "model_meta": "models/classification/iris/iris_gradboost_20261006_1358.json"
+  }
+}

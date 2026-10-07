@@ -1,0 +1,441 @@
+{
+  "meta": {
+    "task": "outliers",
+    "title": "Diamonds · Outliers Break RMSE",
+    "subtitle": "MedAE устойчив к выбросам — RMSE даёт обманчивое ранжирование",
+    "dataset": "diamonds (seaborn)",
+    "target": "price",
+    "target_unit": "$",
+    "target_format": "money",
+    "features": [
+      "carat",
+      "depth",
+      "table",
+      "x",
+      "y",
+      "z"
+    ],
+    "seed": 42,
+    "generated_at": "2026-10-06T15:43:47.563273",
+    "n_samples": 53920,
+    "n_features": 6,
+    "target_stats": {
+      "count": 53920.0,
+      "mean": 3930.993230712166,
+      "std": 3987.280445975289,
+      "min": 326.0,
+      "25%": 949.0,
+      "50%": 2401.0,
+      "75%": 5323.25,
+      "max": 18823.0
+    },
+    "narrative": {
+      "context": "Распределение цены лог-нормальное: медиана $2.4k, редкие камни $18–20k. Разрыв max/median ≈ 8×. RMSE возводит ошибки в квадрат — один промах на $15k весит как 225 промахов по $1k. MAE усредняет по модулю, MedAE — медиана, ей выбросы безразличны.",
+      "hero_metric": "MedAE",
+      "main_conclusion": "RMSE/MAE > 1.7 у всех моделей — «паспорт» выбросов в target. Разрыв MAE/MedAE ≈ 2.5 — тяжёлый хвост остатков. Huber выигрывает по MedAE у линейных (337 vs 456), но проигрывает по RMSE (1551 vs 1513). Это одно явление: робастная модель не подстраивается под выбросы, и RMSE её за это наказывает. Метрика — не свойство данных, а ответ на бизнес-вопрос.",
+      "rules": {
+        "rmse_over_mae_norm": "< 1.3 → данных чистые",
+        "rmse_over_mae_outliers": "> 1.5 → выбросы, RMSE вводит в заблуждение",
+        "mae_over_medae_heavy_tail": "> 1.8 → тяжёлый хвост остатков, MedAE лучше"
+      }
+    }
+  },
+  "headline": {
+    "best_model": "RandomForest",
+    "best_metric": "medae",
+    "best_metric_value": 302.0909841269854,
+    "verdict": "Лучшая по MedAE = RandomForest ($302 — типичная ошибка).",
+    "runner_up_by_rmse": {
+      "model": "GradBoost",
+      "rmse": 1365.7934851723135
+    },
+    "diagnostic_verdict": {
+      "rmse_over_mae": 1.7667665982553753,
+      "mae_over_medae": 2.6045257870323084,
+      "flag": "outliers_present"
+    },
+    "huber_vs_linear": {
+      "huber_medae": 337.2772584399697,
+      "huber_rmse": 1551.5908777094378,
+      "best_linear_medae": 456.29855282356175,
+      "best_linear_rmse": 1513.1058970168965
+    }
+  },
+  "models": [
+    {
+      "name": "Linear",
+      "is_best": false,
+      "is_best_by_rmse": false,
+      "metrics": {
+        "mae": 892.2449968580313,
+        "rmse": 1513.1089735396588,
+        "mape": 27.273210501312693,
+        "r2": 0.8560206618386094,
+        "medae": 456.29855282356175,
+        "bias": -23.830530310375014,
+        "max_error": 17579.377323392822,
+        "evs": 0.8560563749076292
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.6958447274772623,
+        "mae_over_medae": 1.95539738475357,
+        "abs_bias": 23.830530310375014
+      },
+      "cv": {
+        "mae_mean": 876.22,
+        "medae_mean": 448.25,
+        "rmse_mean": 1494.72,
+        "mae_std": 10.4
+      }
+    },
+    {
+      "name": "Ridge",
+      "is_best": false,
+      "is_best_by_rmse": false,
+      "metrics": {
+        "mae": 892.420107676775,
+        "rmse": 1513.1058970168965,
+        "mape": 27.28900308521855,
+        "r2": 0.8560212473288399,
+        "medae": 456.68761210336174,
+        "bias": -23.824319590312804,
+        "max_error": 17568.14020389339,
+        "evs": 0.8560569417851835
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.6955085211559657,
+        "mae_over_medae": 1.9541149880693376,
+        "abs_bias": 23.824319590312804
+      },
+      "cv": {
+        "mae_mean": 876.43,
+        "medae_mean": 448.21,
+        "rmse_mean": 1494.74,
+        "mae_std": 10.39
+      }
+    },
+    {
+      "name": "Huber",
+      "is_best": false,
+      "is_best_by_rmse": false,
+      "metrics": {
+        "mae": 839.7192861314294,
+        "rmse": 1551.5908777094378,
+        "mape": 21.837105852955347,
+        "r2": 0.8486040720280144,
+        "medae": 337.2772584399697,
+        "bias": -196.36712594236735,
+        "max_error": 19700.933037918687,
+        "evs": 0.8510289915322963
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.8477494840657849,
+        "mae_over_medae": 2.489700284019851,
+        "abs_bias": 196.36712594236735
+      },
+      "cv": {
+        "mae_mean": 823.88,
+        "medae_mean": 338.88,
+        "rmse_mean": 1570.07,
+        "mae_std": 14.17
+      }
+    },
+    {
+      "name": "RandomForest",
+      "is_best": true,
+      "is_best_by_rmse": false,
+      "metrics": {
+        "mae": 786.8037581887013,
+        "rmse": 1390.0985993495967,
+        "mape": 19.98108476031024,
+        "r2": 0.8784791018694944,
+        "medae": 302.0909841269854,
+        "bias": -16.240797609349567,
+        "max_error": 12830.94976984127,
+        "evs": 0.8784956891224488
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.7667665982553753,
+        "mae_over_medae": 2.6045257870323084,
+        "abs_bias": 16.240797609349567
+      },
+      "cv": {
+        "mae_mean": 771.5,
+        "medae_mean": 304.0,
+        "rmse_mean": 1364.27,
+        "mae_std": 7.16
+      }
+    },
+    {
+      "name": "GradBoost",
+      "is_best": false,
+      "is_best_by_rmse": true,
+      "metrics": {
+        "mae": 779.2632561543656,
+        "rmse": 1365.7934851723135,
+        "mape": 20.11996608346142,
+        "r2": 0.882691405148572,
+        "medae": 307.5575789592199,
+        "bias": -29.39127709929588,
+        "max_error": 12317.796150632781,
+        "evs": 0.8827457297656449
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.7526727641598965,
+        "mae_over_medae": 2.5337150161976365,
+        "abs_bias": 29.39127709929588
+      },
+      "cv": {
+        "mae_mean": 763.74,
+        "medae_mean": 306.58,
+        "rmse_mean": 1341.29,
+        "mae_std": 9.32
+      }
+    }
+  ],
+  "by_metric": {
+    "mae": "GradBoost",
+    "rmse": "GradBoost",
+    "mape": "RandomForest",
+    "r2": "GradBoost",
+    "medae": "RandomForest",
+    "max_error": "GradBoost"
+  },
+  "residual_diagnostics": {
+    "bias": -16.240797609349567,
+    "median_residual": 34.71900793650923,
+    "std_residual": 1390.0037238823222,
+    "skew": -1.0107924160404074,
+    "kurtosis": 8.192778624271499,
+    "pct_beyond_2mae": 15.912462908011872,
+    "pct_beyond_3mae": 8.97626112759644
+  },
+  "feature_importance": {
+    "RandomForest": [
+      {
+        "name": "carat",
+        "value": 0.5156062641716816
+      },
+      {
+        "name": "depth",
+        "value": 0.02160988045884434
+      },
+      {
+        "name": "table",
+        "value": 0.013369814842414606
+      },
+      {
+        "name": "x",
+        "value": 0.021594221803033227
+      },
+      {
+        "name": "y",
+        "value": 0.41171084848236833
+      },
+      {
+        "name": "z",
+        "value": 0.016108970241657847
+      }
+    ],
+    "GradBoost": [
+      {
+        "name": "carat",
+        "value": 0.36461442948288186
+      },
+      {
+        "name": "depth",
+        "value": 0.0048070794277837335
+      },
+      {
+        "name": "table",
+        "value": 0.003644435480424462
+      },
+      {
+        "name": "x",
+        "value": 0.005386326342149368
+      },
+      {
+        "name": "y",
+        "value": 0.591876458277566
+      },
+      {
+        "name": "z",
+        "value": 0.029671270989194542
+      }
+    ]
+  },
+  "sample_predictions": [
+    {
+      "features": {
+        "carat": 0.71,
+        "depth": 63.4,
+        "table": 57.0,
+        "x": 5.67,
+        "y": 5.71,
+        "z": 3.61
+      },
+      "actual": 2549.0,
+      "predicted": 2549.0031137566148,
+      "error": 0.0031137566147663165,
+      "abs_error": 0.0031137566147663165,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.81,
+        "depth": 61.8,
+        "table": 55.0,
+        "x": 6.04,
+        "y": 6.0,
+        "z": 3.72
+      },
+      "actual": 3004.0,
+      "predicted": 3004.026396825396,
+      "error": 0.026396825396204804,
+      "abs_error": 0.026396825396204804,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.34,
+        "depth": 60.8,
+        "table": 57.0,
+        "x": 4.49,
+        "y": 4.53,
+        "z": 2.74
+      },
+      "actual": 805.0,
+      "predicted": 805.045857142857,
+      "error": 0.0458571428570167,
+      "abs_error": 0.0458571428570167,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.71,
+        "depth": 60.9,
+        "table": 57.0,
+        "x": 5.75,
+        "y": 5.79,
+        "z": 3.51
+      },
+      "actual": 3262.0,
+      "predicted": 3261.9152698412704,
+      "error": -0.08473015872959877,
+      "abs_error": 0.08473015872959877,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.42,
+        "depth": 61.9,
+        "table": 59.0,
+        "x": 4.75,
+        "y": 4.81,
+        "z": 2.96
+      },
+      "actual": 958.0,
+      "predicted": 957.8823643578647,
+      "error": -0.11763564213526934,
+      "abs_error": 0.11763564213526934,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.4,
+        "depth": 59.3,
+        "table": 59.0,
+        "x": 4.79,
+        "y": 4.83,
+        "z": 2.85
+      },
+      "actual": 842.0,
+      "predicted": 842.1323015873021,
+      "error": 0.13230158730209496,
+      "abs_error": 0.13230158730209496,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.4,
+        "depth": 61.9,
+        "table": 59.0,
+        "x": 4.75,
+        "y": 4.72,
+        "z": 2.93
+      },
+      "actual": 975.0,
+      "predicted": 975.1598915343918,
+      "error": 0.1598915343918179,
+      "abs_error": 0.1598915343918179,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.33,
+        "depth": 61.4,
+        "table": 55.0,
+        "x": 4.48,
+        "y": 4.44,
+        "z": 2.74
+      },
+      "actual": 854.0,
+      "predicted": 854.1846137566139,
+      "error": 0.18461375661388502,
+      "abs_error": 0.18461375661388502,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.6,
+        "depth": 61.3,
+        "table": 55.0,
+        "x": 5.47,
+        "y": 5.49,
+        "z": 3.36
+      },
+      "actual": 2250.0,
+      "predicted": 2249.754420634921,
+      "error": -0.24557936507881095,
+      "abs_error": 0.24557936507881095,
+      "within_mae": true,
+      "is_outlier": false
+    },
+    {
+      "features": {
+        "carat": 0.3,
+        "depth": 63.2,
+        "table": 59.0,
+        "x": 4.31,
+        "y": 4.27,
+        "z": 2.71
+      },
+      "actual": 639.0,
+      "predicted": 639.2491111111111,
+      "error": 0.2491111111111195,
+      "abs_error": 0.2491111111111195,
+      "within_mae": true,
+      "is_outlier": false
+    }
+  ],
+  "charts": {
+    "eda": "eda.png",
+    "residuals": "residuals.png",
+    "actual_vs_predicted_outliers": "actual_vs_predicted_outliers.png",
+    "model_comparison": "model_comparison.png"
+  },
+  "artifacts": {
+    "metrics_csv": "metrics_all_models.csv",
+    "metrics_json": "metrics_all_models.json",
+    "diagnostics_csv": "diagnostics.csv",
+    "cv_csv": "cross_validation.csv"
+  }
+}

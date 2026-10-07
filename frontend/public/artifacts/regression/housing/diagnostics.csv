@@ -1,0 +1,7 @@
+,RMSE/MAE,MAE/MedAE,|Bias|
+Linear,1.398,1.3,0.003
+Ridge,1.398,1.3,0.003
+Lasso,1.397,1.301,0.003
+kNN(7),1.474,1.517,0.017
+RandomForest,1.546,1.658,0.009
+GradBoost,1.486,1.534,0.004

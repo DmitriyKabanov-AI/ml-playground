@@ -1,0 +1,960 @@
+{
+  "meta": {
+    "task": "walmart",
+    "title": "Walmart Weekly Sales",
+    "subtitle": "Регрессия, разные масштабы — MAPE как основная метрика",
+    "dataset": "kagglehub:talhaanjum0/walmart-dataset",
+    "target": "Weekly_Sales",
+    "target_unit": "$",
+    "target_format": "money",
+    "features": [
+      "Store",
+      "Holiday_Flag",
+      "Temperature",
+      "Fuel_Price",
+      "CPI",
+      "Unemployment",
+      "year",
+      "month",
+      "week"
+    ],
+    "seed": 42,
+    "generated_at": "2026-10-06T15:36:43.140869",
+    "n_samples": 6435,
+    "n_features": 9,
+    "target_stats": {
+      "count": 6435.0,
+      "mean": 1046964.8775617715,
+      "std": 564366.6220536975,
+      "min": 209986.25,
+      "25%": 553350.105,
+      "50%": 960746.04,
+      "75%": 1420158.66,
+      "max": 3818686.45
+    },
+    "store_spread": {
+      "ratio_max_min": 8.025276964643723,
+      "median_min": 258427.39,
+      "median_max": 2073951.38
+    },
+    "narrative": {
+      "context": "Продажи разных магазинов отличаются в 5–10 раз. Ошибка $50k для крупного магазина = 2–3%, для мелкого = 15–20%.",
+      "hero_metric": "MAPE",
+      "main_conclusion": "MAE в долларах усредняет качество некорректно — крупные магазины затмевают мелкие. MAPE усредняет честно. Метрика выбирается по структуре данных, а не по удобству."
+    }
+  },
+  "headline": {
+    "best_model": "RandomForest",
+    "best_metric": "mape",
+    "best_metric_value": 5.687099226986383,
+    "verdict": "Лучшая по MAPE = RandomForest."
+  },
+  "models": [
+    {
+      "name": "Dummy_median",
+      "is_best": false,
+      "metrics": {
+        "mae": 471132.10326340323,
+        "rmse": 575612.3855051881,
+        "rmsle": 0.6014115841277472,
+        "mape": 62.03875102880456,
+        "r2": -0.028480284684686774,
+        "medae": 431542.47,
+        "bias": -95786.5006837607,
+        "max_error": 2859634.22,
+        "evs": 2.220446049250313e-16
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.2217643024495222,
+        "mae_over_medae": 1.0917398309913813,
+        "abs_bias": 95786.5006837607
+      },
+      "cv": {
+        "mape_mean": 60.4065,
+        "mape_std": 1.3859,
+        "mae_mean": 461988.9983,
+        "mae_std": 6106.1607
+      }
+    },
+    {
+      "name": "Linear",
+      "is_best": false,
+      "metrics": {
+        "mae": 96206.09852853346,
+        "rmse": 154849.2699483836,
+        "rmsle": 0.13698621598664878,
+        "mape": 10.0765744046808,
+        "r2": 0.9255689689487747,
+        "medae": 63430.27685568889,
+        "bias": 5143.543706720597,
+        "max_error": 1689403.4480807805,
+        "evs": 0.9256510911496288
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.6095577340396705,
+        "mae_over_medae": 1.516722033980922,
+        "abs_bias": 5143.543706720597
+      },
+      "cv": {
+        "mape_mean": 9.9179,
+        "mape_std": 0.3643,
+        "mae_mean": 95075.8582,
+        "mae_std": 2895.4394
+      }
+    },
+    {
+      "name": "Ridge",
+      "is_best": false,
+      "metrics": {
+        "mae": 96107.90431173454,
+        "rmse": 154736.74774876575,
+        "rmsle": 0.13637653245416295,
+        "mape": 10.042507236251016,
+        "r2": 0.9256771012042397,
+        "medae": 62872.4999211313,
+        "bias": 5413.866591510612,
+        "max_error": 1685657.8007089044,
+        "evs": 0.9257680822260483
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.6100314418142272,
+        "mae_over_medae": 1.5286159200333134,
+        "abs_bias": 5413.866591510612
+      },
+      "cv": {
+        "mape_mean": 9.8873,
+        "mape_std": 0.3645,
+        "mae_mean": 95055.2642,
+        "mae_std": 2907.4956
+      }
+    },
+    {
+      "name": "DecisionTree",
+      "is_best": false,
+      "metrics": {
+        "mae": 68520.1191857751,
+        "rmse": 124969.73989177779,
+        "rmsle": 0.09708569662150267,
+        "mape": 6.401889186605509,
+        "r2": 0.9515219164863471,
+        "medae": 36584.33400000009,
+        "bias": 6.300268418781377,
+        "max_error": 1400617.588,
+        "evs": 0.9515219166095594
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.8238400834206625,
+        "mae_over_medae": 1.8729360820337724,
+        "abs_bias": 6.300268418781377
+      },
+      "cv": {
+        "mape_mean": 6.8016,
+        "mape_std": 0.5038,
+        "mae_mean": 73527.3417,
+        "mae_std": 6558.734
+      }
+    },
+    {
+      "name": "RandomForest",
+      "is_best": true,
+      "metrics": {
+        "mae": 61839.22998180837,
+        "rmse": 113060.37340544359,
+        "rmsle": 0.08568409838470609,
+        "mape": 5.687099226986383,
+        "r2": 0.9603213816041648,
+        "medae": 33453.76907740079,
+        "bias": 2938.0850204946028,
+        "max_error": 1125528.8183230353,
+        "evs": 0.9603481772623218
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.8282952979638212,
+        "mae_over_medae": 1.8484981419801503,
+        "abs_bias": 2938.0850204946028
+      },
+      "cv": {
+        "mape_mean": 5.82,
+        "mape_std": 0.2089,
+        "mae_mean": 62795.9522,
+        "mae_std": 3832.0339
+      }
+    },
+    {
+      "name": "GradBoost",
+      "is_best": false,
+      "metrics": {
+        "mae": 89145.61652602324,
+        "rmse": 127954.07755109038,
+        "rmsle": 0.14157236692021238,
+        "mape": 10.736145146315677,
+        "r2": 0.949178910500416,
+        "medae": 65732.76198685705,
+        "bias": 1415.0655437029407,
+        "max_error": 859650.0117435181,
+        "evs": 0.9491851261829263
+      },
+      "diagnostics": {
+        "rmse_over_mae": 1.4353378498845004,
+        "mae_over_medae": 1.356182424585285,
+        "abs_bias": 1415.0655437029407
+      },
+      "cv": {
+        "mape_mean": 10.8898,
+        "mape_std": 0.5681,
+        "mae_mean": 90485.5176,
+        "mae_std": 3281.6705
+      }
+    }
+  ],
+  "by_metric": {
+    "mae": "RandomForest",
+    "rmse": "RandomForest",
+    "rmsle": "RandomForest",
+    "mape": "RandomForest",
+    "r2": "RandomForest",
+    "medae": "RandomForest",
+    "max_error": "GradBoost"
+  },
+  "residual_diagnostics": {
+    "bias": 2938.0850204946028,
+    "median_residual": 4693.41014367016,
+    "std_residual": 113022.19114399917,
+    "skew": -0.5487038603364287,
+    "kurtosis": 21.26566744519916,
+    "pct_beyond_2mae": 11.655011655011654
+  },
+  "feature_importance": {
+    "RandomForest": [
+      {
+        "name": "Store",
+        "value": 0.6697699950535536
+      },
+      {
+        "name": "Holiday_Flag",
+        "value": 0.0011642370478314942
+      },
+      {
+        "name": "Temperature",
+        "value": 0.011839774773859328
+      },
+      {
+        "name": "Fuel_Price",
+        "value": 0.008942537907519497
+      },
+      {
+        "name": "CPI",
+        "value": 0.15372776105611713
+      },
+      {
+        "name": "Unemployment",
+        "value": 0.10345732016366127
+      },
+      {
+        "name": "year",
+        "value": 0.0004769393562970556
+      },
+      {
+        "name": "month",
+        "value": 0.002669166692807265
+      },
+      {
+        "name": "week",
+        "value": 0.04795226794835342
+      }
+    ],
+    "GradBoost": [
+      {
+        "name": "Store",
+        "value": 0.7349714174683158
+      },
+      {
+        "name": "Holiday_Flag",
+        "value": 0.002404334276779123
+      },
+      {
+        "name": "Temperature",
+        "value": 0.007304280802430533
+      },
+      {
+        "name": "Fuel_Price",
+        "value": 0.003111884837943558
+      },
+      {
+        "name": "CPI",
+        "value": 0.12144066299446651
+      },
+      {
+        "name": "Unemployment",
+        "value": 0.08359506980049672
+      },
+      {
+        "name": "year",
+        "value": 0.00026369547370341063
+      },
+      {
+        "name": "month",
+        "value": 0.0018795497923629716
+      },
+      {
+        "name": "week",
+        "value": 0.04502910455350126
+      }
+    ],
+    "DecisionTree": [
+      {
+        "name": "Store",
+        "value": 0.646559505525625
+      },
+      {
+        "name": "Holiday_Flag",
+        "value": 0.0008251187827580886
+      },
+      {
+        "name": "Temperature",
+        "value": 0.013393267893419566
+      },
+      {
+        "name": "Fuel_Price",
+        "value": 0.012686578618156356
+      },
+      {
+        "name": "CPI",
+        "value": 0.144658792767477
+      },
+      {
+        "name": "Unemployment",
+        "value": 0.13618802361272508
+      },
+      {
+        "name": "year",
+        "value": 0.00031202347358663646
+      },
+      {
+        "name": "month",
+        "value": 0.0010458138524259972
+      },
+      {
+        "name": "week",
+        "value": 0.044330875473826185
+      }
+    ],
+    "Linear_coef": [
+      {
+        "name": "Store=1.0",
+        "value": -4.459698541233463e+16
+      },
+      {
+        "name": "Store=2.0",
+        "value": -4.50029199872784e+16
+      },
+      {
+        "name": "Store=3.0",
+        "value": -4.480045362449032e+16
+      },
+      {
+        "name": "Store=4.0",
+        "value": -4.540490070849589e+16
+      },
+      {
+        "name": "Store=5.0",
+        "value": -4.580303167717857e+16
+      },
+      {
+        "name": "Store=6.0",
+        "value": -4.678215910781371e+16
+      },
+      {
+        "name": "Store=7.0",
+        "value": -4.792817843221189e+16
+      },
+      {
+        "name": "Store=8.0",
+        "value": -4.580303167709803e+16
+      },
+      {
+        "name": "Store=9.0",
+        "value": -4.520439796311168e+16
+      },
+      {
+        "name": "Store=10.0",
+        "value": -4.500291998716542e+16
+      },
+      {
+        "name": "Store=11.0",
+        "value": -4.697530017875757e+16
+      },
+      {
+        "name": "Store=12.0",
+        "value": -4.60006847782115e+16
+      },
+      {
+        "name": "Store=13.0",
+        "value": -4.754955128422256e+16
+      },
+      {
+        "name": "Store=14.0",
+        "value": -4.560444108737869e+16
+      },
+      {
+        "name": "Store=15.0",
+        "value": -4.735898579112241e+16
+      },
+      {
+        "name": "Store=16.0",
+        "value": -4.639322638825497e+16
+      },
+      {
+        "name": "Store=17.0",
+        "value": -4.600068477826844e+16
+      },
+      {
+        "name": "Store=18.0",
+        "value": -4.639322638807763e+16
+      },
+      {
+        "name": "Store=19.0",
+        "value": -4.500291998724595e+16
+      },
+      {
+        "name": "Store=20.0",
+        "value": -4.580303167690453e+16
+      },
+      {
+        "name": "Store=21.0",
+        "value": -4.4596985412448216e+16
+      },
+      {
+        "name": "Store=22.0",
+        "value": -4.639322638809705e+16
+      },
+      {
+        "name": "Store=23.0",
+        "value": -4.56044410874221e+16
+      },
+      {
+        "name": "Store=24.0",
+        "value": -4.619741242423746e+16
+      },
+      {
+        "name": "Store=25.0",
+        "value": -4.5803031677111496e+16
+      },
+      {
+        "name": "Store=26.0",
+        "value": -4.658813819052522e+16
+      },
+      {
+        "name": "Store=27.0",
+        "value": -4.6000684778139224e+16
+      },
+      {
+        "name": "Store=28.0",
+        "value": -4.5204397962844504e+16
+      },
+      {
+        "name": "Store=29.0",
+        "value": -4.716757221165579e+16
+      },
+      {
+        "name": "Store=30.0",
+        "value": -4.6975300178890296e+16
+      },
+      {
+        "name": "Store=31.0",
+        "value": -4.439250157581596e+16
+      },
+      {
+        "name": "Store=32.0",
+        "value": -4.754955128443271e+16
+      },
+      {
+        "name": "Store=33.0",
+        "value": -4.540490070874814e+16
+      },
+      {
+        "name": "Store=34.0",
+        "value": -4.658813819050825e+16
+      },
+      {
+        "name": "Store=35.0",
+        "value": -4.500291998732279e+16
+      },
+      {
+        "name": "Store=36.0",
+        "value": -4.5002919987497976e+16
+      },
+      {
+        "name": "Store=37.0",
+        "value": -4.6197412424463656e+16
+      },
+      {
+        "name": "Store=38.0",
+        "value": -4.5803031677018936e+16
+      },
+      {
+        "name": "Store=39.0",
+        "value": -4.697530017873542e+16
+      },
+      {
+        "name": "Store=40.0",
+        "value": -4.639322638811962e+16
+      },
+      {
+        "name": "Store=41.0",
+        "value": -4.7167572211640616e+16
+      },
+      {
+        "name": "Store=42.0",
+        "value": -4.560444108751158e+16
+      },
+      {
+        "name": "Store=43.0",
+        "value": -4.773927884783567e+16
+      },
+      {
+        "name": "Store=44.0",
+        "value": -4.619741242439211e+16
+      },
+      {
+        "name": "Store=45.0",
+        "value": -4.7167572211693384e+16
+      },
+      {
+        "name": "Holiday_Flag",
+        "value": 10681.754152823909
+      },
+      {
+        "name": "Temperature",
+        "value": -35608.15926578926
+      },
+      {
+        "name": "Fuel_Price",
+        "value": 8163.322539889632
+      },
+      {
+        "name": "CPI",
+        "value": 352669.6363059499
+      },
+      {
+        "name": "Unemployment",
+        "value": -65366.77639789343
+      },
+      {
+        "name": "year",
+        "value": -47547.18028744631
+      },
+      {
+        "name": "month",
+        "value": 165209.20717096303
+      },
+      {
+        "name": "week",
+        "value": -125160.38600277028
+      }
+    ],
+    "Ridge_coef": [
+      {
+        "name": "Store=1.0",
+        "value": 35207.9683289442
+      },
+      {
+        "name": "Store=2.0",
+        "value": 88357.65098763193
+      },
+      {
+        "name": "Store=3.0",
+        "value": -133906.99036048035
+      },
+      {
+        "name": "Store=4.0",
+        "value": 182832.97051839042
+      },
+      {
+        "name": "Store=5.0",
+        "value": -153075.59898119676
+      },
+      {
+        "name": "Store=6.0",
+        "value": 33269.20792593304
+      },
+      {
+        "name": "Store=7.0",
+        "value": -96806.57233192203
+      },
+      {
+        "name": "Store=8.0",
+        "value": -71762.03301297092
+      },
+      {
+        "name": "Store=9.0",
+        "value": -122465.29041024695
+      },
+      {
+        "name": "Store=10.0",
+        "value": 165350.07270282568
+      },
+      {
+        "name": "Store=11.0",
+        "value": 2936.0322030657185
+      },
+      {
+        "name": "Store=12.0",
+        "value": 60846.526659249816
+      },
+      {
+        "name": "Store=13.0",
+        "value": 180101.97549360327
+      },
+      {
+        "name": "Store=14.0",
+        "value": 128718.164056244
+      },
+      {
+        "name": "Store=15.0",
+        "value": -32515.038450835298
+      },
+      {
+        "name": "Store=16.0",
+        "value": -109663.11960119978
+      },
+      {
+        "name": "Store=17.0",
+        "value": 5186.8486667209045
+      },
+      {
+        "name": "Store=18.0",
+        "value": 42324.20887308135
+      },
+      {
+        "name": "Store=19.0",
+        "value": 86855.00311148679
+      },
+      {
+        "name": "Store=20.0",
+        "value": 118266.16211010168
+      },
+      {
+        "name": "Store=21.0",
+        "value": -78238.40430148163
+      },
+      {
+        "name": "Store=22.0",
+        "value": 24605.360005751572
+      },
+      {
+        "name": "Store=23.0",
+        "value": 64405.49872590455
+      },
+      {
+        "name": "Store=24.0",
+        "value": 78267.23840831433
+      },
+      {
+        "name": "Store=25.0",
+        "value": -88794.05368018134
+      },
+      {
+        "name": "Store=26.0",
+        "value": 22368.9073601251
+      },
+      {
+        "name": "Store=27.0",
+        "value": 138463.1158599083
+      },
+      {
+        "name": "Store=28.0",
+        "value": 105916.35364918213
+      },
+      {
+        "name": "Store=29.0",
+        "value": -35585.91260774849
+      },
+      {
+        "name": "Store=30.0",
+        "value": -131726.25527651343
+      },
+      {
+        "name": "Store=31.0",
+        "value": 11115.112092871344
+      },
+      {
+        "name": "Store=32.0",
+        "value": -2508.6669660065077
+      },
+      {
+        "name": "Store=33.0",
+        "value": -69645.2147241764
+      },
+      {
+        "name": "Store=34.0",
+        "value": 36538.75176346288
+      },
+      {
+        "name": "Store=35.0",
+        "value": 12012.9305314599
+      },
+      {
+        "name": "Store=36.0",
+        "value": -131831.27886599622
+      },
+      {
+        "name": "Store=37.0",
+        "value": -114039.16530694917
+      },
+      {
+        "name": "Store=38.0",
+        "value": -31106.755919578038
+      },
+      {
+        "name": "Store=39.0",
+        "value": 23001.85318779927
+      },
+      {
+        "name": "Store=40.0",
+        "value": 1141.7567476653908
+      },
+      {
+        "name": "Store=41.0",
+        "value": 5223.297829556654
+      },
+      {
+        "name": "Store=42.0",
+        "value": -28190.972617924974
+      },
+      {
+        "name": "Store=43.0",
+        "value": -83871.44591245119
+      },
+      {
+        "name": "Store=44.0",
+        "value": -78501.64327475724
+      },
+      {
+        "name": "Store=45.0",
+        "value": -51042.60739249678
+      },
+      {
+        "name": "Holiday_Flag",
+        "value": 10639.415881694105
+      },
+      {
+        "name": "Temperature",
+        "value": -35461.018850802066
+      },
+      {
+        "name": "Fuel_Price",
+        "value": 7626.778201053091
+      },
+      {
+        "name": "CPI",
+        "value": 241220.84380232866
+      },
+      {
+        "name": "Unemployment",
+        "value": -62729.99630431448
+      },
+      {
+        "name": "year",
+        "value": -37765.76150432977
+      },
+      {
+        "name": "month",
+        "value": 158733.07182005816
+      },
+      {
+        "name": "week",
+        "value": -116235.89679310948
+      }
+    ]
+  },
+  "sample_predictions": [
+    {
+      "features": {
+        "Store": 30.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 84.25,
+        "Fuel_Price": 3.311,
+        "CPI": 221.5701123,
+        "Unemployment": 6.565,
+        "year": 2012.0,
+        "month": 7.0,
+        "week": 29.0
+      },
+      "actual": 427491.04,
+      "predicted": 427479.9796266667,
+      "error": -11.060373333282769,
+      "abs_error": 11.060373333282769,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 25.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 47.92,
+        "Fuel_Price": 3.953,
+        "CPI": 214.1647079,
+        "Unemployment": 6.961,
+        "year": 2012.0,
+        "month": 3.0,
+        "week": 13.0
+      },
+      "actual": 684348.92,
+      "predicted": 684298.8107770239,
+      "error": -50.10922297614161,
+      "abs_error": 50.10922297614161,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 37.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 78.35,
+        "Fuel_Price": 3.467,
+        "CPI": 215.1233185,
+        "Unemployment": 8.177,
+        "year": 2011.0,
+        "month": 9.0,
+        "week": 38.0
+      },
+      "actual": 516556.94,
+      "predicted": 516689.04674077383,
+      "error": 132.1067407738301,
+      "abs_error": 132.1067407738301,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 44.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 43.51,
+        "Fuel_Price": 3.538,
+        "CPI": 129.8051935,
+        "Unemployment": 6.078,
+        "year": 2011.0,
+        "month": 11.0,
+        "week": 44.0
+      },
+      "actual": 307126.34,
+      "predicted": 306936.5208003569,
+      "error": -189.81919964309782,
+      "abs_error": 189.81919964309782,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 45.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 34.32,
+        "Fuel_Price": 3.193,
+        "CPI": 182.5983058,
+        "Unemployment": 8.549,
+        "year": 2011.0,
+        "month": 1.0,
+        "week": 1.0
+      },
+      "actual": 680254.35,
+      "predicted": 679994.7318716077,
+      "error": -259.6181283922633,
+      "abs_error": 259.6181283922633,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 15.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 57.94,
+        "Fuel_Price": 2.846,
+        "CPI": 132.7670667,
+        "Unemployment": 8.099,
+        "year": 2010.0,
+        "month": 9.0,
+        "week": 37.0
+      },
+      "actual": 583210.87,
+      "predicted": 582939.4185123807,
+      "error": -271.4514876193134,
+      "abs_error": 271.4514876193134,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 9.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 58.69,
+        "Fuel_Price": 2.689,
+        "CPI": 215.5065452,
+        "Unemployment": 6.56,
+        "year": 2010.0,
+        "month": 11.0,
+        "week": 44.0
+      },
+      "actual": 517869.97,
+      "predicted": 517551.9952005952,
+      "error": -317.9747994047939,
+      "abs_error": 317.9747994047939,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 44.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 32.36,
+        "Fuel_Price": 3.242,
+        "CPI": 130.6457931,
+        "Unemployment": 5.774,
+        "year": 2012.0,
+        "month": 3.0,
+        "week": 9.0
+      },
+      "actual": 316687.22,
+      "predicted": 317115.4804577382,
+      "error": 428.26045773824444,
+      "abs_error": 428.26045773824444,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 31.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 69.03,
+        "Fuel_Price": 3.891,
+        "CPI": 221.1484028,
+        "Unemployment": 6.891,
+        "year": 2012.0,
+        "month": 4.0,
+        "week": 15.0
+      },
+      "actual": 1407842.91,
+      "predicted": 1408311.4992792467,
+      "error": 468.58927924674936,
+      "abs_error": 468.58927924674936,
+      "within_mae": true
+    },
+    {
+      "features": {
+        "Store": 2.0,
+        "Holiday_Flag": 0.0,
+        "Temperature": 87.7,
+        "Fuel_Price": 3.48,
+        "CPI": 214.9296249,
+        "Unemployment": 7.852,
+        "year": 2011.0,
+        "month": 7.0,
+        "week": 27.0
+      },
+      "actual": 1853161.99,
+      "predicted": 1853632.0431962505,
+      "error": 470.05319625046104,
+      "abs_error": 470.05319625046104,
+      "within_mae": true
+    }
+  ],
+  "charts": {
+    "eda": "eda.png",
+    "mae_vs_mape": "mae_vs_mape.png",
+    "mape_per_store": "mape_per_store.png",
+    "residuals_importance": "residuals_importance.png"
+  },
+  "artifacts": {}
+}
