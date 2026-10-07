@@ -1,4 +1,6 @@
 "use client";
-import { TaskPage } from "@/components/shared/TaskPage";
-import { getTask } from "@/lib/data/tasks";
-export default function Page() { return <TaskPage task={getTask("fraud")} />; }
+import { CreditFraudPage } from "@/components/fraud/CreditFraudPage";
+
+export default function Page() {
+  return <CreditFraudPage />;
+}

@@ -1,25 +1,35 @@
 {
   "pages": {
+    "/breast-cancer-fp/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/breast-cancer-fp/page.js"
+    ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/breast-cancer-fp/page": [
+    "/credit-fraud/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/breast-cancer-fp/page.js"
+      "static/chunks/app/credit-fraud/page.js"
     ],
-    "/breast-cancer-fn/page": [
+    "/digits/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/breast-cancer-fn/page.js"
+      "static/chunks/app/digits/page.js"
     ],
-    "/_not-found/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/page.js"
+    ],
+    "/iris/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/iris/page.js"
     ]
   }
 }
