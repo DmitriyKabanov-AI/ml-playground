@@ -1,4 +1,16 @@
 "use client";
-import { TaskPage } from "@/components/shared/TaskPage";
-import { getTask } from "@/lib/data/tasks";
-export default function Page() { return <TaskPage task={getTask("bc-fn")} />; }
+import { BCPage } from "@/components/bc/BCPage";
+
+export default function BreastCancerFNPage() {
+  return (
+    <BCPage
+      config={{
+        task: "breast_cancer_fn",
+        hero: "f2_pos",
+        heroLabel: "F2 (malignant)",
+        defaultThreshold: 0.626923,
+        subtitle: "Второе мнение: FN критичен — порог сдвинут вниз от 0.5",
+      }}
+    />
+  );
+}
