@@ -1,8 +1,4 @@
 {
-  "/credit-fraud/page": "app/credit-fraud/page.js",
-  "/iris/page": "app/iris/page.js",
-  "/breast-cancer-fp/page": "app/breast-cancer-fp/page.js",
-  "/digits/page": "app/digits/page.js",
-  "/breast-cancer-fn/page": "app/breast-cancer-fn/page.js",
-  "/page": "app/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/iris/page": "app/iris/page.js"
 }
