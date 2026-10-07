@@ -9,7 +9,7 @@ export default function BreastCancerFPPage() {
         hero: "f0.5_pos",
         heroLabel: "F0.5 (malignant)",
         defaultThreshold: 0.465385,
-        subtitle: "Скрининг: FP дорог — порог сдвинут вверх от 0.5",
+        subtitle: "Скрининг: FP дорог — порог сдвинут вниз от 0.5",
       }}
     />
   );

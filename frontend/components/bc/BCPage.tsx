@@ -33,12 +33,14 @@ function HeroCard({
   report,
   hero,
   heroValue,
+  heroLabel,
   threshold,
   counts,
 }: {
   report: BCReport;
   hero: "f0.5_pos" | "f2_pos";
   heroValue: number;
+  heroLabel: string;
   threshold: number;
   counts: any;
 }) {
@@ -54,7 +56,7 @@ function HeroCard({
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
           {heroValue.toFixed(4)}
         </span>
-        <Badge tone={tone as any}>{hero === "f0.5_pos" ? "F0.5 (malignant)" : "F2 (malignant)"}</Badge>
+        <Badge tone={tone as any}>{heroLabel}</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
@@ -192,7 +194,11 @@ export function BCPage({ config }: { config: Config }) {
     ["Precision (macro)", best.metrics.precision_macro, false],
     ["Recall (macro)", best.metrics.recall_macro, false],
     ["F1 (macro)", best.metrics.f1_macro, false],
-    ["F0.5 (macro)", best.metrics["f0.5_macro"], false],
+    [
+      "F0.5 (macro)",
+      best.metrics["f0.5_macro"] ?? best.metrics.f05_macro ?? best.metrics.f0_5_macro,
+      false,
+    ],
     ["F2 (macro)", best.metrics.f2_macro, false],
     ["MCC", best.metrics.mcc, true],
     ["Cohen κ", best.metrics.kappa, true],
@@ -221,6 +227,7 @@ export function BCPage({ config }: { config: Config }) {
         report={report}
         hero={config.hero}
         heroValue={heroValue}
+        heroLabel={config.heroLabel}
         threshold={threshold}
         counts={counts}
       />

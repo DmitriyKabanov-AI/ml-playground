@@ -13,8 +13,10 @@ import {
 
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
-const fmtNum = (v?: number | null) =>
-  v === undefined || v === null ? "—" : v.toFixed(4);
+const pctOrDash = (v?: number | null, digits = 1) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(digits)}%`;
+const fmtNum = (v?: number | null, digits = 4) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
 function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
   const d = report.headline.diagnostic_verdict;
@@ -33,15 +35,20 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
-        <span>Accuracy: <b>{(best.metrics.accuracy * 100).toFixed(2)}%</b></span>
+        <span>Accuracy: <b>{pctOrDash(best.metrics.accuracy, 2)}</b></span>
         <span className="text-rose-500">
-          rare-class recall («{d.rare_class}»): <b>{(d.rare_class_recall * 100).toFixed(1)}%</b>
+          rare-class recall («{d.rare_class}»): <b>{pctOrDash(d.rare_class_recall)}</b>
         </span>
         <span className="text-emerald-500">
-          common mean recall: <b>{(d.common_mean_recall * 100).toFixed(1)}%</b>
+          common mean recall: <b>{pctOrDash(d.common_mean_recall)}</b>
         </span>
         <span className="text-amber-500">
-          gap: <b>{(d.rare_vs_common_gap * 100).toFixed(1)} п.п.</b>
+          gap:{" "}
+          <b>
+            {d.rare_vs_common_gap == null
+              ? "—"
+              : `${(d.rare_vs_common_gap * 100).toFixed(1)} п.п.`}
+          </b>
         </span>
       </div>
     </Card>

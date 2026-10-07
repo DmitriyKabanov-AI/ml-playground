@@ -12,8 +12,10 @@ import {
 
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
-const fmtNum = (v?: number | null) =>
-  v === undefined || v === null ? "—" : v.toFixed(3);
+const pctOrDash = (v?: number | null, digits = 1) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(digits)}%`;
+const fmtNum = (v?: number | null, digits = 3) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
 function HeroCard({
   report, best,
@@ -34,9 +36,9 @@ function HeroCard({
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
-        <span>PR-AUC: <b>{best.metrics.pr_auc.toFixed(4)}</b></span>
-        <span>ROC-AUC: <b>{best.metrics.roc_auc.toFixed(4)}</b></span>
-        <span>Sensitivity: <b>{(d.sensitivity_fraud * 100).toFixed(1)}%</b></span>
+        <span>PR-AUC: <b>{fmtNum(best.metrics.pr_auc ?? best.pr_auc, 4)}</b></span>
+        <span>ROC-AUC: <b>{fmtNum(best.metrics.roc_auc ?? best.roc_auc, 4)}</b></span>
+        <span>Sensitivity: <b>{pctOrDash(d.sensitivity_fraud)}</b></span>
         <span className="text-rose-500">FP: <b>{d.fp_normal}</b></span>
         <span className="text-amber-500">FN: <b>{d.fn_fraud}</b></span>
       </div>
@@ -54,12 +56,12 @@ function AccuracyTrap({ report }: { report: CFReport }) {
         <b>⚠️ Accuracy-ловушка:</b> модель <span className="font-mono">«{naive.name}»</span>{" "}
         даёт accuracy = <b>{fmtPct(naive.metrics.accuracy)}</b> — это <b>выше</b>, чем у многих
         честных моделей, но она не поймала ни одного мошенничества:
-        MCC = 0, PR-AUC = {naive.metrics.pr_auc.toFixed(5)} (baseline).
+        MCC = 0, PR-AUC = {fmtNum(naive.metrics.pr_auc ?? naive.pr_auc, 5)} (baseline).
       </p>
       <p className="text-xs text-slate-500 mt-2">
-        ROC-AUC тоже маскирует: LogReg показывает {report.models[0].metrics.roc_auc.toFixed(4)} —
+        ROC-AUC тоже маскирует: LogReg показывает {fmtNum(report.models[0]?.metrics.roc_auc ?? report.models[0]?.roc_auc, 4)} —
         выше, чем у лучшей по MCC модели ({report.headline.best_model.split(" ")[0]}:
-        {" "}{d.roc_auc?.toFixed(4) ?? d.best_roc_auc?.toFixed(4)}). На дисбалансе 1:
+        {" "}{fmtNum(d.roc_auc ?? d.best_roc_auc, 4)}). На дисбалансе 1:
         {Math.round(d.imbalance_ratio)} судим по <b>MCC</b> и <b>PR-AUC</b>.
       </p>
     </Card>
@@ -102,15 +104,15 @@ function ModelComparison({ report }: { report: CFReport }) {
                     {isNaive && <Badge tone="danger" className="ml-2">baseline</Badge>}
                   </td>
                   <td className={`text-right font-mono ${isBest ? "font-bold text-emerald-500" : ""}`}>
-                    {m.metrics.mcc.toFixed(4)}
+                    {fmtNum(m.metrics.mcc, 4)}
                   </td>
-                  <td className="text-right font-mono">{m.metrics.pr_auc.toFixed(4)}</td>
-                  <td className="text-right font-mono">{m.metrics.roc_auc.toFixed(4)}</td>
-                  <td className="text-right font-mono">{m.metrics.sensitivity.toFixed(3)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.pr_auc ?? m.pr_auc, 4)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.roc_auc ?? m.roc_auc, 4)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.sensitivity, 3)}</td>
                   <td className="text-right font-mono">
-                    {m.metrics.precision_macro.toFixed(3)}
+                    {fmtNum(m.metrics.precision_macro, 3)}
                   </td>
-                  <td className="text-right font-mono">{m.metrics.accuracy.toFixed(4)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.accuracy, 4)}</td>
                 </tr>
               );
             })}
@@ -316,9 +318,9 @@ export function CreditFraudPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MetricCard label="MCC" value={selected.metrics.mcc.toFixed(4)} tone={selected.is_naive ? "danger" : "success"} />
-        <MetricCard label="PR-AUC" value={selected.metrics.pr_auc.toFixed(4)} />
-        <MetricCard label="ROC-AUC" value={selected.metrics.roc_auc.toFixed(4)} />
+        <MetricCard label="MCC" value={fmtNum(selected.metrics.mcc, 4)} tone={selected.is_naive ? "danger" : "success"} />
+        <MetricCard label="PR-AUC" value={fmtNum(selected.metrics.pr_auc ?? selected.pr_auc, 4)} />
+        <MetricCard label="ROC-AUC" value={fmtNum(selected.metrics.roc_auc ?? selected.roc_auc, 4)} />
         <MetricCard label="Balanced Acc." value={fmtPct(selected.metrics.balanced_accuracy)} />
         <MetricCard label="Sensitivity (fraud)" value={fmtPct(selected.metrics.sensitivity)} />
         <MetricCard label="Specificity (normal)" value={fmtPct(selected.metrics.specificity)} />

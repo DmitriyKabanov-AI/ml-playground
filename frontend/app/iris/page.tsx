@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useMemo } from "react";
+import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { HeroMetric } from "@/components/shared/HeroMetric";
 import { MetricsGrid } from "@/components/shared/MetricsGrid";
@@ -14,7 +15,7 @@ import { useIrisData } from "@/lib/data/iris";
 
 export default function IrisPage() {
   const { selectedModel, setSelectedModel } = useAppStore();
-  const { data: report, loading: rl } = useJson<any>("classification/iris/report.json");
+  const { data: report, loading: rl, error: rErr } = useJson<any>("classification/iris/report.json");
   const { iris, loading: il } = useIrisData();
 
   const models = useMemo(() => modelsFromReport(report), [report]);
@@ -24,6 +25,14 @@ export default function IrisPage() {
     [report, currentModelId]
   );
   const metrics = useMemo(() => metricsFromModel(currentModel), [currentModel]);
+
+  if (rErr) {
+    return (
+      <Card>
+        <p className="text-rose-500">Ошибка загрузки артефакта: {rErr}</p>
+      </Card>
+    );
+  }
 
   if (rl || il || !report || !iris) {
     return (
