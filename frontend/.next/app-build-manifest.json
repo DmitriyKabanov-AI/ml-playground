@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/credit-fraud/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/credit-fraud/page.js"
+      "static/chunks/app/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -26,10 +26,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/breast-cancer-fn/page.js"
     ],
-    "/page": [
+    "/credit-fraud/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/credit-fraud/page.js"
+    ],
+    "/digits/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/digits/page.js"
     ]
   }
 }
