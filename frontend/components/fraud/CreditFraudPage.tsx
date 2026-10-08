@@ -16,27 +16,37 @@ const fmtPct = (v?: number | null) =>
 const fmtNum = (v?: number | null, digits = 3) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({ report, best }: { report: CFReport; best: CFModel }) {
+function HeroCard({ report, model }: { report: CFReport; model: CFModel }) {
+  const tone = model.is_naive ? "danger" : "info";
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
       <p className="text-xs uppercase tracking-widest text-slate-500">
         {report.meta.title}
       </p>
-      <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
+      <div className="flex items-center gap-3 mt-1 flex-wrap">
+        <h1 className="text-2xl font-bold">{model.name}</h1>
+        {model.is_best && <Badge tone="success">best</Badge>}
+        {model.is_naive && <Badge tone="danger">baseline</Badge>}
+      </div>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-          {/* FIX: безопасный формат вместо .toFixed() */}
-          {fmtNum(best.metrics.mcc, 4)}
+          {fmtNum(model.metrics.mcc, 4)}
         </span>
-        <Badge tone="info">MCC</Badge>
+        <Badge tone={tone as "info" | "danger"}>MCC</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
     </Card>
   );
 }
 
-function ModelComparison({ report }: { report: CFReport }) {
+function ModelComparison({
+  report,
+  selectedName,
+}: {
+  report: CFReport;
+  selectedName: string;
+}) {
   const rows = report.models ?? [];
   if (!rows.length) return null;
   const sorted = [...rows].sort(
@@ -64,17 +74,23 @@ function ModelComparison({ report }: { report: CFReport }) {
             {sorted.map((m) => {
               const isNaive = m.is_naive;
               const isBest = m.is_best;
+              const isSelected = m.name === selectedName;
               return (
                 <tr
                   key={m.name}
-                  className={`border-b border-border/50 ${isNaive ? "opacity-60" : ""} ${
-                    isBest ? "bg-emerald-500/5" : ""
+                  className={`border-b border-border/50 ${
+                    isNaive ? "opacity-60" : ""
+                  } ${isBest ? "bg-emerald-500/5" : ""} ${
+                    isSelected ? "bg-indigo-500/10" : ""
                   }`}
                 >
                   <td className="py-2">
                     {m.name}{" "}
                     {isBest && <Badge tone="success" className="ml-2">best</Badge>}
                     {isNaive && <Badge tone="danger" className="ml-2">baseline</Badge>}
+                    {isSelected && !isBest && (
+                      <Badge tone="info" className="ml-2">selected</Badge>
+                    )}
                   </td>
                   <td className={`text-right font-mono ${isBest ? "font-bold text-emerald-500" : ""}`}>
                     {fmtNum(m.metrics.mcc, 4)}
@@ -148,7 +164,6 @@ function ConfusionGrid({
 function FeatureImportanceChart({
   data,
 }: { data: { name: string; value: number }[] }) {
-  // FIX: защита от пустого массива
   if (!Array.isArray(data) || !data.length) {
     return (
       <Card>
@@ -190,7 +205,6 @@ function FeatureImportanceChart({
 function SampleScatter({
   samples, xKey, yKey,
 }: { samples: CFSample[]; xKey: string; yKey: string }) {
-  // FIX: защита от отсутствующего массива
   if (!Array.isArray(samples) || !samples.length) {
     return (
       <Card>
@@ -205,7 +219,6 @@ function SampleScatter({
   }
   const data = samples.map((s, i) => ({
     id: i,
-    // FIX: безопасное чтение features через optional chaining
     x: s.features?.[xKey] ?? 0,
     y: s.features?.[yKey] ?? 0,
     sample: s,
@@ -312,7 +325,7 @@ export function CreditFraudPage() {
 
   return (
     <div className="space-y-6">
-      <HeroCard report={report} best={best} />
+      <HeroCard report={report} model={selected} />
 
       <div className="flex flex-wrap gap-2">
         {report.models.map((m, i) => (
@@ -395,7 +408,7 @@ export function CreditFraudPage() {
         yKey="V17"
       />
 
-      <ModelComparison report={report} />
+      <ModelComparison report={report} selectedName={selected.name} />
     </div>
   );
 }
