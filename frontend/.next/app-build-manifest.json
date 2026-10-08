@@ -20,6 +20,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/breast-cancer-fp/page.js"
+    ],
+    "/breast-cancer-fn/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/breast-cancer-fn/page.js"
     ]
   }
 }

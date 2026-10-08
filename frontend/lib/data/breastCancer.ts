@@ -138,15 +138,20 @@ export function sweepAt(sweep: BCSweep, t: number) {
   };
 }
 
-// Восстанавливаем TP/FN/FP/TN из precision/recall и размеров классов тестовой выборки
+// Восстанавливаем TP/FN/FP/TN из recall/specificity и размеров классов тестовой выборки.
+// Раньше использовали precision — она давала нестабильные FP из-за округления.
 export function countsFromSweep(report: BCReport, t: number) {
   const s = sweepAt(report.threshold_sweep, t);
-  const sp = report.meta.target_stats.class_distribution_test.malignant;
-  const sn = report.meta.target_stats.class_distribution_test.benign;
-  const tp = Math.round(s.recall * sp);
-  const fn = sp - tp;
-  const fp = s.precision > 0 ? Math.round(tp / s.precision) - tp : 0;
-  const tn = sn - fp;
+  const nPos = report.meta.target_stats.class_distribution_test.malignant;
+  const nNeg = report.meta.target_stats.class_distribution_test.benign;
+
+  const tp = Math.round(s.recall * nPos);
+  const fn = nPos - tp;
+
+  const spec = s.specificity ?? 1;
+  const tn = Math.round(spec * nNeg);
+  const fp = nNeg - tn;
+
   return {
     tp,
     fn,
