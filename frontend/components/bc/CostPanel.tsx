@@ -7,20 +7,30 @@ import {
 import { Card } from "@/components/ui/Card";
 import { BCReport, countsFromSweep } from "@/lib/data/breastCancer";
 
-export function CostPanel({ report }: { report: BCReport }) {
+export function CostPanel({
+  report,
+  onApplyThreshold,
+}: {
+  report: BCReport;
+  onApplyThreshold?: (t: number) => void;
+}) {
   const [costFP, setCostFP] = useState(100);
   const [costFN, setCostFN] = useState(500);
 
   const curve = useMemo(() => {
-    return report.threshold_sweep.thresholds.map((t) => {
-      const c = countsFromSweep(report, t);
-      return {
-        threshold: +t.toFixed(3),
-        cost: c.fp * costFP + c.fn * costFN,
-        fp: c.fp,
-        fn: c.fn,
-      };
-    });
+    const thresholds = report.threshold_sweep?.thresholds ?? [];
+    return thresholds
+      .map((t) => {
+        const c = countsFromSweep(report, t);
+        const cost = c.fp * costFP + c.fn * costFN;
+        return {
+          threshold: +Number(t).toFixed(3),
+          cost: Number.isFinite(cost) ? cost : 0,
+          fp: c.fp,
+          fn: c.fn,
+        };
+      })
+      .filter((p) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
   }, [report, costFP, costFN]);
 
   const optimal = useMemo(() => {
@@ -31,7 +41,18 @@ export function CostPanel({ report }: { report: BCReport }) {
     );
   }, [curve]);
 
-  if (!optimal) return null;
+  if (!optimal) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Калькулятор стоимости ошибок
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          Недостаточно данных threshold_sweep для расчёта стоимости.
+        </p>
+      </Card>
+    );
+  }
 
   const hi = Math.max(1, ...curve.map((c) => c.cost));
   const yMax = hi * 1.05;
@@ -88,6 +109,15 @@ export function CostPanel({ report }: { report: BCReport }) {
           FP: {optimal.fp} × {costFP.toLocaleString("ru-RU")}₽ · FN: {optimal.fn} ×{" "}
           {costFN.toLocaleString("ru-RU")}₽
         </p>
+
+        {onApplyThreshold && (
+          <button
+            onClick={() => onApplyThreshold(optimal.threshold)}
+            className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors font-medium"
+          >
+            Применить этот порог ↑ к слайдеру
+          </button>
+        )}
       </div>
 
       <div className="mt-5">
@@ -97,7 +127,7 @@ export function CostPanel({ report }: { report: BCReport }) {
         <ResponsiveContainer width="100%" height={220}>
           <LineChart
             data={curve}
-            margin={{ top: 10, right: 15, left: -5, bottom: 0 }}
+            margin={{ top: 10, right: 15, left: -5, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
             <XAxis
@@ -109,7 +139,7 @@ export function CostPanel({ report }: { report: BCReport }) {
                 value: "threshold",
                 position: "insideBottom",
                 fontSize: 10,
-                dy: 8,
+                offset: -8,
               }}
             />
             <YAxis
@@ -122,7 +152,7 @@ export function CostPanel({ report }: { report: BCReport }) {
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 12 }}
               formatter={(v: number) =>
-                `${Math.round(v).toLocaleString("ru-RU")} ₽`
+                `${Math.round(Number(v)).toLocaleString("ru-RU")} ₽`
               }
               labelFormatter={(l) => `threshold = ${l}`}
             />

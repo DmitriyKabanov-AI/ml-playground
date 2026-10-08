@@ -116,25 +116,47 @@ export function findBestModel(report: BCReport): BCModel {
   return report.models.find((m) => m.is_best) ?? report.models[0];
 }
 
+/** null-safe чтение значения из массива по индексу */
+function at<T>(arr: T[] | undefined | null, idx: number, fallback: T): T {
+  if (!Array.isArray(arr) || idx < 0 || idx >= arr.length) return fallback;
+  const v = arr[idx];
+  return v === null || v === undefined ? fallback : v;
+}
+
 export function sweepAt(sweep: BCSweep, t: number) {
+  // пустой sweep — не даём циклу оставить idx=0 с undefined
+  if (!sweep?.thresholds?.length) {
+    return {
+      threshold: 0,
+      precision: 0,
+      recall: 0,
+      f05: 0,
+      f1: 0,
+      f2: 0,
+      specificity: 1,
+      sensitivity: 0,
+    };
+  }
+
   let idx = 0;
   let best = Infinity;
   for (let i = 0; i < sweep.thresholds.length; i++) {
-    const d = Math.abs(sweep.thresholds[i] - t);
+    const d = Math.abs((sweep.thresholds[i] ?? 0) - t);
     if (d < best) {
       best = d;
       idx = i;
     }
   }
+
   return {
-    threshold: sweep.thresholds[idx],
-    precision: sweep.precision_pos[idx],
-    recall: sweep.recall_pos[idx],
-    f05: sweep["f0.5_pos"]?.[idx] ?? 0,
-    f1: sweep.f1_pos?.[idx] ?? 0,
-    f2: sweep.f2_pos?.[idx] ?? 0,
-    specificity: sweep.specificity[idx],
-    sensitivity: sweep.sensitivity[idx],
+    threshold: at(sweep.thresholds, idx, 0),
+    precision: at(sweep.precision_pos, idx, 0),
+    recall: at(sweep.recall_pos, idx, 0),
+    f05: at(sweep["f0.5_pos"], idx, 0),
+    f1: at(sweep.f1_pos, idx, 0),
+    f2: at(sweep.f2_pos, idx, 0),
+    specificity: at(sweep.specificity, idx, 1),  // дефолт = «все TN», fp будет 0
+    sensitivity: at(sweep.sensitivity, idx, 0),
   };
 }
 
@@ -142,21 +164,27 @@ export function sweepAt(sweep: BCSweep, t: number) {
 // Раньше использовали precision — она давала нестабильные FP из-за округления.
 export function countsFromSweep(report: BCReport, t: number) {
   const s = sweepAt(report.threshold_sweep, t);
-  const nPos = report.meta.target_stats.class_distribution_test.malignant;
-  const nNeg = report.meta.target_stats.class_distribution_test.benign;
+  const nPos = report.meta?.target_stats?.class_distribution_test?.malignant ?? 0;
+  const nNeg = report.meta?.target_stats?.class_distribution_test?.benign ?? 0;
 
-  const tp = Math.round(s.recall * nPos);
-  const fn = nPos - tp;
+  // recall может быть null → 0; NaN безопасен через Number.isFinite
+  const recall = Number.isFinite(s.recall) ? (s.recall as number) : 0;
+  const spec = Number.isFinite(s.specificity) ? (s.specificity as number) : 1;
 
-  const spec = s.specificity ?? 1;
+  const tp = Math.round(recall * nPos);
+  const fn = Math.max(0, nPos - tp);
+
   const tn = Math.round(spec * nNeg);
-  const fp = nNeg - tn;
+  const fp = Math.max(0, nNeg - tn);
 
   return {
     tp,
     fn,
-    fp: Math.max(0, fp),
-    tn: Math.max(0, tn),
+    fp,
+    tn,
     ...s,
+    // перезаписываем на безопасные значения
+    recall,
+    specificity: spec,
   };
 }

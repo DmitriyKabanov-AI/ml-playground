@@ -14,16 +14,51 @@ function colorFor(p: number) {
   return `rgb(${r},${g},${b})`;
 }
 
+/** Ищет ключ признака по нескольким вариантам написания.
+ *  Возвращает первое найденное значение или null. */
+function pickFeature(
+  features: Record<string, number> | undefined,
+  ...candidates: string[]
+): { key: string; value: number } | null {
+  if (!features) return null;
+  // 1. точное совпадение
+  for (const c of candidates) {
+    if (features[c] !== undefined) return { key: c, value: features[c] };
+  }
+  // 2. нормализованное совпадение (mean_radius == mean radius == meanRadius)
+  const norm = (s: string) => s.toLowerCase().replace(/[\s_]+/g, "");
+  for (const c of candidates) {
+    const target = norm(c);
+    const found = Object.keys(features).find((k) => norm(k) === target);
+    if (found !== undefined) return { key: found, value: features[found] };
+  }
+  return null;
+}
+
 export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold: number }) {
   const [selected, setSelected] = useState<BCSample | null>(null);
 
-  const data = samples.map((s, i) => ({
-    id: i,
-    x: s.features["mean radius"] ?? 0,
-    y: s.features["mean texture"] ?? 0,
-    p: s.proba?.malignant ?? (s.predicted === "malignant" ? 1 : 0),
-    sample: s,
-  }));
+  const data = samples.map((s, i) => {
+    const radius = pickFeature(s.features, "mean radius", "mean_radius");
+    const texture = pickFeature(s.features, "mean texture", "mean_texture");
+    return {
+      id: i,
+      x: radius?.value ?? 0,
+      y: texture?.value ?? 0,
+      p: s.proba?.malignant ?? (s.predicted === "malignant" ? 1 : 0),
+      sample: s,
+    };
+  });
+
+  const selectedRadius = selected
+    ? pickFeature(selected.features, "mean radius", "mean_radius")
+    : null;
+  const selectedTexture = selected
+    ? pickFeature(selected.features, "mean texture", "mean_texture")
+    : null;
+  const selectedConcavity = selected
+    ? pickFeature(selected.features, "mean concavity", "mean_concavity")
+    : null;
 
   return (
     <Card>
@@ -43,7 +78,9 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
             <Tooltip
               cursor={{ strokeDasharray: "3 3" }}
               contentStyle={{ fontSize: 12, borderRadius: 12 }}
-              formatter={(v: any, n: string) => (n === "p" ? `${(v * 100).toFixed(1)}%` : v)}
+              formatter={(v: any, n: string) =>
+                n === "p" ? `${(Number(v) * 100).toFixed(1)}%` : Number(v).toFixed(2)
+              }
             />
             <Scatter
               data={data}
@@ -82,13 +119,13 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
       {selected && (
         <div className="mt-4 p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-sm grid grid-cols-2 gap-2">
           <p>
-            Mean Radius: <b>{selected.features["mean radius"]?.toFixed(2)}</b>
+            Mean Radius: <b>{selectedRadius?.value?.toFixed(2) ?? "—"}</b>
           </p>
           <p>
-            Mean Texture: <b>{selected.features["mean texture"]?.toFixed(2)}</b>
+            Mean Texture: <b>{selectedTexture?.value?.toFixed(2) ?? "—"}</b>
           </p>
           <p>
-            Mean Concavity: <b>{selected.features["mean concavity"]?.toFixed(3)}</b>
+            Mean Concavity: <b>{selectedConcavity?.value?.toFixed(3) ?? "—"}</b>
           </p>
           <p>
             P(malignant): <b>{((selected.proba?.malignant ?? 0) * 100).toFixed(1)}%</b>

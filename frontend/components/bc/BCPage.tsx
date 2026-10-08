@@ -25,9 +25,9 @@ type Config = {
 };
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null ? "—" : `${(v * 100).toFixed(1)}%`;
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(1)}%`;
 const fmtNum = (v?: number | null) =>
-  v === undefined || v === null ? "—" : v.toFixed(3);
+  v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
 
 function HeroCard({
   report,
@@ -129,7 +129,7 @@ function FeatureImportanceChart({
           <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => v.toFixed(4)}
+            formatter={(v: number) => Number(v).toFixed(4)}
           />
           <Bar dataKey="value" radius={[0, 8, 8, 0]}>
             {top.map((_, i) => (
@@ -208,18 +208,7 @@ export function BCPage({ config }: { config: Config }) {
     ["Sensitivity", best.metrics.sensitivity, false],
   ];
 
-  const narrativeWhy =
-    report.meta.narrative.why_not_accuracy ??
-    report.meta.narrative.why_f2 ??
-    "";
-
-  const optThreshold =
-    report.headline?.diagnostic_verdict?.best_threshold ??
-    report.threshold_sweep.optimal_threshold;
-  const thrSource =
-    report.headline?.diagnostic_verdict?.threshold_source ??
-    report.threshold_sweep.sweep_source ??
-    "validation";
+  const optThreshold = report.threshold_sweep?.optimal_threshold;
 
   return (
     <div className="space-y-6">
@@ -260,6 +249,24 @@ export function BCPage({ config }: { config: Config }) {
           onChange={(e) => setThreshold(parseFloat(e.target.value))}
           className="w-full mt-4 accent-indigo-500 h-2 rounded-full cursor-pointer"
         />
+
+        <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
+          {optThreshold != null && Number.isFinite(optThreshold) && (
+            <button
+              onClick={() => setThreshold(optThreshold)}
+              className="text-indigo-500 hover:text-indigo-600 font-medium"
+            >
+              ↺ Сбросить к оптимальному ({optThreshold.toFixed(3)})
+            </button>
+          )}
+          <button
+            onClick={() => setThreshold(config.defaultThreshold)}
+            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium"
+          >
+            ↺ К значению из конфига ({config.defaultThreshold.toFixed(3)})
+          </button>
+        </div>
+
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-5">
           {[
             ["Precision", counts.precision],
@@ -271,7 +278,7 @@ export function BCPage({ config }: { config: Config }) {
           ].map(([label, val]) => (
             <div key={label as string} className="text-center">
               <p className="text-[10px] text-slate-500 uppercase">{label}</p>
-              <p className="font-bold text-sm">{(val as number).toFixed(3)}</p>
+              <p className="font-bold text-sm">{Number(val).toFixed(3)}</p>
             </div>
           ))}
         </div>
@@ -297,7 +304,10 @@ export function BCPage({ config }: { config: Config }) {
         <RiskMap samples={report.sample_predictions} threshold={threshold} />
       </div>
 
-      <CostPanel report={report} />
+      <CostPanel
+        report={report}
+        onApplyThreshold={(t) => setThreshold(t)}
+      />
     </div>
   );
 }

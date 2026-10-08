@@ -15,28 +15,50 @@ export function ThresholdChart({
   current: number;
   hero: "f0.5_pos" | "f2_pos";
 }) {
-  const data = sweep.thresholds.map((t, i) => ({
-    threshold: +t.toFixed(3),
-    precision: sweep.precision_pos[i],
-    recall: sweep.recall_pos[i],
-    f05: sweep["f0.5_pos"]?.[i] ?? 0,
-    f2: sweep.f2_pos?.[i] ?? 0,
+  const safe = (v: any): number => (Number.isFinite(v) ? v : 0);
+
+  const data = (sweep.thresholds ?? []).map((t, i) => ({
+    threshold: +safe(t).toFixed(3),
+    precision: safe(sweep.precision_pos?.[i]),
+    recall: safe(sweep.recall_pos?.[i]),
+    f05: safe(sweep["f0.5_pos"]?.[i]),
+    f2: safe(sweep.f2_pos?.[i]),
   }));
 
   const heroKey = hero === "f0.5_pos" ? "f05" : "f2";
   const heroLabel = hero === "f0.5_pos" ? "F0.5 (malignant)" : "F2 (malignant)";
 
-  // Авто-масштаб Y по данным: линии заполняют всю высоту графика
-  const values = data.flatMap((d) => [
-    d.precision,
-    d.recall,
-    d[heroKey as "f05" | "f2"],
-  ]);
-  const dataMin = Math.min(...values);
-  const dataMax = Math.max(...values);
-  const span = Math.max(0.05, dataMax - dataMin);
-  const yMin = Math.max(0, dataMin - span * 0.08);
-  const yMax = Math.min(1, dataMax + span * 0.05);
+  // Авто-масштаб Y по данным, с фильтрацией NaN/null
+  const values = data
+    .flatMap((d) => [d.precision, d.recall, d[heroKey as "f05" | "f2"]])
+    .filter((v) => Number.isFinite(v) && v >= 0 && v <= 1);
+
+  let yMin = 0;
+  let yMax = 1;
+  if (values.length) {
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
+    const span = Math.max(0.05, dataMax - dataMin);
+    yMin = Math.max(0, dataMin - span * 0.08);
+    yMax = Math.min(1, dataMax + span * 0.05);
+    if (yMax - yMin < 0.05) {
+      yMin = Math.max(0, yMin - 0.025);
+      yMax = Math.min(1, yMax + 0.025);
+    }
+  }
+
+  if (!data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Threshold sweep
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет данных threshold_sweep.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -65,7 +87,7 @@ export function ThresholdChart({
           />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => v.toFixed(3)}
+            formatter={(v: number) => Number(v).toFixed(3)}
             labelFormatter={(l) => `threshold = ${l}`}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
