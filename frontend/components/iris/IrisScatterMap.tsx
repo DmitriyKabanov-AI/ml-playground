@@ -17,18 +17,40 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
   const [xAxis, setXAxis] = useState<typeof FEATURES[number]>("petalLength");
   const [yAxis, setYAxis] = useState<typeof FEATURES[number]>("petalWidth");
 
+  const selectClass =
+    "bg-slate-500/10 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 " +
+    "border border-border outline-none cursor-pointer " +
+    "[color-scheme:light] dark:[color-scheme:dark]";
+
+  const optionClass =
+    "bg-white text-slate-900 dark:bg-slate-800 dark:text-slate-100";
+
   return (
     <Card>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <CardTitle>Карта поля ирисов</CardTitle>
         <div className="flex gap-2 text-xs">
-          <select value={xAxis} onChange={(e) => setXAxis(e.target.value as any)}
-            className="bg-slate-500/10 rounded-lg px-2 py-1">
-            {FEATURES.map((f) => <option key={f} value={f}>{LABELS[f]}</option>)}
+          <select
+            value={xAxis}
+            onChange={(e) => setXAxis(e.target.value as any)}
+            className={selectClass}
+          >
+            {FEATURES.map((f) => (
+              <option key={f} value={f} className={optionClass}>
+                {LABELS[f]}
+              </option>
+            ))}
           </select>
-          <select value={yAxis} onChange={(e) => setYAxis(e.target.value as any)}
-            className="bg-slate-500/10 rounded-lg px-2 py-1">
-            {FEATURES.map((f) => <option key={f} value={f}>{LABELS[f]}</option>)}
+          <select
+            value={yAxis}
+            onChange={(e) => setYAxis(e.target.value as any)}
+            className={selectClass}
+          >
+            {FEATURES.map((f) => (
+              <option key={f} value={f} className={optionClass}>
+                {LABELS[f]}
+              </option>
+            ))}
           </select>
         </div>
       </div>

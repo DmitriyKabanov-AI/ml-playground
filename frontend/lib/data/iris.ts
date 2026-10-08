@@ -52,25 +52,40 @@ export function useIrisData() {
   };
 }
 
-/** k-NN по реальным 150 точкам — живой инференс без бэкенда */
+/** Smooth KDE-инференс: плавные вероятности без скачков k-NN. */
 export function predictIris(
   sl: number, sw: number, pl: number, pw: number,
-  points: IrisPoint[], k = 7
+  points: IrisPoint[],
+  bandwidth = 0.55,
 ) {
-  if (!points.length) return { probs: {} as Record<IrisClass, number>, predicted: "setosa" as IrisClass };
-  const dists = points
-    .map((p) => ({ p, d: Math.hypot(p.sepalLength - sl, p.sepalWidth - sw, p.petalLength - pl, p.petalWidth - pw) }))
-    .sort((a, b) => a.d - b.d);
-  const votes: Record<string, number> = { setosa: 0, versicolor: 0, virginica: 0 };
-  for (let i = 0; i < Math.min(k, dists.length); i++) {
-    votes[dists[i].p.actual] += 1 / (dists[i].d + 1e-3);
+  if (!points.length) {
+    return { probs: {} as Record<IrisClass, number>, predicted: "setosa" as IrisClass };
   }
-  const total = Object.values(votes).reduce((a, b) => a + b, 0) || 1;
+
+  // масштабируем признаки так, чтобы длины и ширины давали сопоставимый вклад
+  const W = { sepalLength: 1, sepalWidth: 1, petalLength: 1.5, petalWidth: 2 };
+
+  const votes: Record<IrisClass, number> = { setosa: 1e-6, versicolor: 1e-6, virginica: 1e-6 };
+  const h2 = 2 * bandwidth * bandwidth;
+
+  for (const p of points) {
+    const d2 =
+      W.sepalLength * (p.sepalLength - sl) ** 2 +
+      W.sepalWidth  * (p.sepalWidth  - sw) ** 2 +
+      W.petalLength * (p.petalLength - pl) ** 2 +
+      W.petalWidth  * (p.petalWidth  - pw) ** 2;
+    votes[p.actual] += Math.exp(-d2 / h2);
+  }
+
+  const total = votes.setosa + votes.versicolor + votes.virginica || 1;
   const probs = {
-    setosa: votes.setosa / total,
+    setosa:     votes.setosa     / total,
     versicolor: votes.versicolor / total,
-    virginica: votes.virginica / total,
+    virginica:  votes.virginica  / total,
   } as Record<IrisClass, number>;
-  const predicted = (Object.keys(probs) as IrisClass[]).sort((a, b) => probs[b] - probs[a])[0];
+
+  const predicted = (Object.keys(probs) as IrisClass[])
+    .sort((a, b) => probs[b] - probs[a])[0];
+
   return { probs, predicted };
 }
