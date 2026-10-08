@@ -76,7 +76,16 @@ export function IrisLiveSimulator({ data }: { data: IrisPoint[] }) {
 
       <div className="space-y-5">
         <ProbabilityRadar probs={probs} />
-        <IrisScatterMap data={data} current={{ x: values.pl, y: values.pw }} />
+        {/* FIX: передаём все четыре признака. Тип согласован с IrisScatterMap ниже. */}
+        <IrisScatterMap
+          data={data}
+          current={{
+            sepalLength: values.sl,
+            sepalWidth: values.sw,
+            petalLength: values.pl,
+            petalWidth: values.pw,
+          }}
+        />
       </div>
     </div>
   );

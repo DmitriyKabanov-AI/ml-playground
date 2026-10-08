@@ -7,17 +7,16 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
-  CFReport, CFModel, CFSample, loadCreditFraudReport, findBestCFModel,
+  CFReport, CFModel, CFSample,
+  loadCreditFraudReport, findBestCFModel,
 } from "@/lib/data/creditFraud";
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(2)}%`;
 const fmtNum = (v?: number | null, digits = 3) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({
-  report, best,
-}: { report: CFReport; best: CFModel }) {
+function HeroCard({ report, best }: { report: CFReport; best: CFModel }) {
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
@@ -27,7 +26,8 @@ function HeroCard({
       <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-          {best.metrics.mcc.toFixed(4)}
+          {/* FIX: безопасный формат вместо .toFixed() */}
+          {fmtNum(best.metrics.mcc, 4)}
         </span>
         <Badge tone="info">MCC</Badge>
       </div>
@@ -36,11 +36,12 @@ function HeroCard({
   );
 }
 
-
 function ModelComparison({ report }: { report: CFReport }) {
-  const rows = report.models;
-  const sortKey = (m: CFModel) => m.metrics.mcc;
-  const sorted = [...rows].sort((a, b) => sortKey(b) - sortKey(a));
+  const rows = report.models ?? [];
+  if (!rows.length) return null;
+  const sorted = [...rows].sort(
+    (a, b) => (b.metrics.mcc ?? -Infinity) - (a.metrics.mcc ?? -Infinity)
+  );
   return (
     <Card>
       <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
@@ -66,22 +67,33 @@ function ModelComparison({ report }: { report: CFReport }) {
               return (
                 <tr
                   key={m.name}
-                  className={`border-b border-border/50 ${isNaive ? "opacity-60" : ""} ${isBest ? "bg-emerald-500/5" : ""}`}
+                  className={`border-b border-border/50 ${isNaive ? "opacity-60" : ""} ${
+                    isBest ? "bg-emerald-500/5" : ""
+                  }`}
                 >
                   <td className="py-2">
-                    {m.name} {isBest && <Badge tone="success" className="ml-2">best</Badge>}
+                    {m.name}{" "}
+                    {isBest && <Badge tone="success" className="ml-2">best</Badge>}
                     {isNaive && <Badge tone="danger" className="ml-2">baseline</Badge>}
                   </td>
                   <td className={`text-right font-mono ${isBest ? "font-bold text-emerald-500" : ""}`}>
                     {fmtNum(m.metrics.mcc, 4)}
                   </td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.pr_auc ?? m.pr_auc, 4)}</td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.roc_auc ?? m.roc_auc, 4)}</td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.sensitivity, 3)}</td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.pr_auc ?? m.pr_auc, 4)}
+                  </td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.roc_auc ?? m.roc_auc, 4)}
+                  </td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.sensitivity, 3)}
+                  </td>
                   <td className="text-right font-mono">
                     {fmtNum(m.metrics.precision_macro, 3)}
                   </td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.accuracy, 4)}</td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.accuracy, 4)}
+                  </td>
                 </tr>
               );
             })}
@@ -92,7 +104,9 @@ function ModelComparison({ report }: { report: CFReport }) {
   );
 }
 
-function MetricCard({ label, value, tone }: { label: string; value: string; tone?: "info" | "danger" | "success" }) {
+function MetricCard({
+  label, value, tone,
+}: { label: string; value: string; tone?: "info" | "danger" | "success" }) {
   const color =
     tone === "danger" ? "text-rose-500" :
     tone === "success" ? "text-emerald-500" :
@@ -111,7 +125,9 @@ function ConfusionGrid({
   const cell = (label: string, val: number, tone: string) => (
     <div className={`rounded-lg p-3 text-center ${tone}`}>
       <p className="text-[10px] uppercase tracking-wide opacity-70">{label}</p>
-      <p className="text-2xl font-black">{val.toLocaleString("ru-RU")}</p>
+      <p className="text-2xl font-black">
+        {Number.isFinite(val) ? val.toLocaleString("ru-RU") : "—"}
+      </p>
     </div>
   );
   return (
@@ -132,6 +148,19 @@ function ConfusionGrid({
 function FeatureImportanceChart({
   data,
 }: { data: { name: string; value: number }[] }) {
+  // FIX: защита от пустого массива
+  if (!Array.isArray(data) || !data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Feature importance
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет feature_importance для этой модели.
+        </p>
+      </Card>
+    );
+  }
   const colors = ["#6366f1", "#8b5cf6", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e", "#a855f7", "#14b8a6"];
   const top = [...data].slice(0, 15);
   return (
@@ -145,7 +174,7 @@ function FeatureImportanceChart({
           <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => v.toFixed(4)}
+            formatter={(v: number) => Number(v).toFixed(4)}
           />
           <Bar dataKey="value" radius={[0, 8, 8, 0]}>
             {top.map((_, i) => (
@@ -161,10 +190,24 @@ function FeatureImportanceChart({
 function SampleScatter({
   samples, xKey, yKey,
 }: { samples: CFSample[]; xKey: string; yKey: string }) {
+  // FIX: защита от отсутствующего массива
+  if (!Array.isArray(samples) || !samples.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Образцы теста: {xKey} × {yKey}
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет sample_predictions.
+        </p>
+      </Card>
+    );
+  }
   const data = samples.map((s, i) => ({
     id: i,
-    x: s.features[xKey] ?? 0,
-    y: s.features[yKey] ?? 0,
+    // FIX: безопасное чтение features через optional chaining
+    x: s.features?.[xKey] ?? 0,
+    y: s.features?.[yKey] ?? 0,
     sample: s,
     p: s.proba?.fraud ?? (s.predicted === "fraud" ? 1 : 0),
   }));
@@ -182,7 +225,9 @@ function SampleScatter({
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: any, n: string) => (n === "p" ? `${(v * 100).toFixed(1)}%` : v.toFixed(3))}
+            formatter={(v: any, n: string) =>
+              n === "p" ? `${(Number(v) * 100).toFixed(1)}%` : Number(v).toFixed(3)
+            }
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Scatter
@@ -233,7 +278,7 @@ export function CreditFraudPage() {
   }, []);
 
   const best = useMemo(() => (report ? findBestCFModel(report) : null), [report]);
-  const selected = report ? report.models[modelIdx] : null;
+  const selected = report ? report.models[modelIdx] ?? null : null;
 
   if (error) {
     return (
@@ -255,12 +300,19 @@ export function CreditFraudPage() {
       </div>
     );
   }
-  const cc = selected.confusion_counts;
+
+  const cc = selected.confusion_counts ?? {
+    tp_fraud: 0,
+    fn_fraud: 0,
+    fp_normal: 0,
+    tn_normal: 0,
+  };
+  const fraudPerClass = selected.per_class?.fraud;
+  const errorsOnTest = (cc.fp_normal ?? 0) + (cc.fn_fraud ?? 0);
 
   return (
     <div className="space-y-6">
       <HeroCard report={report} best={best} />
-      
 
       <div className="flex flex-wrap gap-2">
         {report.models.map((m, i) => (
@@ -280,27 +332,49 @@ export function CreditFraudPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MetricCard label="MCC" value={fmtNum(selected.metrics.mcc, 4)} tone={selected.is_naive ? "danger" : "success"} />
-        <MetricCard label="PR-AUC" value={fmtNum(selected.metrics.pr_auc ?? selected.pr_auc, 4)} />
-        <MetricCard label="ROC-AUC" value={fmtNum(selected.metrics.roc_auc ?? selected.roc_auc, 4)} />
-        <MetricCard label="Balanced Acc." value={fmtPct(selected.metrics.balanced_accuracy)} />
-        <MetricCard label="Sensitivity (fraud)" value={fmtPct(selected.metrics.sensitivity)} />
-        <MetricCard label="Specificity (normal)" value={fmtPct(selected.metrics.specificity)} />
-        <MetricCard label="Precision (fraud)" value={fmtPct(selected.per_class.fraud.precision)} />
-        <MetricCard label="F1 (fraud)" value={fmtPct(selected.per_class.fraud.f1)} />
-        <MetricCard label="Accuracy" value={fmtPct(selected.metrics.accuracy)} />
         <MetricCard
-          label="Errors on test"
-          value={String((cc.fp_normal ?? 0) + (cc.fn_fraud ?? 0))}
+          label="MCC"
+          value={fmtNum(selected.metrics.mcc, 4)}
+          tone={selected.is_naive ? "danger" : "success"}
         />
+        <MetricCard
+          label="PR-AUC"
+          value={fmtNum(selected.metrics.pr_auc ?? selected.pr_auc, 4)}
+        />
+        <MetricCard
+          label="ROC-AUC"
+          value={fmtNum(selected.metrics.roc_auc ?? selected.roc_auc, 4)}
+        />
+        <MetricCard
+          label="Balanced Acc."
+          value={fmtPct(selected.metrics.balanced_accuracy)}
+        />
+        <MetricCard
+          label="Sensitivity (fraud)"
+          value={fmtPct(selected.metrics.sensitivity)}
+        />
+        <MetricCard
+          label="Specificity (normal)"
+          value={fmtPct(selected.metrics.specificity)}
+        />
+        <MetricCard
+          label="Precision (fraud)"
+          value={fmtPct(fraudPerClass?.precision)}
+        />
+        <MetricCard
+          label="F1 (fraud)"
+          value={fmtPct(fraudPerClass?.f1)}
+        />
+        <MetricCard label="Accuracy" value={fmtPct(selected.metrics.accuracy)} />
+        <MetricCard label="Errors on test" value={String(errorsOnTest)} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <ConfusionGrid
-          tp={cc.tp_fraud}
-          fp={cc.fp_normal}
-          fn={cc.fn_fraud}
-          tn={cc.tn_normal}
+          tp={cc.tp_fraud ?? 0}
+          fp={cc.fp_normal ?? 0}
+          fn={cc.fn_fraud ?? 0}
+          tn={cc.tn_normal ?? 0}
           isNaive={selected.is_naive}
         />
         {selected.feature_importance ? (
@@ -315,7 +389,11 @@ export function CreditFraudPage() {
         )}
       </div>
 
-      <SampleScatter samples={report.sample_predictions} xKey="V14" yKey="V17" />
+      <SampleScatter
+        samples={report.sample_predictions ?? []}
+        xKey="V14"
+        yKey="V17"
+      />
 
       <ModelComparison report={report} />
     </div>

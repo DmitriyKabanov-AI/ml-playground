@@ -16,7 +16,8 @@ import { useIrisData } from "@/lib/data/iris";
 export default function IrisPage() {
   const { selectedModel, setSelectedModel } = useAppStore();
   const { data: report, loading: rl, error: rErr } = useJson<any>("classification/iris/report.json");
-  const { iris, loading: il } = useIrisData();
+  // FIX: теперь useIrisData возвращает error — не застрянем в skeleton
+  const { iris, loading: il, error: iErr } = useIrisData();
 
   const models = useMemo(() => modelsFromReport(report), [report]);
   const currentModelId = selectedModel["iris"] ?? report?.headline?.best_model ?? models[0]?.id;
@@ -26,10 +27,13 @@ export default function IrisPage() {
   );
   const metrics = useMemo(() => metricsFromModel(currentModel), [currentModel]);
 
-  if (rErr) {
+  // FIX: различаем ошибки report.json и results.json
+  if (rErr || iErr) {
     return (
       <Card>
-        <p className="text-rose-500">Ошибка загрузки артефакта: {rErr}</p>
+        <p className="text-rose-500">
+          Ошибка загрузки артефакта: {rErr ?? iErr}
+        </p>
       </Card>
     );
   }

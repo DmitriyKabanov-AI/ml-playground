@@ -78,14 +78,14 @@ export interface BCReport {
   };
   models: BCModel[];
   baseline?: { name: string; metrics: Record<string, number> };
-  threshold_sweep: BCSweep;
-  sample_predictions: BCSample[];
+  // FIX: sweep может отсутствовать в артефакте
+  threshold_sweep?: BCSweep;
+  sample_predictions?: BCSample[];
   charts?: Record<string, string>;
 }
 
 export type BCTask = "breast_cancer_fp" | "breast_cancer_fn";
 
-// Python json.dump кладёт NaN/Infinity — зачищаем в null, чтобы JSON.parse не падал
 function sanitize<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === "number") return (Number.isFinite(obj) ? obj : (null as any));
@@ -116,15 +116,13 @@ export function findBestModel(report: BCReport): BCModel {
   return report.models.find((m) => m.is_best) ?? report.models[0];
 }
 
-/** null-safe чтение значения из массива по индексу */
 function at<T>(arr: T[] | undefined | null, idx: number, fallback: T): T {
   if (!Array.isArray(arr) || idx < 0 || idx >= arr.length) return fallback;
   const v = arr[idx];
   return v === null || v === undefined ? fallback : v;
 }
 
-export function sweepAt(sweep: BCSweep, t: number) {
-  // пустой sweep — не даём циклу оставить idx=0 с undefined
+export function sweepAt(sweep: BCSweep | undefined, t: number) {
   if (!sweep?.thresholds?.length) {
     return {
       threshold: 0,
@@ -155,19 +153,29 @@ export function sweepAt(sweep: BCSweep, t: number) {
     f05: at(sweep["f0.5_pos"], idx, 0),
     f1: at(sweep.f1_pos, idx, 0),
     f2: at(sweep.f2_pos, idx, 0),
-    specificity: at(sweep.specificity, idx, 1),  // дефолт = «все TN», fp будет 0
+    specificity: at(sweep.specificity, idx, 1),
     sensitivity: at(sweep.sensitivity, idx, 0),
   };
 }
 
-// Восстанавливаем TP/FN/FP/TN из recall/specificity и размеров классов тестовой выборки.
-// Раньше использовали precision — она давала нестабильные FP из-за округления.
+// FIX: классы больше не хардкодятся как benign/malignant.
+// Берём positive_class из meta.target_stats, отрицательный считаем как n_test - nPos.
 export function countsFromSweep(report: BCReport, t: number) {
   const s = sweepAt(report.threshold_sweep, t);
-  const nPos = report.meta?.target_stats?.class_distribution_test?.malignant ?? 0;
-  const nNeg = report.meta?.target_stats?.class_distribution_test?.benign ?? 0;
 
-  // recall может быть null → 0; NaN безопасен через Number.isFinite
+  const dist = report.meta?.target_stats?.class_distribution_test ?? {};
+  const positiveClass = report.meta?.target_stats?.positive_class ?? "malignant";
+  const nTest =
+    report.meta?.n_test ??
+    Object.values(dist).reduce((acc, v) => acc + (Number(v) || 0), 0);
+
+  // positive class: явное значение из distribution, иначе — по prevalence * n_test
+  const nPosRaw =
+    dist[positiveClass] ??
+    Math.round((report.meta?.target_stats?.prevalence_positive ?? 0) * nTest);
+  const nPos = Number.isFinite(nPosRaw) ? nPosRaw : 0;
+  const nNeg = Math.max(0, nTest - nPos);
+
   const recall = Number.isFinite(s.recall) ? (s.recall as number) : 0;
   const spec = Number.isFinite(s.specificity) ? (s.specificity as number) : 1;
 
@@ -183,7 +191,6 @@ export function countsFromSweep(report: BCReport, t: number) {
     fp,
     tn,
     ...s,
-    // перезаписываем на безопасные значения
     recall,
     specificity: spec,
   };

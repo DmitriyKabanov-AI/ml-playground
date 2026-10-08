@@ -15,7 +15,7 @@ export interface IrisPoint {
   correct: boolean;
 }
 
-export interface IrisRaw {       // что отдаёт results.json
+export interface IrisRaw {
   classes: string[];
   features: string[];
   points: IrisPoint[];
@@ -25,8 +25,20 @@ export interface IrisRaw {       // что отдаёт results.json
 }
 
 export function useIrisData() {
-  const { data, loading } = useJson<any>("classification/iris/results.json");
-  if (!data?.classification) return { iris: null as IrisRaw | null, loading };
+  // FIX: забираем error из useJson, а не глотаем его.
+  const { data, loading, error } = useJson<any>("classification/iris/results.json");
+
+  if (error) {
+    return { iris: null as IrisRaw | null, loading: false, error };
+  }
+  if (!data?.classification) {
+    // data ещё нет, но loading уже false → это ошибка контента, не «вечная загрузка»
+    return {
+      iris: null as IrisRaw | null,
+      loading,
+      error: loading ? null : "results.json не содержит поля classification",
+    };
+  }
 
   const c = data.classification;
   const classes: string[] = c.classes ?? [];
@@ -49,6 +61,7 @@ export function useIrisData() {
   return {
     iris: { classes, features: c.features ?? [], points, importance, cv: c.cv ?? [], roc: c.roc ?? [] },
     loading,
+    error: null as string | null,
   };
 }
 
@@ -62,7 +75,6 @@ export function predictIris(
     return { probs: {} as Record<IrisClass, number>, predicted: "setosa" as IrisClass };
   }
 
-  // масштабируем признаки так, чтобы длины и ширины давали сопоставимый вклад
   const W = { sepalLength: 1, sepalWidth: 1, petalLength: 1.5, petalWidth: 2 };
 
   const votes: Record<IrisClass, number> = { setosa: 1e-6, versicolor: 1e-6, virginica: 1e-6 };

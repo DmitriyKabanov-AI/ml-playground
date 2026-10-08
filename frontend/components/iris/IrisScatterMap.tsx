@@ -1,21 +1,41 @@
 ﻿"use client";
 import { Card, CardTitle } from "@/components/ui/Card";
-import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  ScatterChart, Scatter, XAxis, YAxis, ZAxis,
+  Tooltip, ResponsiveContainer, CartesianGrid,
+} from "recharts";
 import { useState } from "react";
 import { IrisPoint } from "@/lib/data/iris";
 
 const FEATURES = ["sepalLength", "sepalWidth", "petalLength", "petalWidth"] as const;
-const COLORS: Record<string, string> = { setosa: "#10b981", versicolor: "#6366f1", virginica: "#f43f5e" };
-const LABELS: Record<string, string> = {
+type Feature = typeof FEATURES[number];
+
+// FIX: теперь тип current — полный набор признаков, а не { x, y }.
+// Экспортируем его, чтобы можно было использовать при вызове компонента.
+export type IrisCurrentValues = Record<Feature, number>;
+
+const COLORS: Record<string, string> = {
+  setosa: "#10b981",
+  versicolor: "#6366f1",
+  virginica: "#f43f5e",
+};
+
+const LABELS: Record<Feature, string> = {
   sepalLength: "Длина чашелистика",
   sepalWidth: "Ширина чашелистика",
   petalLength: "Длина лепестка",
   petalWidth: "Ширина лепестка",
 };
 
-export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?: { x: number; y: number } }) {
-  const [xAxis, setXAxis] = useState<typeof FEATURES[number]>("petalLength");
-  const [yAxis, setYAxis] = useState<typeof FEATURES[number]>("petalWidth");
+export function IrisScatterMap({
+  data,
+  current,
+}: {
+  data: IrisPoint[];
+  current?: IrisCurrentValues;
+}) {
+  const [xAxis, setXAxis] = useState<Feature>("petalLength");
+  const [yAxis, setYAxis] = useState<Feature>("petalWidth");
 
   const selectClass =
     "bg-slate-500/10 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 " +
@@ -32,7 +52,7 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
         <div className="flex gap-2 text-xs">
           <select
             value={xAxis}
-            onChange={(e) => setXAxis(e.target.value as any)}
+            onChange={(e) => setXAxis(e.target.value as Feature)}
             className={selectClass}
           >
             {FEATURES.map((f) => (
@@ -43,7 +63,7 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
           </select>
           <select
             value={yAxis}
-            onChange={(e) => setYAxis(e.target.value as any)}
+            onChange={(e) => setYAxis(e.target.value as Feature)}
             className={selectClass}
           >
             {FEATURES.map((f) => (
@@ -60,24 +80,45 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
           <XAxis dataKey={xAxis} type="number" name={LABELS[xAxis]} tick={{ fontSize: 11 }} />
           <YAxis dataKey={yAxis} type="number" name={LABELS[yAxis]} tick={{ fontSize: 11 }} />
           <ZAxis range={[60, 60]} />
-          <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ fontSize: 12, borderRadius: 12 }} />
-          <Scatter data={data} shape={(props: any) => {
-            const correct = props.payload.actual === props.payload.predicted;
-            return (
-              <circle cx={props.cx} cy={props.cy} r={5}
-                fill={COLORS[props.payload.actual]}
-                stroke={correct ? "none" : "#fff"} strokeWidth={correct ? 0 : 2}
-                opacity={0.85} />
-            );
-          }} />
+          <Tooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            contentStyle={{ fontSize: 12, borderRadius: 12 }}
+          />
+          <Scatter
+            data={data}
+            shape={(props: any) => {
+              const correct = props.payload.actual === props.payload.predicted;
+              return (
+                <circle
+                  cx={props.cx}
+                  cy={props.cy}
+                  r={5}
+                  fill={COLORS[props.payload.actual]}
+                  stroke={correct ? "none" : "#fff"}
+                  strokeWidth={correct ? 0 : 2}
+                  opacity={0.85}
+                />
+              );
+            }}
+          />
+          {/* FIX: текущая точка строится по выбранным осям, а не всегда по petal-* */}
           {current && (
-            <Scatter data={[{ [xAxis]: current.x, [yAxis]: current.y }]}
+            <Scatter
+              data={[{ [xAxis]: current[xAxis], [yAxis]: current[yAxis] }]}
               shape={(props: any) => (
                 <g>
-                  <circle cx={props.cx} cy={props.cy} r={10} fill="none" stroke="#fbbf24" strokeWidth={2.5} />
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={10}
+                    fill="none"
+                    stroke="#fbbf24"
+                    strokeWidth={2.5}
+                  />
                   <circle cx={props.cx} cy={props.cy} r={4} fill="#fbbf24" />
                 </g>
-              )} />
+              )}
+            />
           )}
         </ScatterChart>
       </ResponsiveContainer>

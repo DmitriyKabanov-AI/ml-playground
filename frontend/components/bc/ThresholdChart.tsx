@@ -11,24 +11,25 @@ export function ThresholdChart({
   current,
   hero,
 }: {
-  sweep: BCSweep;
+  // FIX: sweep может отсутствовать в артефакте — делаем его опциональным
+  sweep?: BCSweep;
   current: number;
   hero: "f0.5_pos" | "f2_pos";
 }) {
   const safe = (v: any): number => (Number.isFinite(v) ? v : 0);
 
-  const data = (sweep.thresholds ?? []).map((t, i) => ({
+  const thresholds = sweep?.thresholds ?? [];
+  const data = thresholds.map((t, i) => ({
     threshold: +safe(t).toFixed(3),
-    precision: safe(sweep.precision_pos?.[i]),
-    recall: safe(sweep.recall_pos?.[i]),
-    f05: safe(sweep["f0.5_pos"]?.[i]),
-    f2: safe(sweep.f2_pos?.[i]),
+    precision: safe(sweep?.precision_pos?.[i]),
+    recall: safe(sweep?.recall_pos?.[i]),
+    f05: safe(sweep?.["f0.5_pos"]?.[i]),
+    f2: safe(sweep?.f2_pos?.[i]),
   }));
 
   const heroKey = hero === "f0.5_pos" ? "f05" : "f2";
   const heroLabel = hero === "f0.5_pos" ? "F0.5 (malignant)" : "F2 (malignant)";
 
-  // Авто-масштаб Y по данным, с фильтрацией NaN/null
   const values = data
     .flatMap((d) => [d.precision, d.recall, d[heroKey as "f05" | "f2"]])
     .filter((v) => Number.isFinite(v) && v >= 0 && v <= 1);
@@ -47,6 +48,7 @@ export function ThresholdChart({
     }
   }
 
+  // FIX: не падаем, если sweep пустой или отсутствует
   if (!data.length) {
     return (
       <Card>
@@ -67,7 +69,7 @@ export function ThresholdChart({
           Threshold sweep
         </h3>
         <span className="text-xs text-slate-500">
-          sweep source: {sweep.sweep_source ?? "validation"} · Y ∈ [
+          sweep source: {sweep?.sweep_source ?? "validation"} · Y ∈ [
           {yMin.toFixed(3)}, {yMax.toFixed(3)}]
         </span>
       </div>

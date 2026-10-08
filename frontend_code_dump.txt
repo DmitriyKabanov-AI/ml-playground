@@ -1,14 +1,14 @@
 # ============================================================
 # FRONTEND CODE DUMP
 # Root   : C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
-# Created: 2026-10-08 12:31:32
+# Created: 2026-10-08 13:14:01
 # Files  : 59
 # ============================================================
 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fn\page.tsx
-### SIZE: 421 B   MODIFIED: 2026-10-07 16:03:16
+### SIZE: 436 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -31,7 +31,7 @@ export default function BreastCancerFNPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fp\page.tsx
-### SIZE: 408 B   MODIFIED: 2026-10-07 16:02:56
+### SIZE: 423 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -54,7 +54,7 @@ export default function BreastCancerFPPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\credit-fraud\page.tsx
-### SIZE: 149 B   MODIFIED: 2026-10-07 15:44:20
+### SIZE: 154 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -67,7 +67,7 @@ export default function Page() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\digits\page.tsx
-### SIZE: 135 B   MODIFIED: 2026-10-07 15:44:24
+### SIZE: 140 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -80,7 +80,7 @@ export default function Page() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\fraud\page.tsx
-### SIZE: 110 B   MODIFIED: 2026-10-07 13:33:09
+### SIZE: 111 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 import { redirect } from "next/navigation";
@@ -90,7 +90,7 @@ export default function Page() { redirect("/credit-fraud"); }
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\globals.css
-### SIZE: 1034 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 1071 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 @tailwind base;
@@ -136,7 +136,7 @@ body {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\iris\page.tsx
-### SIZE: 2846 B   MODIFIED: 2026-10-07 16:05:51
+### SIZE: 2923 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -221,7 +221,7 @@ export default function IrisPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\layout.tsx
-### SIZE: 775 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 796 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 import "./globals.css";
@@ -251,7 +251,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\page.tsx
-### SIZE: 2298 B   MODIFIED: 2026-10-08 10:44:20
+### SIZE: 2298 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -299,7 +299,7 @@ export default function HomePage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\BCPage.tsx
-### SIZE: 10397 B   MODIFIED: 2026-10-08 10:44:23
+### SIZE: 10957 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -329,9 +329,9 @@ type Config = {
 };
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null ? "—" : `${(v * 100).toFixed(1)}%`;
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(1)}%`;
 const fmtNum = (v?: number | null) =>
-  v === undefined || v === null ? "—" : v.toFixed(3);
+  v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
 
 function HeroCard({
   report,
@@ -433,7 +433,7 @@ function FeatureImportanceChart({
           <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => v.toFixed(4)}
+            formatter={(v: number) => Number(v).toFixed(4)}
           />
           <Bar dataKey="value" radius={[0, 8, 8, 0]}>
             {top.map((_, i) => (
@@ -512,18 +512,7 @@ export function BCPage({ config }: { config: Config }) {
     ["Sensitivity", best.metrics.sensitivity, false],
   ];
 
-  const narrativeWhy =
-    report.meta.narrative.why_not_accuracy ??
-    report.meta.narrative.why_f2 ??
-    "";
-
-  const optThreshold =
-    report.headline?.diagnostic_verdict?.best_threshold ??
-    report.threshold_sweep.optimal_threshold;
-  const thrSource =
-    report.headline?.diagnostic_verdict?.threshold_source ??
-    report.threshold_sweep.sweep_source ??
-    "validation";
+  const optThreshold = report.threshold_sweep?.optimal_threshold;
 
   return (
     <div className="space-y-6">
@@ -564,6 +553,24 @@ export function BCPage({ config }: { config: Config }) {
           onChange={(e) => setThreshold(parseFloat(e.target.value))}
           className="w-full mt-4 accent-indigo-500 h-2 rounded-full cursor-pointer"
         />
+
+        <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
+          {optThreshold != null && Number.isFinite(optThreshold) && (
+            <button
+              onClick={() => setThreshold(optThreshold)}
+              className="text-indigo-500 hover:text-indigo-600 font-medium"
+            >
+              ↺ Сбросить к оптимальному ({optThreshold.toFixed(3)})
+            </button>
+          )}
+          <button
+            onClick={() => setThreshold(config.defaultThreshold)}
+            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium"
+          >
+            ↺ К значению из конфига ({config.defaultThreshold.toFixed(3)})
+          </button>
+        </div>
+
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-5">
           {[
             ["Precision", counts.precision],
@@ -575,7 +582,7 @@ export function BCPage({ config }: { config: Config }) {
           ].map(([label, val]) => (
             <div key={label as string} className="text-center">
               <p className="text-[10px] text-slate-500 uppercase">{label}</p>
-              <p className="font-bold text-sm">{(val as number).toFixed(3)}</p>
+              <p className="font-bold text-sm">{Number(val).toFixed(3)}</p>
             </div>
           ))}
         </div>
@@ -601,7 +608,10 @@ export function BCPage({ config }: { config: Config }) {
         <RiskMap samples={report.sample_predictions} threshold={threshold} />
       </div>
 
-      <CostPanel report={report} />
+      <CostPanel
+        report={report}
+        onApplyThreshold={(t) => setThreshold(t)}
+      />
     </div>
   );
 }
@@ -609,7 +619,7 @@ export function BCPage({ config }: { config: Config }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\CostPanel.tsx
-### SIZE: 5160 B   MODIFIED: 2026-10-08 12:29:57
+### SIZE: 6392 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -621,20 +631,30 @@ import {
 import { Card } from "@/components/ui/Card";
 import { BCReport, countsFromSweep } from "@/lib/data/breastCancer";
 
-export function CostPanel({ report }: { report: BCReport }) {
+export function CostPanel({
+  report,
+  onApplyThreshold,
+}: {
+  report: BCReport;
+  onApplyThreshold?: (t: number) => void;
+}) {
   const [costFP, setCostFP] = useState(100);
   const [costFN, setCostFN] = useState(500);
 
   const curve = useMemo(() => {
-    return report.threshold_sweep.thresholds.map((t) => {
-      const c = countsFromSweep(report, t);
-      return {
-        threshold: +t.toFixed(3),
-        cost: c.fp * costFP + c.fn * costFN,
-        fp: c.fp,
-        fn: c.fn,
-      };
-    });
+    const thresholds = report.threshold_sweep?.thresholds ?? [];
+    return thresholds
+      .map((t) => {
+        const c = countsFromSweep(report, t);
+        const cost = c.fp * costFP + c.fn * costFN;
+        return {
+          threshold: +Number(t).toFixed(3),
+          cost: Number.isFinite(cost) ? cost : 0,
+          fp: c.fp,
+          fn: c.fn,
+        };
+      })
+      .filter((p) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
   }, [report, costFP, costFN]);
 
   const optimal = useMemo(() => {
@@ -645,7 +665,18 @@ export function CostPanel({ report }: { report: BCReport }) {
     );
   }, [curve]);
 
-  if (!optimal) return null;
+  if (!optimal) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Калькулятор стоимости ошибок
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          Недостаточно данных threshold_sweep для расчёта стоимости.
+        </p>
+      </Card>
+    );
+  }
 
   const hi = Math.max(1, ...curve.map((c) => c.cost));
   const yMax = hi * 1.05;
@@ -702,6 +733,15 @@ export function CostPanel({ report }: { report: BCReport }) {
           FP: {optimal.fp} × {costFP.toLocaleString("ru-RU")}₽ · FN: {optimal.fn} ×{" "}
           {costFN.toLocaleString("ru-RU")}₽
         </p>
+
+        {onApplyThreshold && (
+          <button
+            onClick={() => onApplyThreshold(optimal.threshold)}
+            className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors font-medium"
+          >
+            Применить этот порог ↑ к слайдеру
+          </button>
+        )}
       </div>
 
       <div className="mt-5">
@@ -711,7 +751,7 @@ export function CostPanel({ report }: { report: BCReport }) {
         <ResponsiveContainer width="100%" height={220}>
           <LineChart
             data={curve}
-            margin={{ top: 10, right: 15, left: -5, bottom: 0 }}
+            margin={{ top: 10, right: 15, left: -5, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
             <XAxis
@@ -723,7 +763,7 @@ export function CostPanel({ report }: { report: BCReport }) {
                 value: "threshold",
                 position: "insideBottom",
                 fontSize: 10,
-                dy: 8,
+                offset: -8,
               }}
             />
             <YAxis
@@ -736,7 +776,7 @@ export function CostPanel({ report }: { report: BCReport }) {
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 12 }}
               formatter={(v: number) =>
-                `${Math.round(v).toLocaleString("ru-RU")} ₽`
+                `${Math.round(Number(v)).toLocaleString("ru-RU")} ₽`
               }
               labelFormatter={(l) => `threshold = ${l}`}
             />
@@ -770,7 +810,7 @@ export function CostPanel({ report }: { report: BCReport }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\RiskMap.tsx
-### SIZE: 4438 B   MODIFIED: 2026-10-07 15:23:10
+### SIZE: 6060 B   MODIFIED: 2026-10-08 13:10:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -789,16 +829,51 @@ function colorFor(p: number) {
   return `rgb(${r},${g},${b})`;
 }
 
+/** Ищет ключ признака по нескольким вариантам написания.
+ *  Возвращает первое найденное значение или null. */
+function pickFeature(
+  features: Record<string, number> | undefined,
+  ...candidates: string[]
+): { key: string; value: number } | null {
+  if (!features) return null;
+  // 1. точное совпадение
+  for (const c of candidates) {
+    if (features[c] !== undefined) return { key: c, value: features[c] };
+  }
+  // 2. нормализованное совпадение (mean_radius == mean radius == meanRadius)
+  const norm = (s: string) => s.toLowerCase().replace(/[\s_]+/g, "");
+  for (const c of candidates) {
+    const target = norm(c);
+    const found = Object.keys(features).find((k) => norm(k) === target);
+    if (found !== undefined) return { key: found, value: features[found] };
+  }
+  return null;
+}
+
 export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold: number }) {
   const [selected, setSelected] = useState<BCSample | null>(null);
 
-  const data = samples.map((s, i) => ({
-    id: i,
-    x: s.features["mean radius"] ?? 0,
-    y: s.features["mean texture"] ?? 0,
-    p: s.proba?.malignant ?? (s.predicted === "malignant" ? 1 : 0),
-    sample: s,
-  }));
+  const data = samples.map((s, i) => {
+    const radius = pickFeature(s.features, "mean radius", "mean_radius");
+    const texture = pickFeature(s.features, "mean texture", "mean_texture");
+    return {
+      id: i,
+      x: radius?.value ?? 0,
+      y: texture?.value ?? 0,
+      p: s.proba?.malignant ?? (s.predicted === "malignant" ? 1 : 0),
+      sample: s,
+    };
+  });
+
+  const selectedRadius = selected
+    ? pickFeature(selected.features, "mean radius", "mean_radius")
+    : null;
+  const selectedTexture = selected
+    ? pickFeature(selected.features, "mean texture", "mean_texture")
+    : null;
+  const selectedConcavity = selected
+    ? pickFeature(selected.features, "mean concavity", "mean_concavity")
+    : null;
 
   return (
     <Card>
@@ -818,7 +893,9 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
             <Tooltip
               cursor={{ strokeDasharray: "3 3" }}
               contentStyle={{ fontSize: 12, borderRadius: 12 }}
-              formatter={(v: any, n: string) => (n === "p" ? `${(v * 100).toFixed(1)}%` : v)}
+              formatter={(v: any, n: string) =>
+                n === "p" ? `${(Number(v) * 100).toFixed(1)}%` : Number(v).toFixed(2)
+              }
             />
             <Scatter
               data={data}
@@ -857,13 +934,13 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
       {selected && (
         <div className="mt-4 p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-sm grid grid-cols-2 gap-2">
           <p>
-            Mean Radius: <b>{selected.features["mean radius"]?.toFixed(2)}</b>
+            Mean Radius: <b>{selectedRadius?.value?.toFixed(2) ?? "—"}</b>
           </p>
           <p>
-            Mean Texture: <b>{selected.features["mean texture"]?.toFixed(2)}</b>
+            Mean Texture: <b>{selectedTexture?.value?.toFixed(2) ?? "—"}</b>
           </p>
           <p>
-            Mean Concavity: <b>{selected.features["mean concavity"]?.toFixed(3)}</b>
+            Mean Concavity: <b>{selectedConcavity?.value?.toFixed(3) ?? "—"}</b>
           </p>
           <p>
             P(malignant): <b>{((selected.proba?.malignant ?? 0) * 100).toFixed(1)}%</b>
@@ -887,7 +964,7 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\ThresholdChart.tsx
-### SIZE: 3362 B   MODIFIED: 2026-10-08 12:29:27
+### SIZE: 4142 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -907,28 +984,50 @@ export function ThresholdChart({
   current: number;
   hero: "f0.5_pos" | "f2_pos";
 }) {
-  const data = sweep.thresholds.map((t, i) => ({
-    threshold: +t.toFixed(3),
-    precision: sweep.precision_pos[i],
-    recall: sweep.recall_pos[i],
-    f05: sweep["f0.5_pos"]?.[i] ?? 0,
-    f2: sweep.f2_pos?.[i] ?? 0,
+  const safe = (v: any): number => (Number.isFinite(v) ? v : 0);
+
+  const data = (sweep.thresholds ?? []).map((t, i) => ({
+    threshold: +safe(t).toFixed(3),
+    precision: safe(sweep.precision_pos?.[i]),
+    recall: safe(sweep.recall_pos?.[i]),
+    f05: safe(sweep["f0.5_pos"]?.[i]),
+    f2: safe(sweep.f2_pos?.[i]),
   }));
 
   const heroKey = hero === "f0.5_pos" ? "f05" : "f2";
   const heroLabel = hero === "f0.5_pos" ? "F0.5 (malignant)" : "F2 (malignant)";
 
-  // Авто-масштаб Y по данным: линии заполняют всю высоту графика
-  const values = data.flatMap((d) => [
-    d.precision,
-    d.recall,
-    d[heroKey as "f05" | "f2"],
-  ]);
-  const dataMin = Math.min(...values);
-  const dataMax = Math.max(...values);
-  const span = Math.max(0.05, dataMax - dataMin);
-  const yMin = Math.max(0, dataMin - span * 0.08);
-  const yMax = Math.min(1, dataMax + span * 0.05);
+  // Авто-масштаб Y по данным, с фильтрацией NaN/null
+  const values = data
+    .flatMap((d) => [d.precision, d.recall, d[heroKey as "f05" | "f2"]])
+    .filter((v) => Number.isFinite(v) && v >= 0 && v <= 1);
+
+  let yMin = 0;
+  let yMax = 1;
+  if (values.length) {
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
+    const span = Math.max(0.05, dataMax - dataMin);
+    yMin = Math.max(0, dataMin - span * 0.08);
+    yMax = Math.min(1, dataMax + span * 0.05);
+    if (yMax - yMin < 0.05) {
+      yMin = Math.max(0, yMin - 0.025);
+      yMax = Math.min(1, yMax + 0.025);
+    }
+  }
+
+  if (!data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Threshold sweep
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет данных threshold_sweep.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -957,7 +1056,7 @@ export function ThresholdChart({
           />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => v.toFixed(3)}
+            formatter={(v: number) => Number(v).toFixed(3)}
             labelFormatter={(l) => `threshold = ${l}`}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -1004,7 +1103,7 @@ export function ThresholdChart({
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\digits\DigitsPage.tsx
-### SIZE: 11352 B   MODIFIED: 2026-10-08 10:46:28
+### SIZE: 11352 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1296,7 +1395,7 @@ export function DigitsPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\fraud\CreditFraudPage.tsx
-### SIZE: 12974 B   MODIFIED: 2026-10-08 10:47:12
+### SIZE: 12974 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1626,7 +1725,7 @@ export function CreditFraudPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisLiveSimulator.tsx
-### SIZE: 3342 B   MODIFIED: 2026-10-08 12:16:24
+### SIZE: 3424 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1716,7 +1815,7 @@ export function IrisLiveSimulator({ data }: { data: IrisPoint[] }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisScatterMap.tsx
-### SIZE: 4103 B   MODIFIED: 2026-10-08 12:04:51
+### SIZE: 4198 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1819,7 +1918,7 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\ProbabilityRadar.tsx
-### SIZE: 907 B   MODIFIED: 2026-10-07 14:07:00
+### SIZE: 926 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1847,7 +1946,7 @@ export function ProbabilityRadar({ probs }: { probs: Record<string, number> }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\Sidebar.tsx
-### SIZE: 1885 B   MODIFIED: 2026-10-07 13:29:20
+### SIZE: 1929 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1900,7 +1999,7 @@ export function Sidebar() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\ThemeToggle.tsx
-### SIZE: 614 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 630 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1925,7 +2024,7 @@ export function ThemeToggle() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\TopBar.tsx
-### SIZE: 882 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 901 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1953,7 +2052,7 @@ export function TopBar() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ChartGrid.tsx
-### SIZE: 1515 B   MODIFIED: 2026-10-07 13:28:58
+### SIZE: 1555 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2002,7 +2101,7 @@ export function ChartGrid({ charts, baseUrl }: { charts: Record<string, string>;
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ConfusionMatrix.tsx
-### SIZE: 2182 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 2228 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2057,7 +2156,7 @@ export function ConfusionMatrix({ labels, matrix }: { labels: string[]; matrix: 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\CostCalculator.tsx
-### SIZE: 1987 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 2028 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2107,7 +2206,7 @@ export function CostCalculator({ sweep }: { sweep: ThresholdPoint[] }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\FeatureImportance.tsx
-### SIZE: 1209 B   MODIFIED: 2026-10-07 14:06:46
+### SIZE: 1233 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2140,7 +2239,7 @@ export function FeatureImportance({ data }: { data: { feature: string; importanc
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\HeroMetric.tsx
-### SIZE: 1228 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 1253 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2174,7 +2273,7 @@ export function HeroMetric({ title, model, metricLabel, metricValue, tone = "inf
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\MetaStats.tsx
-### SIZE: 764 B   MODIFIED: 2026-10-08 10:47:16
+### SIZE: 764 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2206,7 +2305,7 @@ export function MetaStats({ meta }: { meta: any }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\MetricsGrid.tsx
-### SIZE: 1613 B   MODIFIED: 2026-10-07 13:29:10
+### SIZE: 1655 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2257,7 +2356,7 @@ export function MetricsGrid({ metrics }: { metrics: Record<string, number | unde
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ModelSelector.tsx
-### SIZE: 725 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 744 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2285,7 +2384,7 @@ export function ModelSelector({ models, selected, onSelect }: {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\Narrative.tsx
-### SIZE: 941 B   MODIFIED: 2026-10-07 13:28:47
+### SIZE: 965 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2318,7 +2417,7 @@ export function Narrative({ meta, headline }: { meta: any; headline: any }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\PerClassTable.tsx
-### SIZE: 1733 B   MODIFIED: 2026-10-07 13:28:54
+### SIZE: 1774 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2368,7 +2467,7 @@ export function PerClassTable({ perClass, rareClass }: { perClass: Record<string
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\SamplePredictions.tsx
-### SIZE: 2103 B   MODIFIED: 2026-10-07 13:29:06
+### SIZE: 2152 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2426,7 +2525,7 @@ export function SamplePredictions({ samples }: { samples: any[] }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\TaskPage.tsx
-### SIZE: 4810 B   MODIFIED: 2026-10-07 13:29:15
+### SIZE: 4940 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2565,7 +2664,7 @@ export function TaskPage({ task }: { task: TaskMeta }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ThresholdSlider.tsx
-### SIZE: 2048 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 2090 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2616,7 +2715,7 @@ export function ThresholdSlider({ sweep, threshold, onChange, costFP, costFN }:{
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Badge.tsx
-### SIZE: 645 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 656 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
@@ -2636,7 +2735,7 @@ export function Badge({ children, tone = "default", className }: { children: Rea
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Button.tsx
-### SIZE: 589 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 599 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
@@ -2655,7 +2754,7 @@ export function Button({ className, variant = "default", ...props }: ButtonHTMLA
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Card.tsx
-### SIZE: 506 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 514 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
@@ -2672,7 +2771,7 @@ export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingEle
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Skeleton.tsx
-### SIZE: 139 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 141 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 export function Skeleton({ className = "h-24 w-full" }: { className?: string }) {
@@ -2683,7 +2782,7 @@ export function Skeleton({ className = "h-24 w-full" }: { className?: string }) 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Tabs.tsx
-### SIZE: 657 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 672 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2707,7 +2806,7 @@ export function Tabs({ tabs, value, onValueChange }: { tabs: { id: string; label
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Tooltip.tsx
-### SIZE: 641 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 656 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2761,7 +2860,7 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\breastCancer.ts
-### SIZE: 4851 B   MODIFIED: 2026-10-08 12:28:54
+### SIZE: 6072 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 // Загрузка реальных артефактов из public/artifacts/classification/{task}/report.json
@@ -2882,25 +2981,47 @@ export function findBestModel(report: BCReport): BCModel {
   return report.models.find((m) => m.is_best) ?? report.models[0];
 }
 
+/** null-safe чтение значения из массива по индексу */
+function at<T>(arr: T[] | undefined | null, idx: number, fallback: T): T {
+  if (!Array.isArray(arr) || idx < 0 || idx >= arr.length) return fallback;
+  const v = arr[idx];
+  return v === null || v === undefined ? fallback : v;
+}
+
 export function sweepAt(sweep: BCSweep, t: number) {
+  // пустой sweep — не даём циклу оставить idx=0 с undefined
+  if (!sweep?.thresholds?.length) {
+    return {
+      threshold: 0,
+      precision: 0,
+      recall: 0,
+      f05: 0,
+      f1: 0,
+      f2: 0,
+      specificity: 1,
+      sensitivity: 0,
+    };
+  }
+
   let idx = 0;
   let best = Infinity;
   for (let i = 0; i < sweep.thresholds.length; i++) {
-    const d = Math.abs(sweep.thresholds[i] - t);
+    const d = Math.abs((sweep.thresholds[i] ?? 0) - t);
     if (d < best) {
       best = d;
       idx = i;
     }
   }
+
   return {
-    threshold: sweep.thresholds[idx],
-    precision: sweep.precision_pos[idx],
-    recall: sweep.recall_pos[idx],
-    f05: sweep["f0.5_pos"]?.[idx] ?? 0,
-    f1: sweep.f1_pos?.[idx] ?? 0,
-    f2: sweep.f2_pos?.[idx] ?? 0,
-    specificity: sweep.specificity[idx],
-    sensitivity: sweep.sensitivity[idx],
+    threshold: at(sweep.thresholds, idx, 0),
+    precision: at(sweep.precision_pos, idx, 0),
+    recall: at(sweep.recall_pos, idx, 0),
+    f05: at(sweep["f0.5_pos"], idx, 0),
+    f1: at(sweep.f1_pos, idx, 0),
+    f2: at(sweep.f2_pos, idx, 0),
+    specificity: at(sweep.specificity, idx, 1),  // дефолт = «все TN», fp будет 0
+    sensitivity: at(sweep.sensitivity, idx, 0),
   };
 }
 
@@ -2908,29 +3029,35 @@ export function sweepAt(sweep: BCSweep, t: number) {
 // Раньше использовали precision — она давала нестабильные FP из-за округления.
 export function countsFromSweep(report: BCReport, t: number) {
   const s = sweepAt(report.threshold_sweep, t);
-  const nPos = report.meta.target_stats.class_distribution_test.malignant;
-  const nNeg = report.meta.target_stats.class_distribution_test.benign;
+  const nPos = report.meta?.target_stats?.class_distribution_test?.malignant ?? 0;
+  const nNeg = report.meta?.target_stats?.class_distribution_test?.benign ?? 0;
 
-  const tp = Math.round(s.recall * nPos);
-  const fn = nPos - tp;
+  // recall может быть null → 0; NaN безопасен через Number.isFinite
+  const recall = Number.isFinite(s.recall) ? (s.recall as number) : 0;
+  const spec = Number.isFinite(s.specificity) ? (s.specificity as number) : 1;
 
-  const spec = s.specificity ?? 1;
+  const tp = Math.round(recall * nPos);
+  const fn = Math.max(0, nPos - tp);
+
   const tn = Math.round(spec * nNeg);
-  const fp = nNeg - tn;
+  const fp = Math.max(0, nNeg - tn);
 
   return {
     tp,
     fn,
-    fp: Math.max(0, fp),
-    tn: Math.max(0, tn),
+    fp,
+    tn,
     ...s,
+    // перезаписываем на безопасные значения
+    recall,
+    specificity: spec,
   };
 }
 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\creditFraud.ts
-### SIZE: 3155 B   MODIFIED: 2026-10-07 15:43:23
+### SIZE: 3264 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 // Загрузка реального артефакта credit_fraud/report.json
@@ -3047,7 +3174,7 @@ export function findBestCFModel(report: CFReport): CFModel {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\digits.ts
-### SIZE: 3586 B   MODIFIED: 2026-10-07 15:43:29
+### SIZE: 3705 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 // Загрузка реального артефакта digits_imbalanced/report.json
@@ -3174,7 +3301,7 @@ export function pixelsFromSample(features: Record<string, number>): number[][] {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\iris.ts
-### SIZE: 2912 B   MODIFIED: 2026-10-08 11:59:52
+### SIZE: 3002 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -3272,7 +3399,7 @@ export function predictIris(
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\loader.ts
-### SIZE: 3162 B   MODIFIED: 2026-10-07 13:40:15
+### SIZE: 3256 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -3375,7 +3502,7 @@ export function useCsv(path: string | null) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\normalize.ts
-### SIZE: 2089 B   MODIFIED: 2026-10-07 16:00:30
+### SIZE: 2151 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 import { MetricsSet, ThresholdPoint } from "../types";
@@ -3445,7 +3572,7 @@ export function normalizeSweep(rows: Record<string, string>[]): ThresholdPoint[]
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\tasks.ts
-### SIZE: 2212 B   MODIFIED: 2026-10-07 13:28:31
+### SIZE: 2266 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 import { TaskId } from "../types";
@@ -3508,7 +3635,7 @@ export const getTask = (id: TaskId) => TASKS.find((t) => t.id === id)!;
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\store.ts
-### SIZE: 793 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 815 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -3539,7 +3666,7 @@ export const useAppStore = create<AppState>((set) => ({
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\types.ts
-### SIZE: 958 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 1002 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 export type TaskId = "iris" | "bc-fp" | "bc-fn" | "fraud" | "digits";
@@ -3592,7 +3719,7 @@ export interface FeatureImportanceItem { feature: string; importance: number; }
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\utils.ts
-### SIZE: 464 B   MODIFIED: 2026-10-07 13:25:25
+### SIZE: 475 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 import { clsx, type ClassValue } from "clsx";
@@ -3612,7 +3739,7 @@ export function num(v: number | undefined, digits = 3) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: next.config.js
-### SIZE: 330 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 341 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 /** @type {import('next').NextConfig} */
@@ -3632,7 +3759,7 @@ module.exports = nextConfig;
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: next-env.d.ts
-### SIZE: 201 B   MODIFIED: 2026-10-07 13:23:22
+### SIZE: 206 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 /// <reference types="next" />
@@ -3683,7 +3810,7 @@ server {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: package.json
-### SIZE: 823 B   MODIFIED: 2026-10-07 13:48:33
+### SIZE: 856 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 {
@@ -3724,7 +3851,7 @@ server {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: package-lock.json
-### SIZE: 95775 B   MODIFIED: 2026-10-07 13:25:44
+### SIZE: 98515 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 {
@@ -6472,7 +6599,7 @@ server {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: postcss.config.js
-### SIZE: 72 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 74 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 module.exports = {
@@ -6483,7 +6610,7 @@ module.exports = {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: tailwind.config.ts
-### SIZE: 1203 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 1239 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 import type { Config } from "tailwindcss";
@@ -6528,7 +6655,7 @@ export default config;
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: tsconfig.json
-### SIZE: 571 B   MODIFIED: 2026-10-07 13:25:19
+### SIZE: 591 B   MODIFIED: 2026-10-08 13:10:17
 ════════════════════════════════════════════════════════════════════════
 
 {

@@ -7,16 +7,16 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
-  DigitsReport, DigitsModel, DigitsSample,
+  DigitsReport, DigitsModel,
   loadDigitsReport, findBestDigitsModel,
 } from "@/lib/data/digits";
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(2)}%`;
 const fmtNum = (v?: number | null, digits = 4) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
+function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
@@ -26,7 +26,8 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
       <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-          {best.metrics.f1_macro.toFixed(4)}
+          {/* FIX: безопасный формат, а не .toFixed() на возможном null */}
+          {fmtNum(best.metrics.f1_macro)}
         </span>
         <Badge tone="info">macro-F1</Badge>
       </div>
@@ -36,7 +37,7 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
 }
 
 function WeightedVsMacroTrap({ report, best }: { report: DigitsReport; best: DigitsModel }) {
-  const gap = report.headline.diagnostic_verdict.weighted_minus_macro_gap;
+  const gap = report.headline?.diagnostic_verdict?.weighted_minus_macro_gap;
   return (
     <Card className="border border-amber-500/40 bg-amber-500/5">
       <p className="text-sm">
@@ -47,33 +48,42 @@ function WeightedVsMacroTrap({ report, best }: { report: DigitsReport; best: Dig
         <div>
           <p className="text-[11px] text-slate-500 uppercase">macro-F1</p>
           <p className="text-2xl font-bold text-violet-500">
-            {best.metrics.f1_macro.toFixed(4)}
+            {fmtNum(best.metrics.f1_macro)}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-slate-500 uppercase">weighted-F1</p>
           <p className="text-2xl font-bold text-slate-400">
-            {best.metrics.f1_weighted.toFixed(4)}
+            {fmtNum(best.metrics.f1_weighted)}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-slate-500 uppercase">разрыв</p>
           <p className="text-2xl font-bold text-amber-500">
-            +{gap.toFixed(4)}
+            {/* FIX: защита от undefined/NaN */}
+            {Number.isFinite(gap) ? `+${(gap as number).toFixed(4)}` : "—"}
           </p>
         </div>
       </div>
       <p className="text-xs text-slate-500 mt-3">
-        При imbalance {report.meta.target_stats.imbalance_ratio.toFixed(2)}:1 редкий класс
-        физически весит только {(report.meta.target_stats.rare_class_ratio * 100).toFixed(2)}% —
-        он не может сильно сдвинуть weighted-F1. Настоящая цена дисбаланса видна только
-        в <b>per-class recall</b>.
+        При imbalance{" "}
+        {Number.isFinite(report.meta.target_stats.imbalance_ratio)
+          ? report.meta.target_stats.imbalance_ratio.toFixed(2)
+          : "—"}
+        :1 редкий класс физически весит только{" "}
+        {Number.isFinite(report.meta.target_stats.rare_class_ratio)
+          ? (report.meta.target_stats.rare_class_ratio * 100).toFixed(2)
+          : "—"}
+        % — он не может сильно сдвинуть weighted-F1. Настоящая цена дисбаланса
+        видна только в <b>per-class recall</b>.
       </p>
     </Card>
   );
 }
 
-function MetricCard({ label, value, tone }: { label: string; value: string; tone?: "danger" | "success" | "info" }) {
+function MetricCard({
+  label, value, tone,
+}: { label: string; value: string; tone?: "danger" | "success" | "info" }) {
   const color =
     tone === "danger" ? "text-rose-500" :
     tone === "success" ? "text-emerald-500" :
@@ -88,7 +98,23 @@ function MetricCard({ label, value, tone }: { label: string; value: string; tone
 
 function PerClassRecallChart({
   data, rareClass,
-}: { data: { class: string; recall: number; support: number; is_rare: boolean }[]; rareClass: string }) {
+}: {
+  data: { class: string; recall: number; support: number; is_rare: boolean }[];
+  rareClass: string;
+}) {
+  // FIX: защита от пустого массива
+  if (!Array.isArray(data) || !data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Per-class recall
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет данных per_class_recall.
+        </p>
+      </Card>
+    );
+  }
   return (
     <Card>
       <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
@@ -102,7 +128,7 @@ function PerClassRecallChart({
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
             formatter={(v: number, n: string) =>
-              n === "recall" ? v.toFixed(3) : (v as any)
+              n === "recall" ? Number(v).toFixed(3) : (v as any)
             }
           />
           <ReferenceLine y={0.9} stroke="#94a3b8" strokeDasharray="4 4" />
@@ -120,7 +146,20 @@ function PerClassRecallChart({
 function Confusion10x10({
   labels, matrix, rareClass,
 }: { labels: string[]; matrix: number[][]; rareClass: string }) {
-  const max = Math.max(...matrix.flat());
+  // FIX: защита от пустой/отсутствующей матрицы
+  if (!Array.isArray(matrix) || !matrix.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Confusion matrix 10×10
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет confusion_matrix.
+        </p>
+      </Card>
+    );
+  }
+  const max = Math.max(1, ...matrix.flat());
   const rareIdx = labels.indexOf(rareClass);
   return (
     <Card>
@@ -128,7 +167,6 @@ function Confusion10x10({
         <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
           Confusion matrix 10×10
         </h3>
-        
       </div>
       <div className="mt-4 overflow-x-auto scrollbar-thin">
         <div
@@ -139,7 +177,9 @@ function Confusion10x10({
           {labels.map((l) => (
             <div
               key={l}
-              className={`text-[10px] text-center ${l === rareClass ? "text-rose-500 font-bold" : "text-slate-500"}`}
+              className={`text-[10px] text-center ${
+                l === rareClass ? "text-rose-500 font-bold" : "text-slate-500"
+              }`}
             >
               {l}
             </div>
@@ -162,7 +202,11 @@ function Confusion10x10({
                     key={`${i}-${j}`}
                     title={`actual=${labels[i]} → predicted=${labels[j]} · ${val}`}
                     className={`aspect-square rounded flex items-center justify-center text-[10px] font-semibold ${
-                      isDiag ? "text-emerald-900" : val > 0 ? "text-rose-900" : "text-slate-400"
+                      isDiag
+                        ? "text-emerald-900"
+                        : val > 0
+                        ? "text-rose-900"
+                        : "text-slate-400"
                     } ${isRareRow ? "ring-1 ring-rose-400/40" : ""}`}
                     style={{
                       backgroundColor: isDiag
@@ -184,8 +228,6 @@ function Confusion10x10({
   );
 }
 
-
-
 export function DigitsPage() {
   const [report, setReport] = useState<DigitsReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +246,7 @@ export function DigitsPage() {
   }, []);
 
   const best = useMemo(() => (report ? findBestDigitsModel(report) : null), [report]);
-  const selected = report ? report.models[modelIdx] : null;
+  const selected = report ? report.models[modelIdx] ?? null : null;
 
   if (error) {
     return (
@@ -229,14 +271,24 @@ export function DigitsPage() {
   }
 
   const rareClass = report.meta.target_stats.rare_class;
+
+  // FIX: поддержка обоих вариантов формата — объект per_class_recall
+  // либо массив report.per_class_recall
   const perClassRecall = selected.per_class_recall
     ? Object.entries(selected.per_class_recall).map(([cls, r]) => ({
         class: cls,
         recall: r as number,
-        support: selected.per_class[cls]?.support ?? 0,
+        support: selected.per_class?.[cls]?.support ?? 0,
         is_rare: cls === rareClass,
       }))
-    : report.per_class_recall;
+    : Array.isArray(report.per_class_recall)
+    ? report.per_class_recall.map((x) => ({
+        class: x.class,
+        recall: x.recall,
+        support: x.support,
+        is_rare: x.is_rare ?? x.class === rareClass,
+      }))
+    : [];
 
   return (
     <div className="space-y-6">

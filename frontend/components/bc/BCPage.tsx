@@ -29,6 +29,28 @@ const fmtPct = (v?: number | null) =>
 const fmtNum = (v?: number | null) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
 
+// FIX: argmax по нужной hero-метрике вместо единого optimal_threshold
+function bestThresholdForHero(
+  sweep: BCReport["threshold_sweep"] | undefined,
+  hero: "f0.5_pos" | "f2_pos"
+): number | null {
+  if (!sweep?.thresholds?.length) return null;
+  const arr = hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
+  if (!Array.isArray(arr) || !arr.length) return null;
+  let bestIdx = -1;
+  let bestVal = -Infinity;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    if (Number.isFinite(v) && v > bestVal) {
+      bestVal = v;
+      bestIdx = i;
+    }
+  }
+  if (bestIdx < 0) return null;
+  const t = sweep.thresholds[bestIdx];
+  return Number.isFinite(t) ? t : null;
+}
+
 function HeroCard({
   report,
   hero,
@@ -54,7 +76,7 @@ function HeroCard({
       <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-          {heroValue.toFixed(4)}
+          {Number.isFinite(heroValue) ? heroValue.toFixed(4) : "—"}
         </span>
         <Badge tone={tone as any}>{heroLabel}</Badge>
       </div>
@@ -116,6 +138,19 @@ function ConfusionGrid({
 function FeatureImportanceChart({
   data,
 }: { data: { name: string; value: number }[] }) {
+  // FIX: защита от пустого/отсутствующего массива
+  if (!Array.isArray(data) || !data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Feature importance
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет feature_importance для лучшей модели.
+        </p>
+      </Card>
+    );
+  }
   const colors = ["#6366f1", "#8b5cf6", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e", "#a855f7", "#14b8a6"];
   const top = [...data].slice(0, 15);
   return (
@@ -150,10 +185,11 @@ export function BCPage({ config }: { config: Config }) {
   useEffect(() => {
     setReport(null);
     setError(null);
+    setThreshold(config.defaultThreshold);
     loadBCReport(config.task)
       .then(setReport)
       .catch((e) => setError(String(e)));
-  }, [config.task]);
+  }, [config.task, config.defaultThreshold]);
 
   const counts = useMemo(
     () => (report ? countsFromSweep(report, threshold) : null),
@@ -163,6 +199,12 @@ export function BCPage({ config }: { config: Config }) {
   const best = useMemo(
     () => (report ? findBestModel(report) : null),
     [report]
+  );
+
+  // FIX: оптимальный порог считается под hero-метрику, а не берётся из общего поля
+  const optimalForHero = useMemo(
+    () => bestThresholdForHero(report?.threshold_sweep, config.hero),
+    [report, config.hero]
   );
 
   if (error) {
@@ -208,8 +250,6 @@ export function BCPage({ config }: { config: Config }) {
     ["Sensitivity", best.metrics.sensitivity, false],
   ];
 
-  const optThreshold = report.threshold_sweep?.optimal_threshold;
-
   return (
     <div className="space-y-6">
       <HeroCard
@@ -251,12 +291,13 @@ export function BCPage({ config }: { config: Config }) {
         />
 
         <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
-          {optThreshold != null && Number.isFinite(optThreshold) && (
+          {/* FIX: сброс к «оптимальному» теперь учитывает hero-метрику */}
+          {optimalForHero != null && (
             <button
-              onClick={() => setThreshold(optThreshold)}
+              onClick={() => setThreshold(optimalForHero)}
               className="text-indigo-500 hover:text-indigo-600 font-medium"
             >
-              ↺ Сбросить к оптимальному ({optThreshold.toFixed(3)})
+              ↺ К оптимальному для {config.hero === "f0.5_pos" ? "F0.5" : "F2"} ({optimalForHero.toFixed(3)})
             </button>
           )}
           <button
@@ -300,8 +341,8 @@ export function BCPage({ config }: { config: Config }) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <FeatureImportanceChart data={best.feature_importance} />
-        <RiskMap samples={report.sample_predictions} threshold={threshold} />
+        <FeatureImportanceChart data={best.feature_importance ?? []} />
+        <RiskMap samples={report.sample_predictions ?? []} threshold={threshold} />
       </div>
 
       <CostPanel
