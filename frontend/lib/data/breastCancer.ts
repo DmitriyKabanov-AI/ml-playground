@@ -7,13 +7,17 @@ export interface BCModel {
   threshold: number;
   is_best: boolean;
   is_deployed?: boolean;
-  metrics: Record<string, number>;
-  per_class: Record<string, { precision: number; recall: number; f1: number; support: number }>;
+  /** sanitize превращает NaN/Infinity в null — тип это учитывает */
+  metrics: Record<string, number | null>;
+  per_class: Record<
+    string,
+    { precision: number; recall: number; f1: number; support: number }
+  >;
   confusion_matrix: number[][];
-  confusion_counts: Record<string, number>;
-  feature_importance: { name: string; value: number }[];
-  roc_auc?: number;
-  pr_auc?: number;
+  confusion_counts?: Record<string, number>;
+  feature_importance?: { name: string; value: number }[];
+  roc_auc?: number | null;
+  pr_auc?: number | null;
 }
 
 export interface BCSweep {
@@ -74,13 +78,13 @@ export interface BCReport {
     best_metric: string;
     best_metric_value: number;
     verdict: string;
-    diagnostic_verdict: Record<string, any>;
+    diagnostic_verdict: Record<string, unknown>;
   };
   models: BCModel[];
-  baseline?: { name: string; metrics: Record<string, number> };
-  // FIX: sweep может отсутствовать в артефакте
+  baseline?: { name: string; metrics: Record<string, number | null> };
+  /** Sweep только для модели-лидера (обычно LogReg) */
   threshold_sweep?: BCSweep;
-  // FIX: per-model sweep — ключи это имена моделей ("LogReg", "RandomForest", ...)
+  /** Per-model sweep: ключи — имена моделей ("LogReg", "RandomForest", "GradientBoosting") */
   threshold_sweeps?: Record<string, BCSweep>;
   sample_predictions?: BCSample[];
   charts?: Record<string, string>;
@@ -90,25 +94,32 @@ export type BCTask = "breast_cancer_fp" | "breast_cancer_fn";
 
 function sanitize<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
-  if (typeof obj === "number") return (Number.isFinite(obj) ? obj : (null as any));
-  if (Array.isArray(obj)) return obj.map(sanitize) as any;
+  if (typeof obj === "number") return (Number.isFinite(obj) ? obj : (null as unknown as T));
+  if (Array.isArray(obj)) return obj.map(sanitize) as unknown as T;
   if (typeof obj === "object") {
-    const out: any = {};
-    for (const k of Object.keys(obj as any)) out[k] = sanitize((obj as any)[k]);
-    return out;
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(obj as Record<string, unknown>)) {
+      out[k] = sanitize((obj as Record<string, unknown>)[k]);
+    }
+    return out as unknown as T;
   }
   return obj;
 }
 
 export async function loadBCReport(task: BCTask): Promise<BCReport> {
-  const res = await fetch(`/artifacts/classification/${task}/report.json`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Не удалось загрузить ${task}/report.json (${res.status})`);
+  const res = await fetch(`/artifacts/classification/${task}/report.json`, {
+    cache: "no-store",
+  });
+  if (!res.ok)
+    throw new Error(`Не удалось загрузить ${task}/report.json (${res.status})`);
   const txt = await res.text();
-  let raw: any;
+  let raw: unknown;
   try {
     raw = JSON.parse(txt);
   } catch {
-    const cleaned = txt.replace(/\bNaN\b/g, "null").replace(/\b-?Infinity\b/g, "null");
+    const cleaned = txt
+      .replace(/\bNaN\b/g, "null")
+      .replace(/\b-?Infinity\b/g, "null");
     raw = JSON.parse(cleaned);
   }
   return sanitize(raw) as BCReport;
@@ -160,8 +171,10 @@ export function sweepAt(sweep: BCSweep | undefined, t: number) {
   };
 }
 
-// FIX: добавлен необязательный 3-й аргумент — sweep конкретной модели.
-// Если передан, используется он, а не общий report.threshold_sweep.
+/**
+ * Считает tp/fn/fp/tn для заданного порога.
+ * Если передан sweepOverride — берёт кривые из него, иначе из report.threshold_sweep.
+ */
 export function countsFromSweep(
   report: BCReport,
   t: number,
@@ -173,17 +186,16 @@ export function countsFromSweep(
   const positiveClass = report.meta?.target_stats?.positive_class ?? "malignant";
   const nTest =
     report.meta?.n_test ??
-    Object.values(dist).reduce((acc, v) => acc + (Number(v) || 0), 0);
+    Object.values(dist).reduce<number>((acc, v) => acc + (Number(v) || 0), 0);
 
-  // positive class: явное значение из distribution, иначе — по prevalence * n_test
   const nPosRaw =
     dist[positiveClass] ??
     Math.round((report.meta?.target_stats?.prevalence_positive ?? 0) * nTest);
   const nPos = Number.isFinite(nPosRaw) ? nPosRaw : 0;
   const nNeg = Math.max(0, nTest - nPos);
 
-  const recall = Number.isFinite(s.recall) ? (s.recall as number) : 0;
-  const spec = Number.isFinite(s.specificity) ? (s.specificity as number) : 1;
+  const recall = Number.isFinite(s.recall) ? s.recall : 0;
+  const spec = Number.isFinite(s.specificity) ? s.specificity : 1;
 
   const tp = Math.round(recall * nPos);
   const fn = Math.max(0, nPos - tp);

@@ -1,7 +1,13 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -28,59 +34,55 @@ type Config = {
 type Counts = { tp: number; fn: number; fp: number; tn: number };
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(1)}%`;
+  v === undefined || v === null || Number.isNaN(v)
+    ? "—"
+    : `${(v * 100).toFixed(1)}%`;
 const fmtNum = (v?: number | null) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
 
 /**
- * Из всех конфигураций одной модели (LogReg @thr=0.5, @thr=0.3, ...)
- * оставляем одну — с максимальной hero-метрикой. Пользователь выбирает
- * ТИП модели, а порог для неё — тот, что дал лучший результат в артефакте.
+ * Из всех конфигураций одной модели оставляем одну — с максимальной hero-метрикой.
+ * Пользователь выбирает ТИП модели, порог для неё — лучший из артефакта.
  */
 function bestConfigPerModel(report: BCReport, hero: string): BCModel[] {
   const byModel = new Map<string, BCModel>();
   for (const m of report.models ?? []) {
     const cur = byModel.get(m.model);
-    const val = (m.metrics as any)?.[hero];
-    const curVal = cur ? (cur.metrics as any)?.[hero] : undefined;
-    if (!cur || (Number.isFinite(val) && (!Number.isFinite(curVal) || val > curVal))) {
+    const val = m.metrics[hero];
+    const curVal = cur ? cur.metrics[hero] : undefined;
+    if (
+      !cur ||
+      (Number.isFinite(val) &&
+        (!Number.isFinite(curVal) || (val as number) > (curVal as number)))
+    ) {
       byModel.set(m.model, m);
     }
   }
   return Array.from(byModel.values()).sort((a, b) => {
-    const va = (a.metrics as any)?.[hero] ?? -Infinity;
-    const vb = (b.metrics as any)?.[hero] ?? -Infinity;
-    return vb - va;
+    const va = a.metrics[hero] ?? -Infinity;
+    const vb = b.metrics[hero] ?? -Infinity;
+    return (vb as number) - (va as number);
   });
 }
 
 /**
- * Считаем counts через sweep выбранной модели, а не через статичные
- * confusion_counts из артефакта. Тогда ConfusionGrid реагирует на движение
- * слайдера порога. Fallback на confusion_counts — только если sweep нет.
+ * Считаем counts через sweep выбранной модели (реагирует на слайдер).
+ * Fallback — статичные confusion_counts из артефакта.
  */
 function extractCounts(
   model: BCModel | null,
   report: BCReport,
+  sweep: BCSweep | null,
   threshold: number
 ): Counts {
   if (!model) return { tp: 0, fn: 0, fp: 0, tn: 0 };
-
-  const perModel = (report as any).threshold_sweeps as
-    | Record<string, BCSweep>
-    | undefined;
-  const sweep =
-    perModel?.[model.model] ??
-    (report.threshold_sweep?.model === model.model
-      ? report.threshold_sweep
-      : undefined);
 
   if (sweep) {
     const c = countsFromSweep(report, threshold, sweep);
     return { tp: c.tp, fn: c.fn, fp: c.fp, tn: c.tn };
   }
 
-  const cc: any = (model as any).confusion_counts ?? {};
+  const cc = model.confusion_counts ?? {};
   const tp = Number(cc.tp_malignant ?? cc.tp ?? cc.TP ?? 0) || 0;
   const fn = Number(cc.fn_malignant ?? cc.fn ?? cc.FN ?? 0) || 0;
   const fp = Number(cc.fp_benign ?? cc.fp ?? cc.FP ?? 0) || 0;
@@ -105,7 +107,7 @@ function ModelSelector({
     <div className="flex flex-wrap gap-2">
       {models.map((m) => {
         const active = m.name === selectedName;
-        const val = (m.metrics as any)?.[hero];
+        const val = m.metrics[hero];
         return (
           <button
             key={m.name}
@@ -168,7 +170,7 @@ function HeroCard({
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
           {Number.isFinite(heroValue) ? heroValue.toFixed(4) : "—"}
         </span>
-        <Badge tone={tone as any}>{heroLabel}</Badge>
+        <Badge tone={tone as "info" | "danger"}>{heroLabel}</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
@@ -202,8 +204,16 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 }
 
 function ConfusionGrid({
-  tp, fp, fn, tn,
-}: { tp: number; fp: number; fn: number; tn: number }) {
+  tp,
+  fp,
+  fn,
+  tn,
+}: {
+  tp: number;
+  fp: number;
+  fn: number;
+  tn: number;
+}) {
   const cell = (label: string, val: number, tone: string) => (
     <div className={`rounded-lg p-3 text-center ${tone}`}>
       <p className="text-[10px] uppercase tracking-wide opacity-70">{label}</p>
@@ -227,7 +237,9 @@ function ConfusionGrid({
 
 function FeatureImportanceChart({
   data,
-}: { data: { name: string; value: number }[] }) {
+}: {
+  data: { name: string; value: number }[];
+}) {
   if (!Array.isArray(data) || !data.length) {
     return (
       <Card>
@@ -240,7 +252,16 @@ function FeatureImportanceChart({
       </Card>
     );
   }
-  const colors = ["#6366f1", "#8b5cf6", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e", "#a855f7", "#14b8a6"];
+  const colors = [
+    "#6366f1",
+    "#8b5cf6",
+    "#0ea5e9",
+    "#10b981",
+    "#f59e0b",
+    "#f43f5e",
+    "#a855f7",
+    "#14b8a6",
+  ];
   const top = [...data].slice(0, 15);
   return (
     <Card>
@@ -250,10 +271,15 @@ function FeatureImportanceChart({
       <ResponsiveContainer width="100%" height={Math.max(260, top.length * 26)}>
         <BarChart data={top} layout="vertical" margin={{ left: 10 }}>
           <XAxis type="number" hide />
-          <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} />
+          <YAxis
+            dataKey="name"
+            type="category"
+            width={150}
+            tick={{ fontSize: 11 }}
+          />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => Number(v).toFixed(4)}
+            formatter={(v) => Number(v).toFixed(4)}
           />
           <Bar dataKey="value" radius={[0, 8, 8, 0]}>
             {top.map((_, i) => (
@@ -282,7 +308,7 @@ export function BCPage({ config }: { config: Config }) {
       .catch((e) => setError(String(e)));
   }, [config.task, config.defaultThreshold]);
 
-  // Уникальные модели (по одной конфигурации на модель), отсортированные по hero
+  // Уникальные модели, отсортированные по hero
   const models = useMemo(
     () => (report ? bestConfigPerModel(report, config.hero) : []),
     [report, config.hero]
@@ -298,23 +324,18 @@ export function BCPage({ config }: { config: Config }) {
     return models[0];
   }, [models, selectedName]);
 
-  // Когда меняется выбранная модель — синхронизируем порог с её порогом
+  // При смене модели — синхронизируем порог с её порогом
   useEffect(() => {
     if (selected) setThreshold(selected.threshold);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.name]);
 
-  // Sweep для выбранной модели: сначала per-model, потом fallback на старый.
+  // Per-model sweep (из threshold_sweeps), fallback на старый threshold_sweep
   const sweepForSelected: BCSweep | null = useMemo(() => {
     if (!report || !selected) return null;
-    const perModel = (report as any).threshold_sweeps as
-      | Record<string, BCSweep>
-      | undefined;
-    if (perModel && perModel[selected.model]) return perModel[selected.model];
-    if (
-      report.threshold_sweep &&
-      report.threshold_sweep.model === selected.model
-    ) {
+    const perModel = report.threshold_sweeps;
+    if (perModel?.[selected.model]) return perModel[selected.model];
+    if (report.threshold_sweep?.model === selected.model) {
       return report.threshold_sweep;
     }
     return null;
@@ -325,17 +346,16 @@ export function BCPage({ config }: { config: Config }) {
   const counts: Counts | null = useMemo(
     () =>
       report && selected
-        ? extractCounts(selected, report, threshold)
+        ? extractCounts(selected, report, sweepForSelected, threshold)
         : null,
-    [report, selected, threshold]
+    [report, selected, sweepForSelected, threshold]
   );
 
   // Оптимум для hero считаем по sweep выбранной модели
   const optimalForHero = useMemo(() => {
     if (!sweepForSelected?.thresholds?.length) return null;
     const sweep = sweepForSelected;
-    const arr =
-      config.hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
+    const arr = config.hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
     if (!Array.isArray(arr) || !arr.length) return null;
     let bestIdx = -1;
     let bestVal = -Infinity;
@@ -372,10 +392,9 @@ export function BCPage({ config }: { config: Config }) {
     );
   }
 
-  // Hero-метрика: ключ берём прямо из config.hero ("f0.5_pos" или "f2_pos").
-  const heroValue = Number((selected.metrics as any)[config.hero] ?? 0);
+  const heroValue = Number(selected.metrics[config.hero] ?? 0);
 
-  const metrics: [string, number | undefined, boolean][] = [
+  const metrics: [string, number | null | undefined, boolean][] = [
     ["Accuracy", selected.metrics.accuracy, false],
     ["Balanced Acc.", selected.metrics.balanced_accuracy, false],
     ["Precision (macro)", selected.metrics.precision_macro, false],
@@ -409,7 +428,6 @@ export function BCPage({ config }: { config: Config }) {
         model={selected}
       />
 
-      {/* Селектор моделей — переключение между типами моделей */}
       {models.length > 1 && (
         <ModelSelector
           models={models}

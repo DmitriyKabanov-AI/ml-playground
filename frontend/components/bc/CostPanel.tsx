@@ -1,8 +1,15 @@
 "use client";
 import { useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, ReferenceLine, ReferenceDot,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ReferenceLine,
+  ReferenceDot,
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { BCReport, BCSweep, countsFromSweep } from "@/lib/data/breastCancer";
@@ -10,47 +17,51 @@ import { BCReport, BCSweep, countsFromSweep } from "@/lib/data/breastCancer";
 const fmtMoney = (v: number) =>
   Number.isFinite(v) ? Math.round(v).toLocaleString("ru-RU") + " ₽" : "—";
 
+type CostPoint = { threshold: number; cost: number; fp: number; fn: number };
+
 export function CostPanel({
   report,
-  sweep,                          // ← sweep выбранной модели (если есть)
+  sweep,
   currentThreshold,
   onApplyThreshold,
 }: {
   report: BCReport;
-  sweep?: BCSweep | any;          // ← per-model sweep с фронта
+  sweep?: BCSweep;
   currentThreshold?: number;
   onApplyThreshold?: (t: number) => void;
 }) {
-  // FIX: дефолт осмысленный — FN в медицинском скрининге стоит на порядок дороже FP.
+  // FN в медицинском скрининге стоит на порядок дороже FP.
   const [costFP, setCostFP] = useState(100);
   const [costFN, setCostFN] = useState(5000);
 
-  const curve = useMemo(() => {
+  const curve = useMemo<CostPoint[]>(() => {
     const effectiveSweep = sweep ?? report.threshold_sweep;
     const thresholds = effectiveSweep?.thresholds ?? [];
     return thresholds
-      .map((t: number) => {
+      .map((t): CostPoint => {
         const c = countsFromSweep(report, t, effectiveSweep);
         const cost = c.fp * costFP + c.fn * costFN;
         return {
-          threshold: +Number(t).toFixed(3),
+          threshold: Number(Number(t).toFixed(3)),
           cost: Number.isFinite(cost) ? cost : 0,
           fp: c.fp,
           fn: c.fn,
         };
       })
-      .filter((p: any) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
+      .filter((p) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
   }, [report, costFP, costFN, sweep]);
 
-  const optimal = useMemo(() => {
+  const optimal = useMemo<CostPoint | null>(() => {
     if (!curve.length) return null;
-    return curve.reduce((best, p) => (p.cost < best.cost ? p : best), curve[0]);
+    return curve.reduce<CostPoint>(
+      (best, p) => (p.cost < best.cost ? p : best),
+      curve[0]
+    );
   }, [curve]);
 
-  // стоимость на текущем пороге пользователя
-  const current = useMemo(() => {
+  const current = useMemo<CostPoint | null>(() => {
     if (!curve.length || currentThreshold === undefined) return null;
-    return curve.reduce(
+    return curve.reduce<CostPoint>(
       (best, p) =>
         Math.abs(p.threshold - currentThreshold) <
         Math.abs(best.threshold - currentThreshold)
@@ -204,7 +215,7 @@ export function CostPanel({
             />
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 12 }}
-              formatter={(v: number) => fmtMoney(Number(v))}
+              formatter={(v) => fmtMoney(Number(v))}
               labelFormatter={(l) => `threshold = ${l}`}
             />
 

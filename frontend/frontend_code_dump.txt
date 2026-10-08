@@ -1,15 +1,12 @@
-# ============================================================
 # FRONTEND CODE DUMP
-# Root   : C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
-# Created: 2026-10-08 14:48:07
-# Files  : 59
-# ============================================================
+# Root: C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
+# Files: 59
 
 
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fn\page.tsx
-### SIZE: 649 B   MODIFIED: 2026-10-08 13:20:12
-════════════════════════════════════════════════════════════════════════
+### SIZE: 649 B  MODIFIED: 2026-10-08 13:20:12
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { BCPage } from "@/components/bc/BCPage";
@@ -30,11 +27,10 @@ export default function BreastCancerFNPage() {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fp\page.tsx
-### SIZE: 645 B   MODIFIED: 2026-10-08 13:19:32
-════════════════════════════════════════════════════════════════════════
+### SIZE: 645 B  MODIFIED: 2026-10-08 13:19:32
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { BCPage } from "@/components/bc/BCPage";
@@ -55,11 +51,10 @@ export default function BreastCancerFPPage() {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\credit-fraud\page.tsx
-### SIZE: 154 B   MODIFIED: 2026-10-08 13:10:16
-════════════════════════════════════════════════════════════════════════
+### SIZE: 154 B  MODIFIED: 2026-10-08 13:10:16
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { CreditFraudPage } from "@/components/fraud/CreditFraudPage";
@@ -68,11 +63,10 @@ export default function Page() {
   return <CreditFraudPage />;
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\digits\page.tsx
-### SIZE: 140 B   MODIFIED: 2026-10-08 13:10:16
-════════════════════════════════════════════════════════════════════════
+### SIZE: 140 B  MODIFIED: 2026-10-08 13:10:16
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { DigitsPage } from "@/components/digits/DigitsPage";
@@ -81,21 +75,19 @@ export default function Page() {
   return <DigitsPage />;
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\fraud\page.tsx
-### SIZE: 111 B   MODIFIED: 2026-10-08 13:10:16
-════════════════════════════════════════════════════════════════════════
+### SIZE: 111 B  MODIFIED: 2026-10-08 13:10:16
+══════════════════════════════════════════════════════════════════════
 
 import { redirect } from "next/navigation";
 export default function Page() { redirect("/credit-fraud"); }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\globals.css
-### SIZE: 1071 B   MODIFIED: 2026-10-08 13:10:16
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1071 B  MODIFIED: 2026-10-08 13:10:16
+══════════════════════════════════════════════════════════════════════
 
 @tailwind base;
 @tailwind components;
@@ -137,11 +129,10 @@ body {
 ::selection { background: rgba(99,102,241,0.35); }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\iris\page.tsx
-### SIZE: 3146 B   MODIFIED: 2026-10-08 13:26:05
-════════════════════════════════════════════════════════════════════════
+### SIZE: 3146 B  MODIFIED: 2026-10-08 13:26:05
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo } from "react";
@@ -225,11 +216,10 @@ export default function IrisPage() {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\layout.tsx
-### SIZE: 796 B   MODIFIED: 2026-10-08 13:10:16
-════════════════════════════════════════════════════════════════════════
+### SIZE: 796 B  MODIFIED: 2026-10-08 13:10:16
+══════════════════════════════════════════════════════════════════════
 
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -255,11 +245,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: app\page.tsx
-### SIZE: 2298 B   MODIFIED: 2026-10-08 13:10:16
-════════════════════════════════════════════════════════════════════════
+### SIZE: 2298 B  MODIFIED: 2026-10-08 13:10:16
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import Link from "next/link";
@@ -303,11 +292,10 @@ export default function HomePage() {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\BCPage.tsx
-### SIZE: 18764 B   MODIFIED: 2026-10-08 14:12:58
-════════════════════════════════════════════════════════════════════════
+### SIZE: 19099 B  MODIFIED: 2026-10-08 14:53:39
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
@@ -322,6 +310,7 @@ import { CostPanel } from "./CostPanel";
 import {
   BCReport,
   BCModel,
+  BCSweep,
   BCTask,
   countsFromSweep,
   loadBCReport,
@@ -365,9 +354,9 @@ function bestConfigPerModel(report: BCReport, hero: string): BCModel[] {
 }
 
 /**
- * Разные ноутбуки сохраняют confusion_counts с разными ключами — нормализуем.
- * Если у выбранной модели нет confusion_counts, пробуем через sweep (только
- * для той модели, для которой sweep построен).
+ * Считаем counts через sweep выбранной модели, а не через статичные
+ * confusion_counts из артефакта. Тогда ConfusionGrid реагирует на движение
+ * слайдера порога. Fallback на confusion_counts — только если sweep нет.
  */
 function extractCounts(
   model: BCModel | null,
@@ -376,20 +365,26 @@ function extractCounts(
 ): Counts {
   if (!model) return { tp: 0, fn: 0, fp: 0, tn: 0 };
 
+  const perModel = (report as any).threshold_sweeps as
+    | Record<string, BCSweep>
+    | undefined;
+  const sweep =
+    perModel?.[model.model] ??
+    (report.threshold_sweep?.model === model.model
+      ? report.threshold_sweep
+      : undefined);
+
+  if (sweep) {
+    const c = countsFromSweep(report, threshold, sweep);
+    return { tp: c.tp, fn: c.fn, fp: c.fp, tn: c.tn };
+  }
+
   const cc: any = (model as any).confusion_counts ?? {};
   const tp = Number(cc.tp_malignant ?? cc.tp ?? cc.TP ?? 0) || 0;
   const fn = Number(cc.fn_malignant ?? cc.fn ?? cc.FN ?? 0) || 0;
   const fp = Number(cc.fp_benign ?? cc.fp ?? cc.FP ?? 0) || 0;
   const tn = Number(cc.tn_benign ?? cc.tn ?? cc.TN ?? 0) || 0;
-
-  if (tp || fn || fp || tn) return { tp, fn, fp, tn };
-
-  const sweep = report.threshold_sweep;
-  if (sweep?.model === model.model) {
-    const c = countsFromSweep(report, threshold);
-    return { tp: c.tp, fn: c.fn, fp: c.fp, tn: c.tn };
-  }
-  return { tp: 0, fn: 0, fp: 0, tn: 0 };
+  return { tp, fn, fp, tn };
 }
 
 function ModelSelector({
@@ -608,10 +603,23 @@ export function BCPage({ config }: { config: Config }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.name]);
 
-  // Есть ли sweep для выбранной модели (обычно только у LogReg)
-  const hasSweepForSelected =
-    !!report?.threshold_sweep &&
-    report.threshold_sweep.model === selected?.model;
+  // Sweep для выбранной модели: сначала per-model, потом fallback на старый.
+  const sweepForSelected: BCSweep | null = useMemo(() => {
+    if (!report || !selected) return null;
+    const perModel = (report as any).threshold_sweeps as
+      | Record<string, BCSweep>
+      | undefined;
+    if (perModel && perModel[selected.model]) return perModel[selected.model];
+    if (
+      report.threshold_sweep &&
+      report.threshold_sweep.model === selected.model
+    ) {
+      return report.threshold_sweep;
+    }
+    return null;
+  }, [report, selected]);
+
+  const hasSweepForSelected = !!sweepForSelected;
 
   const counts: Counts | null = useMemo(
     () =>
@@ -621,9 +629,10 @@ export function BCPage({ config }: { config: Config }) {
     [report, selected, threshold]
   );
 
+  // Оптимум для hero считаем по sweep выбранной модели
   const optimalForHero = useMemo(() => {
-    if (!report?.threshold_sweep?.thresholds?.length) return null;
-    const sweep = report.threshold_sweep;
+    if (!sweepForSelected?.thresholds?.length) return null;
+    const sweep = sweepForSelected;
     const arr =
       config.hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
     if (!Array.isArray(arr) || !arr.length) return null;
@@ -639,7 +648,7 @@ export function BCPage({ config }: { config: Config }) {
     if (bestIdx < 0) return null;
     const t = sweep.thresholds[bestIdx];
     return Number.isFinite(t) ? t : null;
-  }, [report, config.hero]);
+  }, [sweepForSelected, config.hero]);
 
   if (error) {
     return (
@@ -663,7 +672,6 @@ export function BCPage({ config }: { config: Config }) {
   }
 
   // Hero-метрика: ключ берём прямо из config.hero ("f0.5_pos" или "f2_pos").
-  // Обращение через квадратные скобки, потому что в имени есть точка.
   const heroValue = Number((selected.metrics as any)[config.hero] ?? 0);
 
   const metrics: [string, number | undefined, boolean][] = [
@@ -748,8 +756,7 @@ export function BCPage({ config }: { config: Config }) {
           <p className="text-xs text-slate-500 mt-2">
             Для модели <b>{selected.model}</b> в артефакте нет threshold_sweep —
             порог зафиксирован значением из отчёта (
-            {selected.threshold.toFixed(3)}). Свип по порогу доступен только
-            для модели-лидера (<b>{report.threshold_sweep?.model ?? "—"}</b>).
+            {selected.threshold.toFixed(3)}).
           </p>
         )}
 
@@ -789,9 +796,9 @@ export function BCPage({ config }: { config: Config }) {
           fn={counts.fn}
           tn={counts.tn}
         />
-        {hasSweepForSelected ? (
+        {hasSweepForSelected && sweepForSelected ? (
           <ThresholdChart
-            sweep={report.threshold_sweep}
+            sweep={sweepForSelected}
             current={threshold}
             hero={config.hero}
           />
@@ -802,8 +809,7 @@ export function BCPage({ config }: { config: Config }) {
             </h3>
             <p className="text-sm text-slate-500 mt-3">
               Для <b>{selected.model}</b> нет sweep по порогу в артефакте.
-              Переключись на <b>{report.threshold_sweep?.model ?? "—"}</b>,
-              чтобы посмотреть кривые Precision / Recall / Fβ vs порог.
+              Переключись на другую модель.
             </p>
           </Card>
         )}
@@ -819,6 +825,7 @@ export function BCPage({ config }: { config: Config }) {
 
       <CostPanel
         report={report}
+        sweep={sweepForSelected ?? undefined}
         currentThreshold={threshold}
         onApplyThreshold={(t) => setThreshold(t)}
       />
@@ -826,11 +833,10 @@ export function BCPage({ config }: { config: Config }) {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\CostPanel.tsx
-### SIZE: 9622 B   MODIFIED: 2026-10-08 13:56:34
-════════════════════════════════════════════════════════════════════════
+### SIZE: 9845 B  MODIFIED: 2026-10-08 14:54:33
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo, useState } from "react";
@@ -839,17 +845,19 @@ import {
   CartesianGrid, ReferenceLine, ReferenceDot,
 } from "recharts";
 import { Card } from "@/components/ui/Card";
-import { BCReport, countsFromSweep } from "@/lib/data/breastCancer";
+import { BCReport, BCSweep, countsFromSweep } from "@/lib/data/breastCancer";
 
 const fmtMoney = (v: number) =>
   Number.isFinite(v) ? Math.round(v).toLocaleString("ru-RU") + " ₽" : "—";
 
 export function CostPanel({
   report,
+  sweep,                          // ← sweep выбранной модели (если есть)
   currentThreshold,
   onApplyThreshold,
 }: {
   report: BCReport;
+  sweep?: BCSweep | any;          // ← per-model sweep с фронта
   currentThreshold?: number;
   onApplyThreshold?: (t: number) => void;
 }) {
@@ -858,10 +866,11 @@ export function CostPanel({
   const [costFN, setCostFN] = useState(5000);
 
   const curve = useMemo(() => {
-    const thresholds = report.threshold_sweep?.thresholds ?? [];
+    const effectiveSweep = sweep ?? report.threshold_sweep;
+    const thresholds = effectiveSweep?.thresholds ?? [];
     return thresholds
-      .map((t) => {
-        const c = countsFromSweep(report, t);
+      .map((t: number) => {
+        const c = countsFromSweep(report, t, effectiveSweep);
         const cost = c.fp * costFP + c.fn * costFN;
         return {
           threshold: +Number(t).toFixed(3),
@@ -870,15 +879,15 @@ export function CostPanel({
           fn: c.fn,
         };
       })
-      .filter((p) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
-  }, [report, costFP, costFN]);
+      .filter((p: any) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
+  }, [report, costFP, costFN, sweep]);
 
   const optimal = useMemo(() => {
     if (!curve.length) return null;
     return curve.reduce((best, p) => (p.cost < best.cost ? p : best), curve[0]);
   }, [curve]);
 
-  // FIX: стоимость на текущем пороге пользователя (то, чего раньше не было)
+  // стоимость на текущем пороге пользователя
   const current = useMemo(() => {
     if (!curve.length || currentThreshold === undefined) return null;
     return curve.reduce(
@@ -1099,11 +1108,10 @@ export function CostPanel({
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\RiskMap.tsx
-### SIZE: 6060 B   MODIFIED: 2026-10-08 13:10:16
-════════════════════════════════════════════════════════════════════════
+### SIZE: 6060 B  MODIFIED: 2026-10-08 13:10:16
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useState } from "react";
@@ -1253,11 +1261,10 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\ThresholdChart.tsx
-### SIZE: 4310 B   MODIFIED: 2026-10-08 13:21:02
-════════════════════════════════════════════════════════════════════════
+### SIZE: 4310 B  MODIFIED: 2026-10-08 13:21:02
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import {
@@ -1394,11 +1401,10 @@ export function ThresholdChart({
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\digits\DigitsPage.tsx
-### SIZE: 13225 B   MODIFIED: 2026-10-08 13:29:12
-════════════════════════════════════════════════════════════════════════
+### SIZE: 13225 B  MODIFIED: 2026-10-08 13:29:12
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
@@ -1738,11 +1744,10 @@ export function DigitsPage() {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\fraud\CreditFraudPage.tsx
-### SIZE: 14932 B   MODIFIED: 2026-10-08 13:29:49
-════════════════════════════════════════════════════════════════════════
+### SIZE: 14932 B  MODIFIED: 2026-10-08 13:29:49
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
@@ -2146,11 +2151,10 @@ export function CreditFraudPage() {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisLiveSimulator.tsx
-### SIZE: 3718 B   MODIFIED: 2026-10-08 13:24:27
-════════════════════════════════════════════════════════════════════════
+### SIZE: 3718 B  MODIFIED: 2026-10-08 13:24:27
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2245,11 +2249,10 @@ export function IrisLiveSimulator({ data }: { data: IrisPoint[] }) {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisScatterMap.tsx
-### SIZE: 5047 B   MODIFIED: 2026-10-08 13:25:02
-════════════════════════════════════════════════════════════════════════
+### SIZE: 5047 B  MODIFIED: 2026-10-08 13:25:02
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2389,11 +2392,10 @@ export function IrisScatterMap({
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\ProbabilityRadar.tsx
-### SIZE: 926 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 926 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2417,11 +2419,10 @@ export function ProbabilityRadar({ probs }: { probs: Record<string, number> }) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\Sidebar.tsx
-### SIZE: 1929 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1929 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import Link from "next/link";
@@ -2470,11 +2471,10 @@ export function Sidebar() {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\ThemeToggle.tsx
-### SIZE: 735 B   MODIFIED: 2026-10-08 13:27:24
-════════════════════════════════════════════════════════════════════════
+### SIZE: 735 B  MODIFIED: 2026-10-08 13:27:24
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Moon, Sun } from "lucide-react";
@@ -2498,11 +2498,10 @@ export function ThemeToggle() {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\TopBar.tsx
-### SIZE: 1061 B   MODIFIED: 2026-10-08 13:27:43
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1061 B  MODIFIED: 2026-10-08 13:27:43
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { ThemeToggle } from "./ThemeToggle";
@@ -2533,11 +2532,10 @@ export function TopBar() {
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ChartGrid.tsx
-### SIZE: 1555 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1555 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2582,11 +2580,10 @@ export function ChartGrid({ charts, baseUrl }: { charts: Record<string, string>;
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ConfusionMatrix.tsx
-### SIZE: 2228 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 2228 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2637,11 +2634,10 @@ export function ConfusionMatrix({ labels, matrix }: { labels: string[]; matrix: 
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\CostCalculator.tsx
-### SIZE: 2028 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 2028 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2687,11 +2683,10 @@ export function CostCalculator({ sweep }: { sweep: ThresholdPoint[] }) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\FeatureImportance.tsx
-### SIZE: 1233 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1233 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2720,11 +2715,10 @@ export function FeatureImportance({ data }: { data: { feature: string; importanc
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\HeroMetric.tsx
-### SIZE: 1253 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1253 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { motion } from "framer-motion";
@@ -2754,11 +2748,10 @@ export function HeroMetric({ title, model, metricLabel, metricValue, tone = "inf
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\MetaStats.tsx
-### SIZE: 764 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 764 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card } from "@/components/ui/Card";
@@ -2786,11 +2779,10 @@ export function MetaStats({ meta }: { meta: any }) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\MetricsGrid.tsx
-### SIZE: 1655 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1655 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card } from "@/components/ui/Card";
@@ -2837,11 +2829,10 @@ export function MetricsGrid({ metrics }: { metrics: Record<string, number | unde
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ModelSelector.tsx
-### SIZE: 744 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 744 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { cn } from "@/lib/utils";
@@ -2865,11 +2856,10 @@ export function ModelSelector({ models, selected, onSelect }: {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\Narrative.tsx
-### SIZE: 965 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 965 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2898,11 +2888,10 @@ export function Narrative({ meta, headline }: { meta: any; headline: any }) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\PerClassTable.tsx
-### SIZE: 1774 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1774 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2948,11 +2937,10 @@ export function PerClassTable({ perClass, rareClass }: { perClass: Record<string
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\SamplePredictions.tsx
-### SIZE: 2152 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 2152 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -3006,11 +2994,10 @@ export function SamplePredictions({ samples }: { samples: any[] }) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\TaskPage.tsx
-### SIZE: 4940 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 4940 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo } from "react";
@@ -3145,11 +3132,10 @@ export function TaskPage({ task }: { task: TaskMeta }) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ThresholdSlider.tsx
-### SIZE: 2090 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 2090 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -3196,11 +3182,10 @@ export function ThresholdSlider({ sweep, threshold, onChange, costFP, costFN }:{
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Badge.tsx
-### SIZE: 656 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 656 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
 type Tone = "default" | "success" | "danger" | "warning" | "info";
@@ -3216,11 +3201,10 @@ export function Badge({ children, tone = "default", className }: { children: Rea
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Button.tsx
-### SIZE: 599 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 599 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
 import { ButtonHTMLAttributes } from "react";
@@ -3235,11 +3219,10 @@ export function Button({ className, variant = "default", ...props }: ButtonHTMLA
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Card.tsx
-### SIZE: 858 B   MODIFIED: 2026-10-08 13:26:57
-════════════════════════════════════════════════════════════════════════
+### SIZE: 858 B  MODIFIED: 2026-10-08 13:26:57
+══════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
 import { HTMLAttributes } from "react";
@@ -3270,22 +3253,20 @@ export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingEle
   );
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Skeleton.tsx
-### SIZE: 141 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 141 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 export function Skeleton({ className = "h-24 w-full" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Tabs.tsx
-### SIZE: 672 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 672 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { cn } from "@/lib/utils";
@@ -3305,11 +3286,10 @@ export function Tabs({ tabs, value, onValueChange }: { tabs: { id: string; label
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Tooltip.tsx
-### SIZE: 656 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 656 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
@@ -3329,11 +3309,10 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: index.html
-### SIZE: 856 B   MODIFIED: 2026-10-07 13:09:31
-════════════════════════════════════════════════════════════════════════
+### SIZE: 856 B  MODIFIED: 2026-10-07 13:09:31
+══════════════════════════════════════════════════════════════════════
 
 <!doctype html>
 <html lang="ru">
@@ -3359,11 +3338,10 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
 </body>
 </html>
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\breastCancer.ts
-### SIZE: 6024 B   MODIFIED: 2026-10-08 13:26:28
-════════════════════════════════════════════════════════════════════════
+### SIZE: 6251 B  MODIFIED: 2026-10-08 14:50:19
+══════════════════════════════════════════════════════════════════════
 
 // Загрузка реальных артефактов из public/artifacts/classification/{task}/report.json
 // Никакого мока: всё, что видит фронт, приходит из артефактов ноутбука.
@@ -3447,6 +3425,8 @@ export interface BCReport {
   baseline?: { name: string; metrics: Record<string, number> };
   // FIX: sweep может отсутствовать в артефакте
   threshold_sweep?: BCSweep;
+  // FIX: per-model sweep — ключи это имена моделей ("LogReg", "RandomForest", ...)
+  threshold_sweeps?: Record<string, BCSweep>;
   sample_predictions?: BCSample[];
   charts?: Record<string, string>;
 }
@@ -3525,10 +3505,14 @@ export function sweepAt(sweep: BCSweep | undefined, t: number) {
   };
 }
 
-// FIX: классы больше не хардкодятся как benign/malignant.
-// Берём positive_class из meta.target_stats, отрицательный считаем как n_test - nPos.
-export function countsFromSweep(report: BCReport, t: number) {
-  const s = sweepAt(report.threshold_sweep, t);
+// FIX: добавлен необязательный 3-й аргумент — sweep конкретной модели.
+// Если передан, используется он, а не общий report.threshold_sweep.
+export function countsFromSweep(
+  report: BCReport,
+  t: number,
+  sweepOverride?: BCSweep
+) {
+  const s = sweepAt(sweepOverride ?? report.threshold_sweep, t);
 
   const dist = report.meta?.target_stats?.class_distribution_test ?? {};
   const positiveClass = report.meta?.target_stats?.positive_class ?? "malignant";
@@ -3563,11 +3547,10 @@ export function countsFromSweep(report: BCReport, t: number) {
   };
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\creditFraud.ts
-### SIZE: 3264 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 3264 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 // Загрузка реального артефакта credit_fraud/report.json
 
@@ -3680,11 +3663,10 @@ export function findBestCFModel(report: CFReport): CFModel {
   return report.models.find((m) => m.is_best) ?? report.models[0];
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\digits.ts
-### SIZE: 3705 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 3705 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 // Загрузка реального артефакта digits_imbalanced/report.json
 
@@ -3807,11 +3789,10 @@ export function pixelsFromSample(features: Record<string, number>): number[][] {
   return grid;
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\iris.ts
-### SIZE: 3290 B   MODIFIED: 2026-10-08 13:25:37
-════════════════════════════════════════════════════════════════════════
+### SIZE: 3290 B  MODIFIED: 2026-10-08 13:25:37
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useJson } from "./loader";
@@ -3917,11 +3898,10 @@ export function predictIris(
   return { probs, predicted };
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\loader.ts
-### SIZE: 3256 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 3256 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useState } from "react";
@@ -4020,11 +4000,10 @@ export function useCsv(path: string | null) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\normalize.ts
-### SIZE: 2151 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 2151 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 import { MetricsSet, ThresholdPoint } from "../types";
 
@@ -4090,11 +4069,10 @@ export function normalizeSweep(rows: Record<string, string>[]): ThresholdPoint[]
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\tasks.ts
-### SIZE: 2266 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 2266 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 import { TaskId } from "../types";
 
@@ -4153,11 +4131,10 @@ export const TASKS: TaskMeta[] = [
 export const getTask = (id: TaskId) => TASKS.find((t) => t.id === id)!;
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\store.ts
-### SIZE: 815 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 815 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { create } from "zustand";
@@ -4184,11 +4161,10 @@ export const useAppStore = create<AppState>((set) => ({
 }));
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\types.ts
-### SIZE: 1002 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1002 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 export type TaskId = "iris" | "bc-fp" | "bc-fn" | "fraud" | "digits";
 export type TaskKind = "classification" | "regression" | "forecasting";
@@ -4237,11 +4213,10 @@ export interface ThresholdPoint {
 export interface FeatureImportanceItem { feature: string; importance: number; }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: lib\utils.ts
-### SIZE: 475 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 475 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -4257,11 +4232,10 @@ export function num(v: number | undefined, digits = 3) {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: next.config.js
-### SIZE: 341 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 341 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -4277,11 +4251,10 @@ const nextConfig = {
 module.exports = nextConfig;
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: next-env.d.ts
-### SIZE: 206 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 206 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 /// <reference types="next" />
 /// <reference types="next/image-types/global" />
@@ -4290,11 +4263,10 @@ module.exports = nextConfig;
 // see https://nextjs.org/docs/basic-features/typescript for more information.
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: nginx.conf
-### SIZE: 993 B   MODIFIED: 2026-10-07 13:09:31
-════════════════════════════════════════════════════════════════════════
+### SIZE: 993 B  MODIFIED: 2026-10-07 13:09:31
+══════════════════════════════════════════════════════════════════════
 
 server {
     listen 80;
@@ -4328,11 +4300,10 @@ server {
     gzip_min_length 1024;
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: package.json
-### SIZE: 856 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 856 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 {
   "name": "ml-explorer-frontend",
@@ -4369,11 +4340,10 @@ server {
   }
 }
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: package-lock.json
-### SIZE: 98515 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 98515 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 {
   "name": "ml-explorer-frontend",
@@ -7117,22 +7087,20 @@ server {
 }
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: postcss.config.js
-### SIZE: 74 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 74 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 module.exports = {
   plugins: { tailwindcss: {}, autoprefixer: {} }
 };
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: tailwind.config.ts
-### SIZE: 1239 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 1239 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 import type { Config } from "tailwindcss";
 
@@ -7173,11 +7141,10 @@ const config: Config = {
 export default config;
 
 
-
-════════════════════════════════════════════════════════════════════════
+══════════════════════════════════════════════════════════════════════
 ### FILE: tsconfig.json
-### SIZE: 591 B   MODIFIED: 2026-10-08 13:10:17
-════════════════════════════════════════════════════════════════════════
+### SIZE: 591 B  MODIFIED: 2026-10-08 13:10:17
+══════════════════════════════════════════════════════════════════════
 
 {
   "compilerOptions": {
@@ -7200,4 +7167,3 @@ export default config;
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", "public"]
 }
-
