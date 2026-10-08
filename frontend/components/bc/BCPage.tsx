@@ -10,10 +10,11 @@ import { ThresholdChart } from "./ThresholdChart";
 import { CostPanel } from "./CostPanel";
 import {
   BCReport,
+  BCModel,
+  BCSweep,
   BCTask,
   countsFromSweep,
   loadBCReport,
-  findBestModel,
 } from "@/lib/data/breastCancer";
 
 type Config = {
@@ -24,31 +25,112 @@ type Config = {
   subtitle: string;
 };
 
+type Counts = { tp: number; fn: number; fp: number; tn: number };
+
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(1)}%`;
 const fmtNum = (v?: number | null) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
 
-// FIX: argmax по нужной hero-метрике вместо единого optimal_threshold
-function bestThresholdForHero(
-  sweep: BCReport["threshold_sweep"] | undefined,
-  hero: "f0.5_pos" | "f2_pos"
-): number | null {
-  if (!sweep?.thresholds?.length) return null;
-  const arr = hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
-  if (!Array.isArray(arr) || !arr.length) return null;
-  let bestIdx = -1;
-  let bestVal = -Infinity;
-  for (let i = 0; i < arr.length; i++) {
-    const v = arr[i];
-    if (Number.isFinite(v) && v > bestVal) {
-      bestVal = v;
-      bestIdx = i;
+/**
+ * Из всех конфигураций одной модели (LogReg @thr=0.5, @thr=0.3, ...)
+ * оставляем одну — с максимальной hero-метрикой. Пользователь выбирает
+ * ТИП модели, а порог для неё — тот, что дал лучший результат в артефакте.
+ */
+function bestConfigPerModel(report: BCReport, hero: string): BCModel[] {
+  const byModel = new Map<string, BCModel>();
+  for (const m of report.models ?? []) {
+    const cur = byModel.get(m.model);
+    const val = (m.metrics as any)?.[hero];
+    const curVal = cur ? (cur.metrics as any)?.[hero] : undefined;
+    if (!cur || (Number.isFinite(val) && (!Number.isFinite(curVal) || val > curVal))) {
+      byModel.set(m.model, m);
     }
   }
-  if (bestIdx < 0) return null;
-  const t = sweep.thresholds[bestIdx];
-  return Number.isFinite(t) ? t : null;
+  return Array.from(byModel.values()).sort((a, b) => {
+    const va = (a.metrics as any)?.[hero] ?? -Infinity;
+    const vb = (b.metrics as any)?.[hero] ?? -Infinity;
+    return vb - va;
+  });
+}
+
+/**
+ * Считаем counts через sweep выбранной модели, а не через статичные
+ * confusion_counts из артефакта. Тогда ConfusionGrid реагирует на движение
+ * слайдера порога. Fallback на confusion_counts — только если sweep нет.
+ */
+function extractCounts(
+  model: BCModel | null,
+  report: BCReport,
+  threshold: number
+): Counts {
+  if (!model) return { tp: 0, fn: 0, fp: 0, tn: 0 };
+
+  const perModel = (report as any).threshold_sweeps as
+    | Record<string, BCSweep>
+    | undefined;
+  const sweep =
+    perModel?.[model.model] ??
+    (report.threshold_sweep?.model === model.model
+      ? report.threshold_sweep
+      : undefined);
+
+  if (sweep) {
+    const c = countsFromSweep(report, threshold, sweep);
+    return { tp: c.tp, fn: c.fn, fp: c.fp, tn: c.tn };
+  }
+
+  const cc: any = (model as any).confusion_counts ?? {};
+  const tp = Number(cc.tp_malignant ?? cc.tp ?? cc.TP ?? 0) || 0;
+  const fn = Number(cc.fn_malignant ?? cc.fn ?? cc.FN ?? 0) || 0;
+  const fp = Number(cc.fp_benign ?? cc.fp ?? cc.FP ?? 0) || 0;
+  const tn = Number(cc.tn_benign ?? cc.tn ?? cc.TN ?? 0) || 0;
+  return { tp, fn, fp, tn };
+}
+
+function ModelSelector({
+  models,
+  selectedName,
+  onSelect,
+  hero,
+}: {
+  models: BCModel[];
+  selectedName: string;
+  onSelect: (m: BCModel) => void;
+  hero: string;
+}) {
+  if (!models.length) return null;
+  const heroShort = hero === "f0.5_pos" ? "F0.5" : "F2";
+  return (
+    <div className="flex flex-wrap gap-2">
+      {models.map((m) => {
+        const active = m.name === selectedName;
+        const val = (m.metrics as any)?.[hero];
+        return (
+          <button
+            key={m.name}
+            onClick={() => onSelect(m)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              active
+                ? "bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/30"
+                : "border-border text-slate-500 hover:border-indigo-500/50"
+            }`}
+          >
+            <span>{m.model}</span>
+            <span className="ml-2 text-[11px] opacity-70">
+              thr={m.threshold.toFixed(3)}
+            </span>
+            {Number.isFinite(val) && (
+              <span className="ml-2 text-[11px] opacity-80">
+                {heroShort}={Number(val).toFixed(3)}
+              </span>
+            )}
+            {m.is_best && <span className="ml-2 text-[10px] opacity-80">★</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function HeroCard({
@@ -58,13 +140,15 @@ function HeroCard({
   heroLabel,
   threshold,
   counts,
+  model,
 }: {
   report: BCReport;
   hero: "f0.5_pos" | "f2_pos";
   heroValue: number;
   heroLabel: string;
   threshold: number;
-  counts: any;
+  counts: Counts;
+  model: BCModel;
 }) {
   const tone = hero === "f0.5_pos" ? "info" : "danger";
   return (
@@ -73,7 +157,13 @@ function HeroCard({
       <p className="text-xs uppercase tracking-widest text-slate-500">
         {report.meta.title}
       </p>
-      <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
+      <div className="flex items-center gap-3 mt-1 flex-wrap">
+        <h1 className="text-2xl font-bold">{model.model}</h1>
+        <span className="text-xs text-slate-500">
+          {model.name}
+          {model.is_best ? " · лучшая по hero-метрике" : ""}
+        </span>
+      </div>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
           {Number.isFinite(heroValue) ? heroValue.toFixed(4) : "—"}
@@ -123,7 +213,7 @@ function ConfusionGrid({
   return (
     <Card>
       <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
-        Confusion matrix @ текущий порог
+        Confusion matrix @ выбранный порог
       </h3>
       <div className="grid grid-cols-2 gap-2 mt-4">
         {cell("TP · malignant верно", tp, "bg-emerald-500/15 text-emerald-500")}
@@ -138,7 +228,6 @@ function ConfusionGrid({
 function FeatureImportanceChart({
   data,
 }: { data: { name: string; value: number }[] }) {
-  // FIX: защита от пустого/отсутствующего массива
   if (!Array.isArray(data) || !data.length) {
     return (
       <Card>
@@ -146,7 +235,7 @@ function FeatureImportanceChart({
           Feature importance
         </h3>
         <p className="text-sm text-slate-500 mt-3">
-          В артефакте нет feature_importance для лучшей модели.
+          В артефакте нет feature_importance для этой модели.
         </p>
       </Card>
     );
@@ -180,32 +269,87 @@ function FeatureImportanceChart({
 export function BCPage({ config }: { config: Config }) {
   const [report, setReport] = useState<BCReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(config.defaultThreshold);
 
   useEffect(() => {
     setReport(null);
     setError(null);
     setThreshold(config.defaultThreshold);
+    setSelectedName(null);
     loadBCReport(config.task)
       .then(setReport)
       .catch((e) => setError(String(e)));
   }, [config.task, config.defaultThreshold]);
 
-  const counts = useMemo(
-    () => (report ? countsFromSweep(report, threshold) : null),
-    [report, threshold]
-  );
-
-  const best = useMemo(
-    () => (report ? findBestModel(report) : null),
-    [report]
-  );
-
-  // FIX: оптимальный порог считается под hero-метрику, а не берётся из общего поля
-  const optimalForHero = useMemo(
-    () => bestThresholdForHero(report?.threshold_sweep, config.hero),
+  // Уникальные модели (по одной конфигурации на модель), отсортированные по hero
+  const models = useMemo(
+    () => (report ? bestConfigPerModel(report, config.hero) : []),
     [report, config.hero]
   );
+
+  // Выбранная модель — пользовательский выбор, иначе лучшая
+  const selected: BCModel | null = useMemo(() => {
+    if (!models.length) return null;
+    if (selectedName) {
+      const found = models.find((m) => m.name === selectedName);
+      if (found) return found;
+    }
+    return models[0];
+  }, [models, selectedName]);
+
+  // Когда меняется выбранная модель — синхронизируем порог с её порогом
+  useEffect(() => {
+    if (selected) setThreshold(selected.threshold);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.name]);
+
+  // Sweep для выбранной модели: сначала per-model, потом fallback на старый.
+  const sweepForSelected: BCSweep | null = useMemo(() => {
+    if (!report || !selected) return null;
+    const perModel = (report as any).threshold_sweeps as
+      | Record<string, BCSweep>
+      | undefined;
+    if (perModel && perModel[selected.model]) return perModel[selected.model];
+    if (
+      report.threshold_sweep &&
+      report.threshold_sweep.model === selected.model
+    ) {
+      return report.threshold_sweep;
+    }
+    return null;
+  }, [report, selected]);
+
+  const hasSweepForSelected = !!sweepForSelected;
+
+  const counts: Counts | null = useMemo(
+    () =>
+      report && selected
+        ? extractCounts(selected, report, threshold)
+        : null,
+    [report, selected, threshold]
+  );
+
+  // Оптимум для hero считаем по sweep выбранной модели
+  const optimalForHero = useMemo(() => {
+    if (!sweepForSelected?.thresholds?.length) return null;
+    const sweep = sweepForSelected;
+    const arr =
+      config.hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
+    if (!Array.isArray(arr) || !arr.length) return null;
+    let bestIdx = -1;
+    let bestVal = -Infinity;
+    for (let i = 0; i < arr.length; i++) {
+      const v = arr[i];
+      if (Number.isFinite(v) && v > bestVal) {
+        bestVal = v;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) return null;
+    const t = sweep.thresholds[bestIdx];
+    return Number.isFinite(t) ? t : null;
+  }, [sweepForSelected, config.hero]);
 
   if (error) {
     return (
@@ -214,7 +358,7 @@ export function BCPage({ config }: { config: Config }) {
       </Card>
     );
   }
-  if (!report || !best || !counts) {
+  if (!report || !selected || !counts) {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="h-40 w-full rounded-2xl bg-slate-500/10" />
@@ -228,26 +372,29 @@ export function BCPage({ config }: { config: Config }) {
     );
   }
 
-  const heroValue = config.hero === "f0.5_pos" ? counts.f05 : counts.f2;
+  // Hero-метрика: ключ берём прямо из config.hero ("f0.5_pos" или "f2_pos").
+  const heroValue = Number((selected.metrics as any)[config.hero] ?? 0);
 
   const metrics: [string, number | undefined, boolean][] = [
-    ["Accuracy", best.metrics.accuracy, false],
-    ["Balanced Acc.", best.metrics.balanced_accuracy, false],
-    ["Precision (macro)", best.metrics.precision_macro, false],
-    ["Recall (macro)", best.metrics.recall_macro, false],
-    ["F1 (macro)", best.metrics.f1_macro, false],
+    ["Accuracy", selected.metrics.accuracy, false],
+    ["Balanced Acc.", selected.metrics.balanced_accuracy, false],
+    ["Precision (macro)", selected.metrics.precision_macro, false],
+    ["Recall (macro)", selected.metrics.recall_macro, false],
+    ["F1 (macro)", selected.metrics.f1_macro, false],
     [
       "F0.5 (macro)",
-      best.metrics["f0.5_macro"] ?? best.metrics.f05_macro ?? best.metrics.f0_5_macro,
+      selected.metrics["f0.5_macro"] ??
+        selected.metrics.f05_macro ??
+        selected.metrics.f0_5_macro,
       false,
     ],
-    ["F2 (macro)", best.metrics.f2_macro, false],
-    ["MCC", best.metrics.mcc, true],
-    ["Cohen κ", best.metrics.kappa, true],
-    ["ROC-AUC", best.metrics.roc_auc, false],
-    ["PR-AUC", best.metrics.pr_auc, false],
-    ["Specificity", best.metrics.specificity, false],
-    ["Sensitivity", best.metrics.sensitivity, false],
+    ["F2 (macro)", selected.metrics.f2_macro, false],
+    ["MCC", selected.metrics.mcc, true],
+    ["Cohen κ", selected.metrics.kappa, true],
+    ["ROC-AUC", selected.metrics.roc_auc, false],
+    ["PR-AUC", selected.metrics.pr_auc, false],
+    ["Specificity", selected.metrics.specificity, false],
+    ["Sensitivity", selected.metrics.sensitivity, false],
   ];
 
   return (
@@ -259,7 +406,18 @@ export function BCPage({ config }: { config: Config }) {
         heroLabel={config.heroLabel}
         threshold={threshold}
         counts={counts}
+        model={selected}
       />
+
+      {/* Селектор моделей — переключение между типами моделей */}
+      {models.length > 1 && (
+        <ModelSelector
+          models={models}
+          selectedName={selected.name}
+          onSelect={(m) => setSelectedName(m.name)}
+          hero={config.hero}
+        />
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {metrics.map(([label, val, isNum]) => (
@@ -272,7 +430,7 @@ export function BCPage({ config }: { config: Config }) {
       </div>
 
       <Card>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
             Порог решения
           </h3>
@@ -280,6 +438,7 @@ export function BCPage({ config }: { config: Config }) {
             {threshold.toFixed(3)}
           </span>
         </div>
+
         <input
           type="range"
           min={0}
@@ -287,42 +446,42 @@ export function BCPage({ config }: { config: Config }) {
           step={0.001}
           value={threshold}
           onChange={(e) => setThreshold(parseFloat(e.target.value))}
-          className="w-full mt-4 accent-indigo-500 h-2 rounded-full cursor-pointer"
+          disabled={!hasSweepForSelected}
+          className={`w-full mt-4 accent-indigo-500 h-2 rounded-full ${
+            hasSweepForSelected
+              ? "cursor-pointer"
+              : "cursor-not-allowed opacity-50"
+          }`}
         />
+        {!hasSweepForSelected && (
+          <p className="text-xs text-slate-500 mt-2">
+            Для модели <b>{selected.model}</b> в артефакте нет threshold_sweep —
+            порог зафиксирован значением из отчёта (
+            {selected.threshold.toFixed(3)}).
+          </p>
+        )}
 
-        <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
-          {/* FIX: сброс к «оптимальному» теперь учитывает hero-метрику */}
-          {optimalForHero != null && (
+        {hasSweepForSelected && (
+          <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
+            {optimalForHero != null && (
+              <button
+                onClick={() => setThreshold(optimalForHero)}
+                className="text-indigo-500 hover:text-indigo-600 font-medium"
+              >
+                ↺ К оптимальному для{" "}
+                {config.hero === "f0.5_pos" ? "F0.5" : "F2"} (
+                {optimalForHero.toFixed(3)})
+              </button>
+            )}
             <button
-              onClick={() => setThreshold(optimalForHero)}
-              className="text-indigo-500 hover:text-indigo-600 font-medium"
+              onClick={() => setThreshold(selected.threshold)}
+              className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium"
             >
-              ↺ К оптимальному для {config.hero === "f0.5_pos" ? "F0.5" : "F2"} ({optimalForHero.toFixed(3)})
+              ↺ К порогу из артефакта ({selected.threshold.toFixed(3)})
             </button>
-          )}
-          <button
-            onClick={() => setThreshold(config.defaultThreshold)}
-            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium"
-          >
-            ↺ К значению из конфига ({config.defaultThreshold.toFixed(3)})
-          </button>
-        </div>
+          </div>
+        )}
 
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-5">
-          {[
-            ["Precision", counts.precision],
-            ["Recall", counts.recall],
-            ["F1", (2 * counts.precision * counts.recall) / (counts.precision + counts.recall || 1)],
-            ["F0.5", counts.f05],
-            ["F2", counts.f2],
-            ["Specificity", counts.specificity],
-          ].map(([label, val]) => (
-            <div key={label as string} className="text-center">
-              <p className="text-[10px] text-slate-500 uppercase">{label}</p>
-              <p className="font-bold text-sm">{Number(val).toFixed(3)}</p>
-            </div>
-          ))}
-        </div>
         <div className="flex gap-4 mt-4 text-sm flex-wrap">
           <span className="text-rose-500 font-semibold">FP: {counts.fp}</span>
           <span className="text-amber-500 font-semibold">FN: {counts.fn}</span>
@@ -332,21 +491,43 @@ export function BCPage({ config }: { config: Config }) {
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <ConfusionGrid tp={counts.tp} fp={counts.fp} fn={counts.fn} tn={counts.tn} />
-        <ThresholdChart
-          sweep={report.threshold_sweep}
-          current={threshold}
-          hero={config.hero}
+        <ConfusionGrid
+          tp={counts.tp}
+          fp={counts.fp}
+          fn={counts.fn}
+          tn={counts.tn}
         />
+        {hasSweepForSelected && sweepForSelected ? (
+          <ThresholdChart
+            sweep={sweepForSelected}
+            current={threshold}
+            hero={config.hero}
+          />
+        ) : (
+          <Card>
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+              Threshold sweep
+            </h3>
+            <p className="text-sm text-slate-500 mt-3">
+              Для <b>{selected.model}</b> нет sweep по порогу в артефакте.
+              Переключись на другую модель.
+            </p>
+          </Card>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <FeatureImportanceChart data={best.feature_importance ?? []} />
-        <RiskMap samples={report.sample_predictions ?? []} threshold={threshold} />
+        <FeatureImportanceChart data={selected.feature_importance ?? []} />
+        <RiskMap
+          samples={report.sample_predictions ?? []}
+          threshold={threshold}
+        />
       </div>
 
       <CostPanel
         report={report}
+        sweep={sweepForSelected ?? undefined}
+        currentThreshold={threshold}
         onApplyThreshold={(t) => setThreshold(t)}
       />
     </div>

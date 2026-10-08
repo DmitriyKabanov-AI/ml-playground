@@ -2,7 +2,7 @@
   "meta": {
     "task": "breast_cancer_fn",
     "title": "Breast Cancer · FN дорогой (второе мнение)",
-    "subtitle": "Пропущенный рак критичен — hero-метрика F2 по malignant, порог вниз",
+    "subtitle": "Пропущенный рак критичен — hero-метрика F2 (malignant)",
     "dataset": "sklearn.datasets.load_breast_cancer",
     "target": "diagnosis",
     "target_unit": "",
@@ -44,11 +44,12 @@
       "worst fractal dimension"
     ],
     "seed": 42,
-    "generated_at": "2026-10-06T14:28:27.609531",
+    "generated_at": "2026-10-08T13:40:24.288231",
     "n_samples": 569,
     "n_features": 30,
     "n_classes": 2,
-    "n_train": 426,
+    "n_train": 340,
+    "n_val": 86,
     "n_test": 143,
     "target_stats": {
       "class_distribution": {
@@ -66,633 +67,272 @@
       "prevalence_positive": 0.37258347978910367
     },
     "narrative": {
-      "context": "Breast Cancer Wisconsin: 569 образцов, 30 числовых признаков. 212 malignant / 357 benign (prevalence malignant ≈ 0.37). Модель работает как «второе мнение» / контрольный фильтр: FN = пропущенный рак (фатально), FP = лишнее обследование (допустимая цена). Мы намеренно жертвуем precision, чтобы вытащить максимум больных — пусть лучше здоровая пациентка пройдёт лишнюю биопсию, чем кто-то не пройдёт её вовсе.",
-      "hero_metric": "F2 (malignant)",
-      "why_f2": "β = 2 → FN штрафуется вчетверо сильнее FP (β² = 4). Именно это соответствует бизнес-задаче «не пропустить рак». Оптимизируем F2 ИМЕННО по malignant (pos_label=0), а не macro-F2: при несбалансированных классах macro-F2 размывает вклад интересующего класса.",
-      "contrast_with_breast_cancer_fp": "Тот же датасет, тот же алгоритм, что в 02_breast_cancer_fp. Там был F0.5 (FP дорог) → порог сдвигался вверх от 0.5. Здесь F2 (FN дорог) → порог сдвигается вниз от 0.5. Метрика — не свойство данных, а свойство задачи.",
-      "main_conclusion": "Лучший порог по F2(malignant) = 0.63 (LogReg). Malignant: recall=0.981, precision=1.000. F2(malignant)=0.9848, recall_macro=0.9906. На тесте: FN=1, FP=0 (FN/FP=1.00). Accuracy здесь вторична: при imbalance её значение не отражает истинную способность модели ловить рак.",
+      "context": "Breast Cancer Wisconsin: 569 образцов, 30 числовых признаков. 212 malignant / 357 benign. Модель работает как «второе мнение» — FN = пропущенный рак (фатально), FP = лишнее обследование (небольшая цена). Мы намеренно жертвуем precision, чтобы вытащить максимум больных: порог сдвинут влево от дефолтного 0.5.",
+      "hero_metric": "F2 (positive = malignant)",
+      "why_not_accuracy": "Accuracy здесь вводит в заблуждение: при imbalance ≈ 1.68:1 модель может показывать приемлемую точность, но при этом пропускать рак. F2 для положительного класса (malignant) штрафует FN в 4 раза сильнее FP (β² = 4) — именно это нам нужно в этой постановке.",
+      "main_conclusion": "Лучшая модель по F2 (malignant) — LogReg, порог = 0.465 (подобран на VALIDATION). На TEST F2(malignant) = 0.9774, precision(malignant) = 0.9630, recall(malignant) = 0.9811, FP = 2, FN = 1 (FP/FN = 2.00). CV F2 (train, thr=0.5) = 0.9501 ± 0.0291. F2 штрафует FN в 4 раза сильнее FP — правильная метрика, потому что пропущенный рак критичен.",
       "rules": {
-        "hero_f2_pos": "Hero-метрика F2 по malignant, а не macro-F2 и не F1",
-        "threshold_below_half": "Оптимум F2 = 0.63 (≥ 0.5)",
-        "recall_over_precision": "Recall / Sensitivity для malignant смотрим в первую очередь; precision — во вторую"
+        "hero_f2_pos": "Hero-метрика F2 именно для malignant, а не macro-F1 — FN дороже FP",
+        "threshold_source": "Порог каждой модели подобран на VALIDATION по F2(malignant), не на TEST",
+        "cv_baseline": "CV F2 показывает стабильность модели по фолдам",
+        "naive_baseline": "Naive = «все benign» входит в отчёт как контроль"
       }
     }
   },
   "headline": {
-    "best_model": "LogReg @thr=0.626923",
+    "best_model": "LogReg",
     "best_metric": "f2_pos",
-    "best_metric_value": 0.9848484848484849,
-    "verdict": "Лучшая конфигурация по F2(malignant) — LogReg @thr=0.626923 · F2=0.9848 · recall(malignant)=0.9811 · sensitivity=0.9811 · FN=1 / FP=0",
+    "best_metric_value": 0.9774436090225563,
+    "verdict": "Лучшая конфигурация по F2(malignant) — LogReg · F2=0.9774 · precision(malignant)=0.9630 · recall(malignant)=0.9811 · FP=2 / FN=1 · threshold=0.465 выбран на validation",
     "diagnostic_verdict": {
       "is_balanced": false,
       "prevalence_positive": 0.37258347978910367,
-      "recall_malignant": 0.9811320754716981,
-      "precision_malignant": 1.0,
-      "specificity": 1.0,
+      "accuracy_vs_balanced_accuracy_gap": 0.0004339476037588108,
+      "accuracy_vs_f1_macro_gap": 0.001419558877920557,
+      "accuracy_vs_f2_pos_gap": 0.0015773699984227285,
+      "mcc": 0.9553116797597819,
+      "kappa": 0.9552051790748669,
+      "roc_auc": 0.9974842767295597,
+      "pr_auc": 0.9964010768956924,
+      "specificity": 0.9777777777777777,
       "sensitivity": 0.9811320754716981,
-      "accuracy_vs_balanced_accuracy_gap": 0.002440955271143963,
-      "accuracy_vs_f1_macro_gap": 0.0005313287081242235,
-      "accuracy_vs_f2_pos_gap": 0.00815850815850816,
-      "mcc": 0.9850636549546776,
-      "kappa": 0.9849521203830369,
-      "roc_auc": 0.9976939203354298,
-      "pr_auc": 0.9967570754716981,
-      "best_threshold": 0.626923,
-      "threshold_below_half": false,
+      "best_threshold": 0.46538461538461534,
+      "threshold_source": "validation",
+      "cv_f2_mean": 0.9501455151453218,
+      "cv_f2_std": 0.029076442630993803,
+      "test_f2_pos": 0.9774436090225563,
+      "fp_count_at_optimal": 2,
       "fn_count_at_optimal": 1,
-      "fp_count_at_optimal": 0,
-      "fn_fp_ratio": 1.0,
-      "n_errors_on_test": 1,
-      "metrics_are_consistent": true
+      "fp_fn_ratio": 2.0,
+      "n_errors_on_test": 3,
+      "metrics_are_consistent": true,
+      "naive_accuracy": 0.6293706293706294,
+      "naive_f2_pos": 0.0
     }
   },
   "models": [
     {
-      "name": "LogReg @thr=0.5",
+      "name": "LogReg",
       "model": "LogReg",
-      "threshold": 0.5,
-      "is_best": false,
+      "threshold": 0.46538461538461534,
+      "is_best": true,
+      "is_deployed": true,
       "metrics": {
-        "accuracy": 0.986013986013986,
-        "balanced_accuracy": 0.9850104821802935,
-        "precision_macro": 0.9850104821802935,
-        "recall_macro": 0.9850104821802935,
-        "f1_macro": 0.9850104821802935,
-        "f1_weighted": 0.986013986013986,
-        "f0.5_macro": 0.9850104821802935,
-        "f2_macro": 0.9850104821802935,
-        "mcc": 0.970020964360587,
-        "kappa": 0.970020964360587,
-        "precision_pos": 0.9811320754716981,
+        "accuracy": 0.9790209790209791,
+        "balanced_accuracy": 0.9794549266247379,
+        "precision_macro": 0.9758635039533916,
+        "recall_macro": 0.9794549266247379,
+        "f1_macro": 0.9776014201430585,
+        "f1_weighted": 0.9790604112120322,
+        "f0.5_macro": 0.9765449180655809,
+        "f2_macro": 0.9786995327963561,
+        "mcc": 0.9553116797597819,
+        "kappa": 0.9552051790748669,
+        "precision_pos": 0.9629629629629629,
         "recall_pos": 0.9811320754716981,
-        "f1_pos": 0.9811320754716981,
-        "f0.5_pos": 0.9811320754716981,
-        "f2_pos": 0.9811320754716981,
-        "roc_auc": 0.9976939203354298,
-        "pr_auc": 0.9967570754716981,
-        "specificity": 0.9888888888888889,
-        "sensitivity": 0.9811320754716981
-      },
-      "per_class": {
-        "malignant": {
-          "precision": 0.9811320754716981,
-          "recall": 0.9811320754716981,
-          "f1": 0.9811320754716981,
-          "support": 53
-        },
-        "benign": {
-          "precision": 0.9888888888888889,
-          "recall": 0.9888888888888889,
-          "f1": 0.9888888888888889,
-          "support": 90
-        }
-      },
-      "confusion_matrix": [
-        [
-          52,
-          1
-        ],
-        [
-          1,
-          89
-        ]
-      ],
-      "confusion_counts": {
-        "tp_malignant": 52,
-        "fn_malignant": 1,
-        "fp_benign": 1,
-        "tn_benign": 89
-      },
-      "roc_auc": 0.9976939203354298,
-      "pr_auc": 0.9967570754716981,
-      "mean_confidence": 0.9575358502377117,
-      "median_confidence": 0.9989266171073294,
-      "feature_importance": [
-        {
-          "name": "worst texture",
-          "value": 1.25014919374035
-        },
-        {
-          "name": "radius error",
-          "value": 1.0701020969336537
-        },
-        {
-          "name": "worst symmetry",
-          "value": 0.9570452351360584
-        },
-        {
-          "name": "worst concave points",
-          "value": 0.9418881730163533
-        },
-        {
-          "name": "area error",
-          "value": 0.9410589617920353
-        },
-        {
-          "name": "worst area",
-          "value": 0.9258117797416777
-        },
-        {
-          "name": "worst radius",
-          "value": 0.9174795123253504
-        },
-        {
-          "name": "worst concavity",
-          "value": 0.7967579541323312
-        },
-        {
-          "name": "worst perimeter",
-          "value": 0.721168033150261
-        },
-        {
-          "name": "mean compactness",
-          "value": 0.6942302743679607
-        },
-        {
-          "name": "mean concave points",
-          "value": 0.6769288022699923
-        },
-        {
-          "name": "worst smoothness",
-          "value": 0.6696476011129511
-        },
-        {
-          "name": "compactness error",
-          "value": 0.6164256494346052
-        },
-        {
-          "name": "mean concavity",
-          "value": 0.5654433052762027
-        },
-        {
-          "name": "mean area",
-          "value": 0.5573341921635054
-        },
-        {
-          "name": "mean radius",
-          "value": 0.523063899676336
-        },
-        {
-          "name": "mean texture",
-          "value": 0.518669773695665
-        },
-        {
-          "name": "perimeter error",
-          "value": 0.49107245487972023
-        },
-        {
-          "name": "mean perimeter",
-          "value": 0.4836914677487709
-        },
-        {
-          "name": "symmetry error",
-          "value": 0.42510152293749653
-        },
-        {
-          "name": "fractal dimension error",
-          "value": 0.3748817220797563
-        },
-        {
-          "name": "concave points error",
-          "value": 0.3439857224021381
-        },
-        {
-          "name": "mean smoothness",
-          "value": 0.3010072951910065
-        },
-        {
-          "name": "texture error",
-          "value": 0.2607143348474683
-        },
-        {
-          "name": "worst fractal dimension",
-          "value": 0.2095675654238605
-        },
-        {
-          "name": "concavity error",
-          "value": 0.1541076906131466
-        },
-        {
-          "name": "smoothness error",
-          "value": 0.14558342909970867
-        },
-        {
-          "name": "mean symmetry",
-          "value": 0.12623295820913477
-        },
-        {
-          "name": "mean fractal dimension",
-          "value": 0.08371348702405114
-        },
-        {
-          "name": "worst compactness",
-          "value": 0.04658656650869604
-        }
-      ]
-    },
-    {
-      "name": "LogReg @thr=0.3",
-      "model": "LogReg",
-      "threshold": 0.3,
-      "is_best": false,
-      "metrics": {
-        "accuracy": 0.951048951048951,
-        "balanced_accuracy": 0.9572327044025157,
-        "precision_macro": 0.9423935091277891,
-        "recall_macro": 0.9572327044025157,
-        "f1_macro": 0.9484684684684684,
-        "f1_weighted": 0.9514521514521513,
-        "f0.5_macro": 0.9445124439004488,
-        "f2_macro": 0.953391593841032,
-        "mcc": 0.899503820088871,
-        "kappa": 0.8970694087403599,
-        "precision_pos": 0.896551724137931,
-        "recall_pos": 0.9811320754716981,
-        "f1_pos": 0.9369369369369369,
-        "f0.5_pos": 0.9122807017543859,
-        "f2_pos": 0.9629629629629629,
-        "roc_auc": 0.9976939203354298,
-        "pr_auc": 0.9967570754716981,
-        "specificity": 0.9333333333333333,
-        "sensitivity": 0.9811320754716981
-      },
-      "per_class": {
-        "malignant": {
-          "precision": 0.896551724137931,
-          "recall": 0.9811320754716981,
-          "f1": 0.9369369369369369,
-          "support": 53
-        },
-        "benign": {
-          "precision": 0.9882352941176471,
-          "recall": 0.9333333333333333,
-          "f1": 0.96,
-          "support": 90
-        }
-      },
-      "confusion_matrix": [
-        [
-          52,
-          1
-        ],
-        [
-          6,
-          84
-        ]
-      ],
-      "confusion_counts": {
-        "tp_malignant": 52,
-        "fn_malignant": 1,
-        "fp_benign": 6,
-        "tn_benign": 84
-      },
-      "roc_auc": 0.9976939203354298,
-      "pr_auc": 0.9967570754716981,
-      "mean_confidence": 0.9575358502377117,
-      "median_confidence": 0.9989266171073294,
-      "feature_importance": [
-        {
-          "name": "worst texture",
-          "value": 1.25014919374035
-        },
-        {
-          "name": "radius error",
-          "value": 1.0701020969336537
-        },
-        {
-          "name": "worst symmetry",
-          "value": 0.9570452351360584
-        },
-        {
-          "name": "worst concave points",
-          "value": 0.9418881730163533
-        },
-        {
-          "name": "area error",
-          "value": 0.9410589617920353
-        },
-        {
-          "name": "worst area",
-          "value": 0.9258117797416777
-        },
-        {
-          "name": "worst radius",
-          "value": 0.9174795123253504
-        },
-        {
-          "name": "worst concavity",
-          "value": 0.7967579541323312
-        },
-        {
-          "name": "worst perimeter",
-          "value": 0.721168033150261
-        },
-        {
-          "name": "mean compactness",
-          "value": 0.6942302743679607
-        },
-        {
-          "name": "mean concave points",
-          "value": 0.6769288022699923
-        },
-        {
-          "name": "worst smoothness",
-          "value": 0.6696476011129511
-        },
-        {
-          "name": "compactness error",
-          "value": 0.6164256494346052
-        },
-        {
-          "name": "mean concavity",
-          "value": 0.5654433052762027
-        },
-        {
-          "name": "mean area",
-          "value": 0.5573341921635054
-        },
-        {
-          "name": "mean radius",
-          "value": 0.523063899676336
-        },
-        {
-          "name": "mean texture",
-          "value": 0.518669773695665
-        },
-        {
-          "name": "perimeter error",
-          "value": 0.49107245487972023
-        },
-        {
-          "name": "mean perimeter",
-          "value": 0.4836914677487709
-        },
-        {
-          "name": "symmetry error",
-          "value": 0.42510152293749653
-        },
-        {
-          "name": "fractal dimension error",
-          "value": 0.3748817220797563
-        },
-        {
-          "name": "concave points error",
-          "value": 0.3439857224021381
-        },
-        {
-          "name": "mean smoothness",
-          "value": 0.3010072951910065
-        },
-        {
-          "name": "texture error",
-          "value": 0.2607143348474683
-        },
-        {
-          "name": "worst fractal dimension",
-          "value": 0.2095675654238605
-        },
-        {
-          "name": "concavity error",
-          "value": 0.1541076906131466
-        },
-        {
-          "name": "smoothness error",
-          "value": 0.14558342909970867
-        },
-        {
-          "name": "mean symmetry",
-          "value": 0.12623295820913477
-        },
-        {
-          "name": "mean fractal dimension",
-          "value": 0.08371348702405114
-        },
-        {
-          "name": "worst compactness",
-          "value": 0.04658656650869604
-        }
-      ]
-    },
-    {
-      "name": "LogReg @thr=0.15",
-      "model": "LogReg",
-      "threshold": 0.15,
-      "is_best": false,
-      "metrics": {
-        "accuracy": 0.9440559440559441,
-        "balanced_accuracy": 0.9516771488469602,
-        "precision_macro": 0.9347255851493139,
-        "recall_macro": 0.9516771488469602,
-        "f1_macro": 0.9412972085385878,
-        "f1_weighted": 0.944589892865755,
-        "f0.5_macro": 0.9369161914973114,
-        "f2_macro": 0.9470471393903128,
-        "mcc": 0.8862406283421417,
-        "kappa": 0.8828108994058594,
-        "precision_pos": 0.8813559322033898,
-        "recall_pos": 0.9811320754716981,
-        "f1_pos": 0.9285714285714286,
-        "f0.5_pos": 0.8996539792387543,
-        "f2_pos": 0.959409594095941,
-        "roc_auc": 0.9976939203354298,
-        "pr_auc": 0.9967570754716981,
-        "specificity": 0.9222222222222223,
-        "sensitivity": 0.9811320754716981
-      },
-      "per_class": {
-        "malignant": {
-          "precision": 0.8813559322033898,
-          "recall": 0.9811320754716981,
-          "f1": 0.9285714285714286,
-          "support": 53
-        },
-        "benign": {
-          "precision": 0.9880952380952381,
-          "recall": 0.9222222222222223,
-          "f1": 0.9540229885057471,
-          "support": 90
-        }
-      },
-      "confusion_matrix": [
-        [
-          52,
-          1
-        ],
-        [
-          7,
-          83
-        ]
-      ],
-      "confusion_counts": {
-        "tp_malignant": 52,
-        "fn_malignant": 1,
-        "fp_benign": 7,
-        "tn_benign": 83
-      },
-      "roc_auc": 0.9976939203354298,
-      "pr_auc": 0.9967570754716981,
-      "mean_confidence": 0.9575358502377117,
-      "median_confidence": 0.9989266171073294,
-      "feature_importance": [
-        {
-          "name": "worst texture",
-          "value": 1.25014919374035
-        },
-        {
-          "name": "radius error",
-          "value": 1.0701020969336537
-        },
-        {
-          "name": "worst symmetry",
-          "value": 0.9570452351360584
-        },
-        {
-          "name": "worst concave points",
-          "value": 0.9418881730163533
-        },
-        {
-          "name": "area error",
-          "value": 0.9410589617920353
-        },
-        {
-          "name": "worst area",
-          "value": 0.9258117797416777
-        },
-        {
-          "name": "worst radius",
-          "value": 0.9174795123253504
-        },
-        {
-          "name": "worst concavity",
-          "value": 0.7967579541323312
-        },
-        {
-          "name": "worst perimeter",
-          "value": 0.721168033150261
-        },
-        {
-          "name": "mean compactness",
-          "value": 0.6942302743679607
-        },
-        {
-          "name": "mean concave points",
-          "value": 0.6769288022699923
-        },
-        {
-          "name": "worst smoothness",
-          "value": 0.6696476011129511
-        },
-        {
-          "name": "compactness error",
-          "value": 0.6164256494346052
-        },
-        {
-          "name": "mean concavity",
-          "value": 0.5654433052762027
-        },
-        {
-          "name": "mean area",
-          "value": 0.5573341921635054
-        },
-        {
-          "name": "mean radius",
-          "value": 0.523063899676336
-        },
-        {
-          "name": "mean texture",
-          "value": 0.518669773695665
-        },
-        {
-          "name": "perimeter error",
-          "value": 0.49107245487972023
-        },
-        {
-          "name": "mean perimeter",
-          "value": 0.4836914677487709
-        },
-        {
-          "name": "symmetry error",
-          "value": 0.42510152293749653
-        },
-        {
-          "name": "fractal dimension error",
-          "value": 0.3748817220797563
-        },
-        {
-          "name": "concave points error",
-          "value": 0.3439857224021381
-        },
-        {
-          "name": "mean smoothness",
-          "value": 0.3010072951910065
-        },
-        {
-          "name": "texture error",
-          "value": 0.2607143348474683
-        },
-        {
-          "name": "worst fractal dimension",
-          "value": 0.2095675654238605
-        },
-        {
-          "name": "concavity error",
-          "value": 0.1541076906131466
-        },
-        {
-          "name": "smoothness error",
-          "value": 0.14558342909970867
-        },
-        {
-          "name": "mean symmetry",
-          "value": 0.12623295820913477
-        },
-        {
-          "name": "mean fractal dimension",
-          "value": 0.08371348702405114
-        },
-        {
-          "name": "worst compactness",
-          "value": 0.04658656650869604
-        }
-      ]
-    },
-    {
-      "name": "RandomForest @thr=0.5",
-      "model": "RandomForest",
-      "threshold": 0.5,
-      "is_best": false,
-      "metrics": {
-        "accuracy": 0.958041958041958,
-        "balanced_accuracy": 0.9511530398322852,
-        "precision_macro": 0.9586530264279625,
-        "recall_macro": 0.9511530398322852,
-        "f1_macro": 0.9546703296703296,
-        "f1_weighted": 0.9578690540229003,
-        "f0.5_macro": 0.9570030414762205,
-        "f2_macro": 0.9525051313974224,
-        "mcc": 0.9097751526641134,
-        "kappa": 0.9093598140714135,
-        "precision_pos": 0.9607843137254902,
-        "recall_pos": 0.9245283018867925,
-        "f1_pos": 0.9423076923076923,
-        "f0.5_pos": 0.953307392996109,
-        "f2_pos": 0.9315589353612167,
-        "roc_auc": 0.9941299790356395,
-        "pr_auc": 0.9908231694179368,
+        "f1_pos": 0.9719626168224299,
+        "f0.5_pos": 0.966542750929368,
+        "f2_pos": 0.9774436090225563,
+        "roc_auc": 0.9974842767295597,
+        "pr_auc": 0.9964010768956924,
         "specificity": 0.9777777777777777,
+        "sensitivity": 0.9811320754716981
+      },
+      "per_class": {
+        "malignant": {
+          "precision": 0.9629629629629629,
+          "recall": 0.9811320754716981,
+          "f1": 0.9719626168224299,
+          "support": 53
+        },
+        "benign": {
+          "precision": 0.9887640449438202,
+          "recall": 0.9777777777777777,
+          "f1": 0.9832402234636871,
+          "support": 90
+        }
+      },
+      "confusion_matrix": [
+        [
+          52,
+          1
+        ],
+        [
+          2,
+          88
+        ]
+      ],
+      "confusion_counts": {
+        "tp_malignant": 52,
+        "fn_malignant": 1,
+        "fp_benign": 2,
+        "tn_benign": 88
+      },
+      "roc_auc": 0.9974842767295597,
+      "pr_auc": 0.9964010768956924,
+      "mean_confidence": 0.9516660114867019,
+      "median_confidence": 0.9981997734094635,
+      "feature_importance": [
+        {
+          "name": "worst texture",
+          "value": 1.1665956969880076
+        },
+        {
+          "name": "radius error",
+          "value": 1.0978657258826439
+        },
+        {
+          "name": "worst concave points",
+          "value": 0.9249480843558813
+        },
+        {
+          "name": "worst symmetry",
+          "value": 0.8921497720692794
+        },
+        {
+          "name": "area error",
+          "value": 0.88890319340238
+        },
+        {
+          "name": "worst radius",
+          "value": 0.886076357026544
+        },
+        {
+          "name": "worst area",
+          "value": 0.8844737244228421
+        },
+        {
+          "name": "worst perimeter",
+          "value": 0.6829184251696024
+        },
+        {
+          "name": "mean compactness",
+          "value": 0.6738571139561398
+        },
+        {
+          "name": "mean concave points",
+          "value": 0.6532017417785164
+        },
+        {
+          "name": "worst smoothness",
+          "value": 0.611244087327863
+        },
+        {
+          "name": "worst concavity",
+          "value": 0.610278338771631
+        },
+        {
+          "name": "perimeter error",
+          "value": 0.5568055544409596
+        },
+        {
+          "name": "mean texture",
+          "value": 0.5399650014767314
+        },
+        {
+          "name": "mean area",
+          "value": 0.4863671504152271
+        },
+        {
+          "name": "mean radius",
+          "value": 0.4684110381907472
+        },
+        {
+          "name": "compactness error",
+          "value": 0.4665782208398929
+        },
+        {
+          "name": "mean perimeter",
+          "value": 0.42162458510704937
+        },
+        {
+          "name": "texture error",
+          "value": 0.4032664637049597
+        },
+        {
+          "name": "concave points error",
+          "value": 0.3978924521706018
+        },
+        {
+          "name": "mean concavity",
+          "value": 0.39708181433567863
+        },
+        {
+          "name": "symmetry error",
+          "value": 0.35663581038896813
+        },
+        {
+          "name": "mean smoothness",
+          "value": 0.34827446869056583
+        },
+        {
+          "name": "fractal dimension error",
+          "value": 0.2813450037026924
+        },
+        {
+          "name": "worst fractal dimension",
+          "value": 0.22451349056593958
+        },
+        {
+          "name": "concavity error",
+          "value": 0.19565196597194703
+        },
+        {
+          "name": "mean symmetry",
+          "value": 0.13245945457608518
+        },
+        {
+          "name": "worst compactness",
+          "value": 0.08404301903928503
+        },
+        {
+          "name": "smoothness error",
+          "value": 0.08151675007759235
+        },
+        {
+          "name": "mean fractal dimension",
+          "value": 0.03970902747295556
+        }
+      ]
+    },
+    {
+      "name": "RandomForest",
+      "model": "RandomForest",
+      "threshold": 0.35,
+      "is_best": false,
+      "is_deployed": false,
+      "metrics": {
+        "accuracy": 0.9230769230769231,
+        "balanced_accuracy": 0.9233752620545074,
+        "precision_macro": 0.9145114942528736,
+        "recall_macro": 0.9233752620545074,
+        "f1_macro": 0.9184678380759861,
+        "f1_weighted": 0.923483607047594,
+        "f0.5_macro": 0.9159825593854574,
+        "f2_macro": 0.9212953687936158,
+        "mcc": 0.8378398713451533,
+        "kappa": 0.8370117086312299,
+        "precision_pos": 0.875,
+        "recall_pos": 0.9245283018867925,
+        "f1_pos": 0.8990825688073395,
+        "f0.5_pos": 0.8844765342960289,
+        "f2_pos": 0.914179104477612,
+        "roc_auc": 0.9919287211740042,
+        "pr_auc": 0.9876134689922804,
+        "specificity": 0.9222222222222223,
         "sensitivity": 0.9245283018867925
       },
       "per_class": {
         "malignant": {
-          "precision": 0.9607843137254902,
+          "precision": 0.875,
           "recall": 0.9245283018867925,
-          "f1": 0.9423076923076923,
+          "f1": 0.8990825688073395,
           "support": 53
         },
         "benign": {
-          "precision": 0.9565217391304348,
-          "recall": 0.9777777777777777,
-          "f1": 0.967032967032967,
+          "precision": 0.9540229885057471,
+          "recall": 0.9222222222222223,
+          "f1": 0.9378531073446328,
           "support": 90
         }
       },
@@ -702,713 +342,368 @@
           4
         ],
         [
-          2,
-          88
-        ]
-      ],
-      "confusion_counts": {
-        "tp_malignant": 49,
-        "fn_malignant": 4,
-        "fp_benign": 2,
-        "tn_benign": 88
-      },
-      "roc_auc": 0.9941299790356395,
-      "pr_auc": 0.9908231694179368,
-      "mean_confidence": 0.9366433566433566,
-      "median_confidence": 0.985,
-      "feature_importance": [
-        {
-          "name": "worst area",
-          "value": 0.14178247609733702
-        },
-        {
-          "name": "worst perimeter",
-          "value": 0.13448988816033342
-        },
-        {
-          "name": "worst concave points",
-          "value": 0.11696620142513034
-        },
-        {
-          "name": "mean concave points",
-          "value": 0.0940908093035232
-        },
-        {
-          "name": "worst radius",
-          "value": 0.07699919387645585
-        },
-        {
-          "name": "mean radius",
-          "value": 0.05715835964096844
-        },
-        {
-          "name": "mean perimeter",
-          "value": 0.055324182083186915
-        },
-        {
-          "name": "mean concavity",
-          "value": 0.04837190146227124
-        },
-        {
-          "name": "mean area",
-          "value": 0.04056947073615021
-        },
-        {
-          "name": "area error",
-          "value": 0.03424569780364431
-        },
-        {
-          "name": "worst concavity",
-          "value": 0.027150347877918656
-        },
-        {
-          "name": "worst texture",
-          "value": 0.01707493168935143
-        },
-        {
-          "name": "radius error",
-          "value": 0.015855915511504174
-        },
-        {
-          "name": "worst compactness",
-          "value": 0.015037898637024304
-        },
-        {
-          "name": "mean compactness",
-          "value": 0.01494576625894959
-        },
-        {
-          "name": "mean texture",
-          "value": 0.01481627280197261
-        },
-        {
-          "name": "worst symmetry",
-          "value": 0.014160842318093662
-        },
-        {
-          "name": "worst smoothness",
-          "value": 0.013724376914303893
-        },
-        {
-          "name": "perimeter error",
-          "value": 0.011624750947203916
-        },
-        {
-          "name": "worst fractal dimension",
-          "value": 0.006944625794091001
-        },
-        {
-          "name": "mean smoothness",
-          "value": 0.006297205554568437
-        },
-        {
-          "name": "concavity error",
-          "value": 0.00603546036345989
-        },
-        {
-          "name": "texture error",
-          "value": 0.005635243733655772
-        },
-        {
-          "name": "concave points error",
-          "value": 0.0052552707411391095
-        },
-        {
-          "name": "smoothness error",
-          "value": 0.005033711711693876
-        },
-        {
-          "name": "fractal dimension error",
-          "value": 0.004510194716226804
-        },
-        {
-          "name": "compactness error",
-          "value": 0.00437052353124346
-        },
-        {
-          "name": "symmetry error",
-          "value": 0.004179882226453203
-        },
-        {
-          "name": "mean fractal dimension",
-          "value": 0.0037718965461342336
-        },
-        {
-          "name": "mean symmetry",
-          "value": 0.0035767015360109416
-        }
-      ]
-    },
-    {
-      "name": "RandomForest @thr=0.3",
-      "model": "RandomForest",
-      "threshold": 0.3,
-      "is_best": false,
-      "metrics": {
-        "accuracy": 0.9440559440559441,
-        "balanced_accuracy": 0.9516771488469602,
-        "precision_macro": 0.9347255851493139,
-        "recall_macro": 0.9516771488469602,
-        "f1_macro": 0.9412972085385878,
-        "f1_weighted": 0.944589892865755,
-        "f0.5_macro": 0.9369161914973114,
-        "f2_macro": 0.9470471393903128,
-        "mcc": 0.8862406283421417,
-        "kappa": 0.8828108994058594,
-        "precision_pos": 0.8813559322033898,
-        "recall_pos": 0.9811320754716981,
-        "f1_pos": 0.9285714285714286,
-        "f0.5_pos": 0.8996539792387543,
-        "f2_pos": 0.959409594095941,
-        "roc_auc": 0.9941299790356395,
-        "pr_auc": 0.9908231694179368,
-        "specificity": 0.9222222222222223,
-        "sensitivity": 0.9811320754716981
-      },
-      "per_class": {
-        "malignant": {
-          "precision": 0.8813559322033898,
-          "recall": 0.9811320754716981,
-          "f1": 0.9285714285714286,
-          "support": 53
-        },
-        "benign": {
-          "precision": 0.9880952380952381,
-          "recall": 0.9222222222222223,
-          "f1": 0.9540229885057471,
-          "support": 90
-        }
-      },
-      "confusion_matrix": [
-        [
-          52,
-          1
-        ],
-        [
           7,
           83
         ]
       ],
       "confusion_counts": {
-        "tp_malignant": 52,
-        "fn_malignant": 1,
+        "tp_malignant": 49,
+        "fn_malignant": 4,
         "fp_benign": 7,
         "tn_benign": 83
       },
-      "roc_auc": 0.9941299790356395,
-      "pr_auc": 0.9908231694179368,
-      "mean_confidence": 0.9366433566433566,
-      "median_confidence": 0.985,
+      "roc_auc": 0.9919287211740042,
+      "pr_auc": 0.9876134689922804,
+      "mean_confidence": 0.928513986013986,
+      "median_confidence": 0.9825,
       "feature_importance": [
         {
-          "name": "worst area",
-          "value": 0.14178247609733702
+          "name": "worst concave points",
+          "value": 0.163126921860885
         },
         {
           "name": "worst perimeter",
-          "value": 0.13448988816033342
+          "value": 0.11860929189402981
         },
         {
-          "name": "worst concave points",
-          "value": 0.11696620142513034
+          "name": "worst area",
+          "value": 0.1120367247883715
         },
         {
           "name": "mean concave points",
-          "value": 0.0940908093035232
+          "value": 0.08649279663722839
         },
         {
           "name": "worst radius",
-          "value": 0.07699919387645585
-        },
-        {
-          "name": "mean radius",
-          "value": 0.05715835964096844
-        },
-        {
-          "name": "mean perimeter",
-          "value": 0.055324182083186915
+          "value": 0.07442780561176258
         },
         {
           "name": "mean concavity",
-          "value": 0.04837190146227124
+          "value": 0.06364040871893716
         },
         {
-          "name": "mean area",
-          "value": 0.04056947073615021
+          "name": "mean perimeter",
+          "value": 0.047634997773799356
+        },
+        {
+          "name": "mean radius",
+          "value": 0.045207071837432125
         },
         {
           "name": "area error",
-          "value": 0.03424569780364431
+          "value": 0.03525346900318016
+        },
+        {
+          "name": "mean area",
+          "value": 0.03458331515964453
         },
         {
           "name": "worst concavity",
-          "value": 0.027150347877918656
-        },
-        {
-          "name": "worst texture",
-          "value": 0.01707493168935143
-        },
-        {
-          "name": "radius error",
-          "value": 0.015855915511504174
+          "value": 0.03446549322674546
         },
         {
           "name": "worst compactness",
-          "value": 0.015037898637024304
+          "value": 0.023287357039184168
         },
         {
           "name": "mean compactness",
-          "value": 0.01494576625894959
+          "value": 0.017391768492937228
         },
         {
-          "name": "mean texture",
-          "value": 0.01481627280197261
+          "name": "worst texture",
+          "value": 0.016572684373167983
         },
         {
           "name": "worst symmetry",
-          "value": 0.014160842318093662
+          "value": 0.015082567524435736
         },
         {
-          "name": "worst smoothness",
-          "value": 0.013724376914303893
+          "name": "mean texture",
+          "value": 0.014716519013331125
+        },
+        {
+          "name": "radius error",
+          "value": 0.014153528346885005
         },
         {
           "name": "perimeter error",
-          "value": 0.011624750947203916
+          "value": 0.01179317449454341
+        },
+        {
+          "name": "worst smoothness",
+          "value": 0.010332490185034026
         },
         {
           "name": "worst fractal dimension",
-          "value": 0.006944625794091001
-        },
-        {
-          "name": "mean smoothness",
-          "value": 0.006297205554568437
-        },
-        {
-          "name": "concavity error",
-          "value": 0.00603546036345989
-        },
-        {
-          "name": "texture error",
-          "value": 0.005635243733655772
-        },
-        {
-          "name": "concave points error",
-          "value": 0.0052552707411391095
+          "value": 0.007976256239908247
         },
         {
           "name": "smoothness error",
-          "value": 0.005033711711693876
+          "value": 0.006883637759680349
         },
         {
-          "name": "fractal dimension error",
-          "value": 0.004510194716226804
+          "name": "mean smoothness",
+          "value": 0.006462255893481728
+        },
+        {
+          "name": "concavity error",
+          "value": 0.006403774930977484
+        },
+        {
+          "name": "concave points error",
+          "value": 0.005571575123409077
+        },
+        {
+          "name": "texture error",
+          "value": 0.005403551006553192
         },
         {
           "name": "compactness error",
-          "value": 0.00437052353124346
+          "value": 0.005041760599334796
         },
         {
           "name": "symmetry error",
-          "value": 0.004179882226453203
-        },
-        {
-          "name": "mean fractal dimension",
-          "value": 0.0037718965461342336
+          "value": 0.004999920529723508
         },
         {
           "name": "mean symmetry",
-          "value": 0.0035767015360109416
+          "value": 0.004436597975317728
+        },
+        {
+          "name": "mean fractal dimension",
+          "value": 0.004076982900300452
+        },
+        {
+          "name": "fractal dimension error",
+          "value": 0.003935301059778852
         }
       ]
     },
     {
-      "name": "RandomForest @thr=0.15",
-      "model": "RandomForest",
-      "threshold": 0.15,
+      "name": "GradientBoosting",
+      "model": "GradientBoosting",
+      "threshold": 0.05,
       "is_best": false,
+      "is_deployed": false,
       "metrics": {
-        "accuracy": 0.9230769230769231,
-        "balanced_accuracy": 0.9388888888888889,
-        "precision_macro": 0.9140625,
-        "recall_macro": 0.9388888888888889,
-        "f1_macro": 0.9204470742932281,
-        "f1_weighted": 0.9241895514084865,
-        "f0.5_macro": 0.9152557909672071,
-        "f2_macro": 0.9299585685517151,
-        "mcc": 0.8525900082819539,
-        "kappa": 0.8418618678998693,
-        "precision_pos": 0.828125,
-        "recall_pos": 1.0,
-        "f1_pos": 0.905982905982906,
-        "f0.5_pos": 0.8576051779935275,
-        "f2_pos": 0.9601449275362319,
-        "roc_auc": 0.9941299790356395,
-        "pr_auc": 0.9908231694179368,
-        "specificity": 0.8777777777777778,
-        "sensitivity": 1.0
+        "accuracy": 0.9300699300699301,
+        "balanced_accuracy": 0.9366876310272536,
+        "precision_macro": 0.9202986279257466,
+        "recall_macro": 0.9366876310272536,
+        "f1_macro": 0.9266215106732347,
+        "f1_weighted": 0.9307373660821936,
+        "f0.5_macro": 0.9223971278652305,
+        "f2_macro": 0.9321914165087597,
+        "mcc": 0.8568295329945143,
+        "kappa": 0.8535136242573244,
+        "precision_pos": 0.864406779661017,
+        "recall_pos": 0.9622641509433962,
+        "f1_pos": 0.9107142857142857,
+        "f0.5_pos": 0.8823529411764706,
+        "f2_pos": 0.940959409594096,
+        "roc_auc": 0.9928721174004193,
+        "pr_auc": 0.9891143577633064,
+        "specificity": 0.9111111111111111,
+        "sensitivity": 0.9622641509433962
       },
       "per_class": {
         "malignant": {
-          "precision": 0.828125,
-          "recall": 1.0,
-          "f1": 0.905982905982906,
+          "precision": 0.864406779661017,
+          "recall": 0.9622641509433962,
+          "f1": 0.9107142857142857,
           "support": 53
         },
         "benign": {
-          "precision": 1.0,
-          "recall": 0.8777777777777778,
-          "f1": 0.9349112426035503,
+          "precision": 0.9761904761904762,
+          "recall": 0.9111111111111111,
+          "f1": 0.9425287356321839,
           "support": 90
         }
       },
       "confusion_matrix": [
         [
-          53,
-          0
+          51,
+          2
         ],
         [
-          11,
-          79
+          8,
+          82
         ]
       ],
       "confusion_counts": {
-        "tp_malignant": 53,
-        "fn_malignant": 0,
-        "fp_benign": 11,
-        "tn_benign": 79
+        "tp_malignant": 51,
+        "fn_malignant": 2,
+        "fp_benign": 8,
+        "tn_benign": 82
       },
-      "roc_auc": 0.9941299790356395,
-      "pr_auc": 0.9908231694179368,
-      "mean_confidence": 0.9366433566433566,
-      "median_confidence": 0.985,
+      "roc_auc": 0.9928721174004193,
+      "pr_auc": 0.9891143577633064,
+      "mean_confidence": 0.9789676319540276,
+      "median_confidence": 0.9992796038780327,
       "feature_importance": [
         {
-          "name": "worst area",
-          "value": 0.14178247609733702
-        },
-        {
-          "name": "worst perimeter",
-          "value": 0.13448988816033342
-        },
-        {
           "name": "worst concave points",
-          "value": 0.11696620142513034
-        },
-        {
-          "name": "mean concave points",
-          "value": 0.0940908093035232
+          "value": 0.7405103646259545
         },
         {
           "name": "worst radius",
-          "value": 0.07699919387645585
-        },
-        {
-          "name": "mean radius",
-          "value": 0.05715835964096844
-        },
-        {
-          "name": "mean perimeter",
-          "value": 0.055324182083186915
-        },
-        {
-          "name": "mean concavity",
-          "value": 0.04837190146227124
-        },
-        {
-          "name": "mean area",
-          "value": 0.04056947073615021
-        },
-        {
-          "name": "area error",
-          "value": 0.03424569780364431
-        },
-        {
-          "name": "worst concavity",
-          "value": 0.027150347877918656
-        },
-        {
-          "name": "worst texture",
-          "value": 0.01707493168935143
-        },
-        {
-          "name": "radius error",
-          "value": 0.015855915511504174
-        },
-        {
-          "name": "worst compactness",
-          "value": 0.015037898637024304
-        },
-        {
-          "name": "mean compactness",
-          "value": 0.01494576625894959
-        },
-        {
-          "name": "mean texture",
-          "value": 0.01481627280197261
-        },
-        {
-          "name": "worst symmetry",
-          "value": 0.014160842318093662
-        },
-        {
-          "name": "worst smoothness",
-          "value": 0.013724376914303893
-        },
-        {
-          "name": "perimeter error",
-          "value": 0.011624750947203916
-        },
-        {
-          "name": "worst fractal dimension",
-          "value": 0.006944625794091001
-        },
-        {
-          "name": "mean smoothness",
-          "value": 0.006297205554568437
-        },
-        {
-          "name": "concavity error",
-          "value": 0.00603546036345989
-        },
-        {
-          "name": "texture error",
-          "value": 0.005635243733655772
-        },
-        {
-          "name": "concave points error",
-          "value": 0.0052552707411391095
-        },
-        {
-          "name": "smoothness error",
-          "value": 0.005033711711693876
-        },
-        {
-          "name": "fractal dimension error",
-          "value": 0.004510194716226804
-        },
-        {
-          "name": "compactness error",
-          "value": 0.00437052353124346
-        },
-        {
-          "name": "symmetry error",
-          "value": 0.004179882226453203
-        },
-        {
-          "name": "mean fractal dimension",
-          "value": 0.0037718965461342336
-        },
-        {
-          "name": "mean symmetry",
-          "value": 0.0035767015360109416
-        }
-      ]
-    },
-    {
-      "name": "LogReg @thr=0.626923",
-      "model": "LogReg",
-      "threshold": 0.626923,
-      "is_best": true,
-      "metrics": {
-        "accuracy": 0.993006993006993,
-        "balanced_accuracy": 0.9905660377358491,
-        "precision_macro": 0.9945054945054945,
-        "recall_macro": 0.9905660377358491,
-        "f1_macro": 0.9924756642988688,
-        "f1_weighted": 0.9929930106725687,
-        "f0.5_macro": 0.9936790048441271,
-        "f2_macro": 0.9913155949741316,
-        "mcc": 0.9850636549546776,
-        "kappa": 0.9849521203830369,
-        "precision_pos": 1.0,
-        "recall_pos": 0.9811320754716981,
-        "f1_pos": 0.9904761904761905,
-        "f0.5_pos": 0.9961685823754789,
-        "f2_pos": 0.9848484848484849,
-        "roc_auc": 0.9976939203354298,
-        "pr_auc": 0.9967570754716981,
-        "specificity": 1.0,
-        "sensitivity": 0.9811320754716981
-      },
-      "per_class": {
-        "malignant": {
-          "precision": 1.0,
-          "recall": 0.9811320754716981,
-          "f1": 0.9904761904761905,
-          "support": 53
-        },
-        "benign": {
-          "precision": 0.989010989010989,
-          "recall": 1.0,
-          "f1": 0.994475138121547,
-          "support": 90
-        }
-      },
-      "confusion_matrix": [
-        [
-          52,
-          1
-        ],
-        [
-          0,
-          90
-        ]
-      ],
-      "confusion_counts": {
-        "tp_malignant": 52,
-        "fn_malignant": 1,
-        "fp_benign": 0,
-        "tn_benign": 90
-      },
-      "roc_auc": 0.9976939203354298,
-      "pr_auc": 0.9967570754716981,
-      "mean_confidence": 0.9575358502377117,
-      "median_confidence": 0.9989266171073294,
-      "feature_importance": [
-        {
-          "name": "worst texture",
-          "value": 1.25014919374035
-        },
-        {
-          "name": "radius error",
-          "value": 1.0701020969336537
-        },
-        {
-          "name": "worst symmetry",
-          "value": 0.9570452351360584
-        },
-        {
-          "name": "worst concave points",
-          "value": 0.9418881730163533
-        },
-        {
-          "name": "area error",
-          "value": 0.9410589617920353
+          "value": 0.060034895447278136
         },
         {
           "name": "worst area",
-          "value": 0.9258117797416777
-        },
-        {
-          "name": "worst radius",
-          "value": 0.9174795123253504
-        },
-        {
-          "name": "worst concavity",
-          "value": 0.7967579541323312
+          "value": 0.05032174088810712
         },
         {
           "name": "worst perimeter",
-          "value": 0.721168033150261
+          "value": 0.03599991004212464
         },
         {
-          "name": "mean compactness",
-          "value": 0.6942302743679607
-        },
-        {
-          "name": "mean concave points",
-          "value": 0.6769288022699923
-        },
-        {
-          "name": "worst smoothness",
-          "value": 0.6696476011129511
-        },
-        {
-          "name": "compactness error",
-          "value": 0.6164256494346052
-        },
-        {
-          "name": "mean concavity",
-          "value": 0.5654433052762027
-        },
-        {
-          "name": "mean area",
-          "value": 0.5573341921635054
-        },
-        {
-          "name": "mean radius",
-          "value": 0.523063899676336
+          "name": "area error",
+          "value": 0.022054644131663304
         },
         {
           "name": "mean texture",
-          "value": 0.518669773695665
+          "value": 0.016333712987349223
         },
         {
-          "name": "perimeter error",
-          "value": 0.49107245487972023
+          "name": "radius error",
+          "value": 0.010468401708724151
         },
         {
-          "name": "mean perimeter",
-          "value": 0.4836914677487709
-        },
-        {
-          "name": "symmetry error",
-          "value": 0.42510152293749653
-        },
-        {
-          "name": "fractal dimension error",
-          "value": 0.3748817220797563
-        },
-        {
-          "name": "concave points error",
-          "value": 0.3439857224021381
-        },
-        {
-          "name": "mean smoothness",
-          "value": 0.3010072951910065
-        },
-        {
-          "name": "texture error",
-          "value": 0.2607143348474683
+          "name": "worst texture",
+          "value": 0.009419521818221338
         },
         {
           "name": "worst fractal dimension",
-          "value": 0.2095675654238605
+          "value": 0.008403052599613207
         },
         {
           "name": "concavity error",
-          "value": 0.1541076906131466
-        },
-        {
-          "name": "smoothness error",
-          "value": 0.14558342909970867
-        },
-        {
-          "name": "mean symmetry",
-          "value": 0.12623295820913477
+          "value": 0.006597634774645082
         },
         {
           "name": "mean fractal dimension",
-          "value": 0.08371348702405114
+          "value": 0.00473269065420268
+        },
+        {
+          "name": "worst concavity",
+          "value": 0.004576187358383273
+        },
+        {
+          "name": "smoothness error",
+          "value": 0.004242656992639317
+        },
+        {
+          "name": "mean compactness",
+          "value": 0.003405552595714353
         },
         {
           "name": "worst compactness",
-          "value": 0.04658656650869604
+          "value": 0.002450896404529651
+        },
+        {
+          "name": "concave points error",
+          "value": 0.002450345092200807
+        },
+        {
+          "name": "worst smoothness",
+          "value": 0.0024385719696280663
+        },
+        {
+          "name": "perimeter error",
+          "value": 0.002133206216909037
+        },
+        {
+          "name": "mean perimeter",
+          "value": 0.0018799851641777634
+        },
+        {
+          "name": "compactness error",
+          "value": 0.0018431363169290978
+        },
+        {
+          "name": "fractal dimension error",
+          "value": 0.0017338886531426468
+        },
+        {
+          "name": "mean area",
+          "value": 0.0013574245645641863
+        },
+        {
+          "name": "texture error",
+          "value": 0.0012771800631728933
+        },
+        {
+          "name": "mean concave points",
+          "value": 0.0011777815695709363
+        },
+        {
+          "name": "mean smoothness",
+          "value": 0.0011689602815131638
+        },
+        {
+          "name": "worst symmetry",
+          "value": 0.001152662698586695
+        },
+        {
+          "name": "mean radius",
+          "value": 0.0008753485151887691
+        },
+        {
+          "name": "mean concavity",
+          "value": 0.0007573989741040172
+        },
+        {
+          "name": "symmetry error",
+          "value": 0.00013667227843922562
+        },
+        {
+          "name": "mean symmetry",
+          "value": 6.557461272269339e-05
         }
       ]
     }
   ],
+  "baseline": {
+    "name": "Naive (majority)",
+    "metrics": {
+      "accuracy": 0.6293706293706294,
+      "balanced_accuracy": 0.5,
+      "precision_macro": 0.3146853146853147,
+      "recall_macro": 0.5,
+      "f1_macro": 0.38626609442060084,
+      "f1_weighted": 0.48620906990005697,
+      "f0.5_macro": 0.33987915407854985,
+      "f2_macro": 0.44731610337972166,
+      "mcc": 0.0,
+      "kappa": 0.0,
+      "precision_pos": 0.0,
+      "recall_pos": 0.0,
+      "f1_pos": 0.0,
+      "f0.5_pos": 0.0,
+      "f2_pos": 0.0
+    }
+  },
   "by_metric": {
-    "accuracy": "LogReg @thr=0.626923",
-    "balanced_accuracy": "LogReg @thr=0.626923",
-    "precision_macro": "LogReg @thr=0.626923",
-    "recall_macro": "монотонно растёт при ↓ порога",
-    "f1_macro": "LogReg @thr=0.626923",
-    "f1_weighted": "LogReg @thr=0.626923",
-    "f0.5_macro": "LogReg @thr=0.626923",
-    "f2_macro": "LogReg @thr=0.626923",
-    "mcc": "LogReg @thr=0.626923",
-    "kappa": "LogReg @thr=0.626923",
-    "roc_auc": "LogReg (threshold-free)",
-    "pr_auc": "LogReg (threshold-free)",
-    "specificity": "LogReg @thr=0.626923",
-    "sensitivity": "монотонно растёт при ↓ порога",
-    "precision_pos": "LogReg @thr=0.626923",
-    "recall_pos": "монотонно растёт при ↓ порога",
-    "f1_pos": "LogReg @thr=0.626923",
-    "f0.5_pos": "LogReg @thr=0.626923",
-    "f2_pos": "LogReg @thr=0.626923"
+    "accuracy": "LogReg",
+    "balanced_accuracy": "LogReg",
+    "precision_macro": "LogReg",
+    "recall_macro": "LogReg",
+    "f1_macro": "LogReg",
+    "f1_weighted": "LogReg",
+    "f0.5_macro": "LogReg",
+    "f2_macro": "LogReg",
+    "precision_pos": "LogReg",
+    "recall_pos": "LogReg",
+    "f1_pos": "LogReg",
+    "f0.5_pos": "LogReg",
+    "f2_pos": "LogReg",
+    "mcc": "LogReg",
+    "kappa": "LogReg",
+    "roc_auc": "LogReg",
+    "pr_auc": "LogReg",
+    "specificity": "LogReg",
+    "sensitivity": "LogReg"
   },
   "error_by_class": {
     "malignant": {
@@ -1418,13 +713,14 @@
     },
     "benign": {
       "support": 90,
-      "error_rate": 0.0,
-      "accuracy": 1.0
+      "error_rate": 0.022222222222222223,
+      "accuracy": 0.9777777777777777
     }
   },
   "threshold_sweep": {
     "model": "LogReg",
-    "optimal_threshold": 0.6269230769230769,
+    "sweep_source": "validation",
+    "optimal_threshold": 0.46538461538461534,
     "thresholds": [
       0.05,
       0.07307692307692308,
@@ -1467,242 +763,32 @@
       0.9269230769230768,
       0.95
     ],
-    "precision_macro": [
-      0.8581081081081081,
-      0.8785714285714286,
-      0.9076923076923077,
-      0.9131819992035046,
-      0.9347255851493139,
-      0.9347255851493139,
-      0.9423935091277891,
-      0.9423935091277891,
-      0.9423935091277891,
-      0.9423935091277891,
-      0.9423935091277891,
-      0.9503263973888209,
-      0.9503263973888209,
-      0.9503263973888209,
-      0.9503263973888209,
-      0.9503263973888209,
-      0.9670454545454545,
-      0.9758635039533916,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9945054945054945,
-      0.9838709677419355,
-      0.9838709677419355,
-      0.9838709677419355,
-      0.9838709677419355,
-      0.9838709677419355,
-      0.9838709677419355,
-      0.9787234042553192,
-      0.9736842105263157,
-      0.9639175257731959,
-      0.9639175257731959,
-      0.9639175257731959,
-      0.9639175257731959,
-      0.9591836734693877,
-      0.9545454545454546
-    ],
-    "recall_macro": [
-      0.8833333333333333,
-      0.9055555555555556,
-      0.9333333333333333,
-      0.9350104821802935,
-      0.9516771488469602,
-      0.9516771488469602,
-      0.9572327044025157,
-      0.9572327044025157,
-      0.9572327044025157,
-      0.9572327044025157,
-      0.9572327044025157,
-      0.9627882599580713,
-      0.9627882599580713,
-      0.9627882599580713,
-      0.9627882599580713,
-      0.9627882599580713,
-      0.9738993710691823,
-      0.9794549266247379,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9905660377358491,
-      0.9716981132075472,
-      0.9716981132075472,
-      0.9716981132075472,
-      0.9716981132075472,
-      0.9716981132075472,
-      0.9716981132075472,
-      0.9622641509433962,
-      0.9528301886792453,
-      0.9339622641509434,
-      0.9339622641509434,
-      0.9339622641509434,
-      0.9339622641509434,
-      0.9245283018867925,
-      0.9150943396226415
-    ],
-    "f0.5_macro": [
-      0.8509676358682888,
-      0.8756465889973744,
-      0.908397310571742,
-      0.9149854751472547,
-      0.9369161914973114,
-      0.9369161914973114,
-      0.9445124439004488,
-      0.9445124439004488,
-      0.9445124439004488,
-      0.9445124439004488,
-      0.9445124439004488,
-      0.9522647883628254,
-      0.9522647883628254,
-      0.9522647883628254,
-      0.9522647883628254,
-      0.9522647883628254,
-      0.968271924154277,
-      0.9765449180655809,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9936790048441271,
-      0.9810841332580462,
-      0.9810841332580462,
-      0.9810841332580462,
-      0.9810841332580462,
-      0.9810841332580462,
-      0.9810841332580462,
-      0.9748004895116948,
-      0.968519322622666,
-      0.9559433645816782,
-      0.9559433645816782,
-      0.9559433645816782,
-      0.9559433645816782,
-      0.9496375972788631,
-      0.943312307941129
-    ],
-    "f1_macro": [
-      0.8512850987966127,
-      0.8787470696792858,
-      0.9134382566585957,
-      0.9200101703534198,
-      0.9412972085385878,
-      0.9412972085385878,
-      0.9484684684684684,
-      0.9484684684684684,
-      0.9484684684684684,
-      0.9484684684684684,
-      0.9484684684684684,
-      0.9556818181818182,
-      0.9556818181818182,
-      0.9556818181818182,
-      0.9556818181818182,
-      0.9556818181818182,
-      0.9702455264253016,
-      0.9776014201430585,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9924756642988688,
-      0.9772401718924081,
-      0.9772401718924081,
-      0.9772401718924081,
-      0.9772401718924081,
-      0.9772401718924081,
-      0.9772401718924081,
-      0.9695225916453538,
-      0.9617340112389617,
-      0.9459298871063577,
-      0.9459298871063577,
-      0.9459298871063577,
-      0.9459298871063577,
-      0.9379070777247069,
-      0.9297987236131566
-    ],
-    "f2_macro": [
-      0.8653846153846154,
-      0.8913362160745582,
-      0.9235448296325602,
-      0.9279672939735505,
-      0.9470471393903128,
-      0.9470471393903128,
-      0.953391593841032,
-      0.953391593841032,
-      0.953391593841032,
-      0.953391593841032,
-      0.953391593841032,
-      0.959728774567823,
-      0.959728774567823,
-      0.959728774567823,
-      0.959728774567823,
-      0.959728774567823,
-      0.9723824571963617,
-      0.9786995327963561,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9850104821802935,
-      0.9913155949741316,
-      0.9737879783630756,
-      0.9737879783630756,
-      0.9737879783630756,
-      0.9737879783630756,
-      0.9737879783630756,
-      0.9737879783630756,
-      0.9649433726602191,
-      0.9560439560439561,
-      0.9380777907824878,
-      0.9380777907824878,
-      0.9380777907824878,
-      0.9380777907824878,
-      0.9290095662073301,
-      0.9198835784313726
-    ],
     "precision_pos": [
-      0.7162162162162162,
-      0.7571428571428571,
-      0.8153846153846154,
-      0.8387096774193549,
-      0.8813559322033898,
-      0.8813559322033898,
-      0.896551724137931,
-      0.896551724137931,
-      0.896551724137931,
-      0.896551724137931,
-      0.896551724137931,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9454545454545454,
-      0.9629629629629629,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
+      0.8,
+      0.8888888888888888,
+      0.9142857142857143,
+      0.9142857142857143,
+      0.9142857142857143,
+      0.9411764705882353,
+      0.9411764705882353,
+      0.9411764705882353,
+      0.9411764705882353,
+      0.9411764705882353,
+      0.9411764705882353,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
       1.0,
       1.0,
       1.0,
@@ -1723,196 +809,196 @@
       1.0,
       1.0,
       1.0,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9245283018867925,
-      0.9056603773584906,
-      0.8679245283018868,
-      0.8679245283018868,
-      0.8679245283018868,
-      0.8679245283018868,
-      0.8490566037735849,
-      0.8301886792452831
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.90625
     ],
     "f0.5_pos": [
-      0.7593123209169055,
-      0.7957957957957958,
-      0.8466453674121406,
-      0.8637873754152824,
-      0.8996539792387543,
-      0.8996539792387543,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9122807017543859,
-      0.9252669039145908,
-      0.9252669039145908,
-      0.9252669039145908,
-      0.9252669039145908,
-      0.9252669039145908,
+      0.8333333333333334,
+      0.9090909090909091,
+      0.9302325581395349,
+      0.9302325581395349,
+      0.9302325581395349,
       0.9523809523809523,
-      0.966542750929368,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9961685823754789,
-      0.9881422924901185,
-      0.9881422924901185,
-      0.9881422924901185,
-      0.9881422924901185,
-      0.9881422924901185,
-      0.9881422924901185,
-      0.9839357429718876,
-      0.9795918367346939,
-      0.9704641350210971,
-      0.9704641350210971,
-      0.9704641350210971,
-      0.9704641350210971,
-      0.9656652360515021,
-      0.9606986899563319
+      0.9523809523809523,
+      0.9523809523809523,
+      0.9523809523809523,
+      0.9523809523809523,
+      0.9523809523809523,
+      0.975609756097561,
+      0.975609756097561,
+      0.975609756097561,
+      0.975609756097561,
+      0.975609756097561,
+      0.975609756097561,
+      0.975609756097561,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9935897435897436,
+      0.9797297297297297
     ],
     "f1_pos": [
-      0.8346456692913385,
-      0.8617886178861789,
-      0.8983050847457628,
-      0.9043478260869565,
-      0.9285714285714286,
-      0.9285714285714286,
-      0.9369369369369369,
-      0.9369369369369369,
-      0.9369369369369369,
-      0.9369369369369369,
-      0.9369369369369369,
-      0.9454545454545454,
-      0.9454545454545454,
-      0.9454545454545454,
-      0.9454545454545454,
-      0.9454545454545454,
-      0.9629629629629629,
-      0.9719626168224299,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9904761904761905,
-      0.970873786407767,
-      0.970873786407767,
-      0.970873786407767,
-      0.970873786407767,
-      0.970873786407767,
-      0.970873786407767,
-      0.9607843137254902,
-      0.9504950495049505,
-      0.9292929292929293,
-      0.9292929292929293,
-      0.9292929292929293,
-      0.9292929292929293,
-      0.9183673469387755,
-      0.9072164948453608
+      0.8888888888888888,
+      0.9411764705882353,
+      0.9552238805970149,
+      0.9552238805970149,
+      0.9552238805970149,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9696969696969697,
+      0.9846153846153847,
+      0.9846153846153847,
+      0.9846153846153847,
+      0.9846153846153847,
+      0.9846153846153847,
+      0.9846153846153847,
+      0.9846153846153847,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9841269841269841,
+      0.9508196721311475
     ],
     "f2_pos": [
-      0.9265734265734266,
-      0.9397163120567376,
-      0.9566787003610109,
-      0.948905109489051,
-      0.959409594095941,
-      0.959409594095941,
-      0.9629629629629629,
-      0.9629629629629629,
-      0.9629629629629629,
-      0.9629629629629629,
-      0.9629629629629629,
-      0.966542750929368,
-      0.966542750929368,
-      0.966542750929368,
-      0.966542750929368,
-      0.966542750929368,
-      0.9737827715355806,
-      0.9774436090225563,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9848484848484849,
-      0.9541984732824428,
-      0.9541984732824428,
-      0.9541984732824428,
-      0.9541984732824428,
-      0.9541984732824428,
-      0.9541984732824428,
-      0.9386973180076629,
-      0.9230769230769231,
-      0.8914728682170543,
-      0.8914728682170543,
-      0.8914728682170543,
-      0.8914728682170543,
-      0.8754863813229572,
-      0.859375
+      0.9523809523809523,
+      0.975609756097561,
+      0.9815950920245399,
+      0.9815950920245399,
+      0.9815950920245399,
+      0.9876543209876543,
+      0.9876543209876543,
+      0.9876543209876543,
+      0.9876543209876543,
+      0.9876543209876543,
+      0.9876543209876543,
+      0.9937888198757764,
+      0.9937888198757764,
+      0.9937888198757764,
+      0.9937888198757764,
+      0.9937888198757764,
+      0.9937888198757764,
+      0.9937888198757764,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9748427672955975,
+      0.9235668789808917
     ],
     "specificity": [
-      0.7666666666666667,
-      0.8111111111111111,
-      0.8666666666666667,
-      0.8888888888888888,
-      0.9222222222222223,
-      0.9222222222222223,
-      0.9333333333333333,
-      0.9333333333333333,
-      0.9333333333333333,
-      0.9333333333333333,
-      0.9333333333333333,
+      0.8518518518518519,
+      0.9259259259259259,
       0.9444444444444444,
       0.9444444444444444,
       0.9444444444444444,
-      0.9444444444444444,
-      0.9444444444444444,
-      0.9666666666666667,
-      0.9777777777777777,
-      0.9888888888888889,
-      0.9888888888888889,
-      0.9888888888888889,
-      0.9888888888888889,
-      0.9888888888888889,
-      0.9888888888888889,
-      0.9888888888888889,
+      0.9629629629629629,
+      0.9629629629629629,
+      0.9629629629629629,
+      0.9629629629629629,
+      0.9629629629629629,
+      0.9629629629629629,
+      0.9814814814814815,
+      0.9814814814814815,
+      0.9814814814814815,
+      0.9814814814814815,
+      0.9814814814814815,
+      0.9814814814814815,
+      0.9814814814814815,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
       1.0,
       1.0,
       1.0,
@@ -1933,44 +1019,1069 @@
       1.0,
       1.0,
       1.0,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9811320754716981,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9433962264150944,
-      0.9245283018867925,
-      0.9056603773584906,
-      0.8679245283018868,
-      0.8679245283018868,
-      0.8679245283018868,
-      0.8679245283018868,
-      0.8490566037735849,
-      0.8301886792452831
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.96875,
+      0.90625
     ]
+  },
+  "threshold_sweeps": {
+    "LogReg": {
+      "model": "LogReg",
+      "sweep_source": "validation",
+      "optimal_threshold": 0.46538461538461534,
+      "thresholds": [
+        0.05,
+        0.07307692307692308,
+        0.09615384615384615,
+        0.11923076923076922,
+        0.1423076923076923,
+        0.16538461538461538,
+        0.18846153846153846,
+        0.2115384615384615,
+        0.23461538461538461,
+        0.25769230769230766,
+        0.28076923076923077,
+        0.3038461538461538,
+        0.32692307692307687,
+        0.35,
+        0.37307692307692303,
+        0.39615384615384613,
+        0.4192307692307692,
+        0.44230769230769224,
+        0.46538461538461534,
+        0.4884615384615384,
+        0.5115384615384615,
+        0.5346153846153846,
+        0.5576923076923077,
+        0.5807692307692308,
+        0.6038461538461538,
+        0.6269230769230769,
+        0.65,
+        0.673076923076923,
+        0.6961538461538461,
+        0.7192307692307692,
+        0.7423076923076923,
+        0.7653846153846153,
+        0.7884615384615384,
+        0.8115384615384615,
+        0.8346153846153845,
+        0.8576923076923076,
+        0.8807692307692307,
+        0.9038461538461539,
+        0.9269230769230768,
+        0.95
+      ],
+      "precision_pos": [
+        0.8,
+        0.8888888888888888,
+        0.9142857142857143,
+        0.9142857142857143,
+        0.9142857142857143,
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "recall_pos": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.90625
+      ],
+      "f0.5_pos": [
+        0.8333333333333334,
+        0.9090909090909091,
+        0.9302325581395349,
+        0.9302325581395349,
+        0.9302325581395349,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.975609756097561,
+        0.975609756097561,
+        0.975609756097561,
+        0.975609756097561,
+        0.975609756097561,
+        0.975609756097561,
+        0.975609756097561,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9935897435897436,
+        0.9797297297297297
+      ],
+      "f1_pos": [
+        0.8888888888888888,
+        0.9411764705882353,
+        0.9552238805970149,
+        0.9552238805970149,
+        0.9552238805970149,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9696969696969697,
+        0.9846153846153847,
+        0.9846153846153847,
+        0.9846153846153847,
+        0.9846153846153847,
+        0.9846153846153847,
+        0.9846153846153847,
+        0.9846153846153847,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9841269841269841,
+        0.9508196721311475
+      ],
+      "f2_pos": [
+        0.9523809523809523,
+        0.975609756097561,
+        0.9815950920245399,
+        0.9815950920245399,
+        0.9815950920245399,
+        0.9876543209876543,
+        0.9876543209876543,
+        0.9876543209876543,
+        0.9876543209876543,
+        0.9876543209876543,
+        0.9876543209876543,
+        0.9937888198757764,
+        0.9937888198757764,
+        0.9937888198757764,
+        0.9937888198757764,
+        0.9937888198757764,
+        0.9937888198757764,
+        0.9937888198757764,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9748427672955975,
+        0.9235668789808917
+      ],
+      "specificity": [
+        0.8518518518518519,
+        0.9259259259259259,
+        0.9444444444444444,
+        0.9444444444444444,
+        0.9444444444444444,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "sensitivity": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.96875,
+        0.90625
+      ]
+    },
+    "RandomForest": {
+      "model": "RandomForest",
+      "sweep_source": "validation",
+      "optimal_threshold": 0.35,
+      "thresholds": [
+        0.05,
+        0.07307692307692308,
+        0.09615384615384615,
+        0.11923076923076922,
+        0.1423076923076923,
+        0.16538461538461538,
+        0.18846153846153846,
+        0.2115384615384615,
+        0.23461538461538461,
+        0.25769230769230766,
+        0.28076923076923077,
+        0.3038461538461538,
+        0.32692307692307687,
+        0.35,
+        0.37307692307692303,
+        0.39615384615384613,
+        0.4192307692307692,
+        0.44230769230769224,
+        0.46538461538461534,
+        0.4884615384615384,
+        0.5115384615384615,
+        0.5346153846153846,
+        0.5576923076923077,
+        0.5807692307692308,
+        0.6038461538461538,
+        0.6269230769230769,
+        0.65,
+        0.673076923076923,
+        0.6961538461538461,
+        0.7192307692307692,
+        0.7423076923076923,
+        0.7653846153846153,
+        0.7884615384615384,
+        0.8115384615384615,
+        0.8346153846153845,
+        0.8576923076923076,
+        0.8807692307692307,
+        0.9038461538461539,
+        0.9269230769230768,
+        0.95
+      ],
+      "precision_pos": [
+        0.6666666666666666,
+        0.7272727272727273,
+        0.7804878048780488,
+        0.8,
+        0.8,
+        0.8,
+        0.8,
+        0.8421052631578947,
+        0.8421052631578947,
+        0.8648648648648649,
+        0.9142857142857143,
+        0.9142857142857143,
+        0.9142857142857143,
+        0.9411764705882353,
+        0.9393939393939394,
+        0.9375,
+        0.9375,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9666666666666667,
+        0.9666666666666667,
+        0.9666666666666667,
+        0.9666666666666667,
+        0.9666666666666667,
+        0.9666666666666667,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "recall_pos": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.96875,
+        0.9375,
+        0.9375,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.8125,
+        0.8125,
+        0.8125,
+        0.8125,
+        0.8125,
+        0.78125,
+        0.78125,
+        0.78125,
+        0.75,
+        0.71875
+      ],
+      "f0.5_pos": [
+        0.7142857142857143,
+        0.7692307692307693,
+        0.8163265306122449,
+        0.8333333333333334,
+        0.8333333333333334,
+        0.8333333333333334,
+        0.8333333333333334,
+        0.8695652173913043,
+        0.8695652173913043,
+        0.8888888888888888,
+        0.9302325581395349,
+        0.9302325581395349,
+        0.9302325581395349,
+        0.9523809523809523,
+        0.9451219512195121,
+        0.9375,
+        0.9375,
+        0.9294871794871795,
+        0.9294871794871795,
+        0.9294871794871795,
+        0.9539473684210527,
+        0.9539473684210527,
+        0.9539473684210527,
+        0.9539473684210527,
+        0.9539473684210527,
+        0.9539473684210527,
+        0.9797297297297297,
+        0.9797297297297297,
+        0.9797297297297297,
+        0.9797297297297297,
+        0.9558823529411765,
+        0.9558823529411765,
+        0.9558823529411765,
+        0.9558823529411765,
+        0.9558823529411765,
+        0.946969696969697,
+        0.946969696969697,
+        0.946969696969697,
+        0.9375,
+        0.9274193548387096
+      ],
+      "f1_pos": [
+        0.8,
+        0.8421052631578947,
+        0.8767123287671232,
+        0.8888888888888888,
+        0.8888888888888888,
+        0.8888888888888888,
+        0.8888888888888888,
+        0.9142857142857143,
+        0.9142857142857143,
+        0.927536231884058,
+        0.9552238805970149,
+        0.9552238805970149,
+        0.9552238805970149,
+        0.9696969696969697,
+        0.9538461538461539,
+        0.9375,
+        0.9375,
+        0.9206349206349206,
+        0.9206349206349206,
+        0.9206349206349206,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9508196721311475,
+        0.9508196721311475,
+        0.9508196721311475,
+        0.9508196721311475,
+        0.896551724137931,
+        0.896551724137931,
+        0.896551724137931,
+        0.896551724137931,
+        0.896551724137931,
+        0.8771929824561403,
+        0.8771929824561403,
+        0.8771929824561403,
+        0.8571428571428571,
+        0.8363636363636363
+      ],
+      "f2_pos": [
+        0.9090909090909091,
+        0.9302325581395349,
+        0.9467455621301775,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.963855421686747,
+        0.963855421686747,
+        0.9696969696969697,
+        0.9815950920245399,
+        0.9815950920245399,
+        0.9815950920245399,
+        0.9876543209876543,
+        0.9627329192546584,
+        0.9375,
+        0.9375,
+        0.9119496855345912,
+        0.9119496855345912,
+        0.9119496855345912,
+        0.9177215189873418,
+        0.9177215189873418,
+        0.9177215189873418,
+        0.9177215189873418,
+        0.9177215189873418,
+        0.9177215189873418,
+        0.9235668789808917,
+        0.9235668789808917,
+        0.9235668789808917,
+        0.9235668789808917,
+        0.8441558441558441,
+        0.8441558441558441,
+        0.8441558441558441,
+        0.8441558441558441,
+        0.8441558441558441,
+        0.8169934640522876,
+        0.8169934640522876,
+        0.8169934640522876,
+        0.7894736842105263,
+        0.7615894039735099
+      ],
+      "specificity": [
+        0.7037037037037037,
+        0.7777777777777778,
+        0.8333333333333334,
+        0.8518518518518519,
+        0.8518518518518519,
+        0.8518518518518519,
+        0.8518518518518519,
+        0.8888888888888888,
+        0.8888888888888888,
+        0.9074074074074074,
+        0.9444444444444444,
+        0.9444444444444444,
+        0.9444444444444444,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "sensitivity": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.96875,
+        0.9375,
+        0.9375,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.8125,
+        0.8125,
+        0.8125,
+        0.8125,
+        0.8125,
+        0.78125,
+        0.78125,
+        0.78125,
+        0.75,
+        0.71875
+      ]
+    },
+    "GradientBoosting": {
+      "model": "GradientBoosting",
+      "sweep_source": "validation",
+      "optimal_threshold": 0.05,
+      "thresholds": [
+        0.05,
+        0.07307692307692308,
+        0.09615384615384615,
+        0.11923076923076922,
+        0.1423076923076923,
+        0.16538461538461538,
+        0.18846153846153846,
+        0.2115384615384615,
+        0.23461538461538461,
+        0.25769230769230766,
+        0.28076923076923077,
+        0.3038461538461538,
+        0.32692307692307687,
+        0.35,
+        0.37307692307692303,
+        0.39615384615384613,
+        0.4192307692307692,
+        0.44230769230769224,
+        0.46538461538461534,
+        0.4884615384615384,
+        0.5115384615384615,
+        0.5346153846153846,
+        0.5576923076923077,
+        0.5807692307692308,
+        0.6038461538461538,
+        0.6269230769230769,
+        0.65,
+        0.673076923076923,
+        0.6961538461538461,
+        0.7192307692307692,
+        0.7423076923076923,
+        0.7653846153846153,
+        0.7884615384615384,
+        0.8115384615384615,
+        0.8346153846153845,
+        0.8576923076923076,
+        0.8807692307692307,
+        0.9038461538461539,
+        0.9269230769230768,
+        0.95
+      ],
+      "precision_pos": [
+        0.8857142857142857,
+        0.9090909090909091,
+        0.9375,
+        0.9375,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.967741935483871,
+        0.9666666666666667,
+        0.9666666666666667,
+        0.9666666666666667,
+        0.9655172413793104,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "recall_pos": [
+        0.96875,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.875,
+        0.875,
+        0.84375,
+        0.8125
+      ],
+      "f0.5_pos": [
+        0.9011627906976745,
+        0.9146341463414634,
+        0.9375,
+        0.9375,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9615384615384616,
+        0.9539473684210527,
+        0.9539473684210527,
+        0.9539473684210527,
+        0.9459459459459459,
+        0.9722222222222222,
+        0.9642857142857143,
+        0.9558823529411765
+      ],
+      "f1_pos": [
+        0.9253731343283582,
+        0.9230769230769231,
+        0.9375,
+        0.9375,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9523809523809523,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9354838709677419,
+        0.9180327868852459,
+        0.9333333333333333,
+        0.9152542372881356,
+        0.896551724137931
+      ],
+      "f2_pos": [
+        0.950920245398773,
+        0.9316770186335404,
+        0.9375,
+        0.9375,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9433962264150944,
+        0.9177215189873418,
+        0.9177215189873418,
+        0.9177215189873418,
+        0.89171974522293,
+        0.8974358974358975,
+        0.8709677419354839,
+        0.8441558441558441
+      ],
+      "specificity": [
+        0.9259259259259259,
+        0.9444444444444444,
+        0.9629629629629629,
+        0.9629629629629629,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        0.9814814814814815,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "sensitivity": [
+        0.96875,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.9375,
+        0.90625,
+        0.90625,
+        0.90625,
+        0.875,
+        0.875,
+        0.84375,
+        0.8125
+      ]
+    }
   },
   "sample_predictions": [
     {
@@ -2053,10 +2164,10 @@
       "predicted": "malignant",
       "correct": true,
       "error_type": "correct",
-      "confidence": 0.9999999999996066,
+      "confidence": 0.9999999999972764,
       "proba": {
-        "malignant": 0.9999999999996066,
-        "benign": 3.9335201762469296e-13
+        "malignant": 0.9999999999972764,
+        "benign": 2.723599124010434e-12
       }
     },
     {
@@ -2096,10 +2207,10 @@
       "predicted": "malignant",
       "correct": true,
       "error_type": "correct",
-      "confidence": 0.9999999999630886,
+      "confidence": 0.99999999979332,
       "proba": {
-        "malignant": 0.9999999999630886,
-        "benign": 3.6911362855107654e-11
+        "malignant": 0.99999999979332,
+        "benign": 2.0668000644263884e-10
       }
     },
     {
@@ -2139,10 +2250,10 @@
       "predicted": "malignant",
       "correct": true,
       "error_type": "correct",
-      "confidence": 0.9999999998395811,
+      "confidence": 0.9999999992860841,
       "proba": {
-        "malignant": 0.9999999998395811,
-        "benign": 1.6041890038565043e-10
+        "malignant": 0.9999999992860841,
+        "benign": 7.139159263758188e-10
       }
     },
     {
@@ -2182,10 +2293,10 @@
       "predicted": "malignant",
       "correct": true,
       "error_type": "correct",
-      "confidence": 0.9999999988076255,
+      "confidence": 0.9999999966492835,
       "proba": {
-        "malignant": 0.9999999988076255,
-        "benign": 1.1923745324438073e-09
+        "malignant": 0.9999999966492835,
+        "benign": 3.3507164820534285e-09
       }
     },
     {
@@ -2225,10 +2336,96 @@
       "predicted": "benign",
       "correct": false,
       "error_type": "fn",
-      "confidence": 0.8929307736550246,
+      "confidence": 0.8598183629467275,
       "proba": {
-        "malignant": 0.1070692263449754,
-        "benign": 0.8929307736550246
+        "malignant": 0.14018163705327247,
+        "benign": 0.8598183629467275
+      }
+    },
+    {
+      "features": {
+        "mean radius": 14.47,
+        "mean texture": 24.99,
+        "mean perimeter": 95.81,
+        "mean area": 656.4,
+        "mean smoothness": 0.08837,
+        "mean compactness": 0.123,
+        "mean concavity": 0.1009,
+        "mean concave points": 0.0389,
+        "mean symmetry": 0.1872,
+        "mean fractal dimension": 0.06341,
+        "radius error": 0.2542,
+        "texture error": 1.079,
+        "perimeter error": 2.615,
+        "area error": 23.11,
+        "smoothness error": 0.007138,
+        "compactness error": 0.04653,
+        "concavity error": 0.03829,
+        "concave points error": 0.01162,
+        "symmetry error": 0.02068,
+        "fractal dimension error": 0.006111,
+        "worst radius": 16.22,
+        "worst texture": 31.73,
+        "worst perimeter": 113.5,
+        "worst area": 808.9,
+        "worst smoothness": 0.134,
+        "worst compactness": 0.4202,
+        "worst concavity": 0.404,
+        "worst concave points": 0.1205,
+        "worst symmetry": 0.3187,
+        "worst fractal dimension": 0.1023
+      },
+      "true": "benign",
+      "predicted": "malignant",
+      "correct": false,
+      "error_type": "fp",
+      "confidence": 0.6537916713221275,
+      "proba": {
+        "malignant": 0.6537916713221275,
+        "benign": 0.34620832867787255
+      }
+    },
+    {
+      "features": {
+        "mean radius": 14.96,
+        "mean texture": 19.1,
+        "mean perimeter": 97.03,
+        "mean area": 687.3,
+        "mean smoothness": 0.08992,
+        "mean compactness": 0.09823,
+        "mean concavity": 0.0594,
+        "mean concave points": 0.04819,
+        "mean symmetry": 0.1879,
+        "mean fractal dimension": 0.05852,
+        "radius error": 0.2877,
+        "texture error": 0.948,
+        "perimeter error": 2.171,
+        "area error": 24.87,
+        "smoothness error": 0.005332,
+        "compactness error": 0.02115,
+        "concavity error": 0.01536,
+        "concave points error": 0.01187,
+        "symmetry error": 0.01522,
+        "fractal dimension error": 0.002815,
+        "worst radius": 16.25,
+        "worst texture": 26.19,
+        "worst perimeter": 109.1,
+        "worst area": 809.8,
+        "worst smoothness": 0.1313,
+        "worst compactness": 0.303,
+        "worst concavity": 0.1804,
+        "worst concave points": 0.1489,
+        "worst symmetry": 0.2962,
+        "worst fractal dimension": 0.08472
+      },
+      "true": "benign",
+      "predicted": "malignant",
+      "correct": false,
+      "error_type": "fp",
+      "confidence": 0.5185298892697686,
+      "proba": {
+        "malignant": 0.4814701107302314,
+        "benign": 0.5185298892697686
       }
     }
   ],
@@ -2240,7 +2437,7 @@
   },
   "artifacts": {
     "model_joblib": "models/classification/breast_cancer_fn/breast_cancer_fn.joblib",
-    "model_meta": "models/classification/breast_cancer_fn/breast_cancer_fn_20261006_1428.json",
+    "model_meta": "models/classification/breast_cancer_fn/breast_cancer_fn_20261008_1340.json",
     "metrics_csv": "artifacts/classification/breast_cancer_fn/metrics_all_models.csv",
     "metrics_json": "artifacts/classification/breast_cancer_fn/metrics_all_models.json",
     "sweep_csv": "artifacts/classification/breast_cancer_fn/threshold_sweep.csv"

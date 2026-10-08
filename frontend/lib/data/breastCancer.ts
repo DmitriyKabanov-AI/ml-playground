@@ -80,6 +80,8 @@ export interface BCReport {
   baseline?: { name: string; metrics: Record<string, number> };
   // FIX: sweep может отсутствовать в артефакте
   threshold_sweep?: BCSweep;
+  // FIX: per-model sweep — ключи это имена моделей ("LogReg", "RandomForest", ...)
+  threshold_sweeps?: Record<string, BCSweep>;
   sample_predictions?: BCSample[];
   charts?: Record<string, string>;
 }
@@ -158,10 +160,14 @@ export function sweepAt(sweep: BCSweep | undefined, t: number) {
   };
 }
 
-// FIX: классы больше не хардкодятся как benign/malignant.
-// Берём positive_class из meta.target_stats, отрицательный считаем как n_test - nPos.
-export function countsFromSweep(report: BCReport, t: number) {
-  const s = sweepAt(report.threshold_sweep, t);
+// FIX: добавлен необязательный 3-й аргумент — sweep конкретной модели.
+// Если передан, используется он, а не общий report.threshold_sweep.
+export function countsFromSweep(
+  report: BCReport,
+  t: number,
+  sweepOverride?: BCSweep
+) {
+  const s = sweepAt(sweepOverride ?? report.threshold_sweep, t);
 
   const dist = report.meta?.target_stats?.class_distribution_test ?? {};
   const positiveClass = report.meta?.target_stats?.positive_class ?? "malignant";

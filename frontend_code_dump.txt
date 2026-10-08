@@ -1,14 +1,14 @@
 # ============================================================
 # FRONTEND CODE DUMP
 # Root   : C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
-# Created: 2026-10-08 13:14:01
+# Created: 2026-10-08 14:48:07
 # Files  : 59
 # ============================================================
 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fn\page.tsx
-### SIZE: 436 B   MODIFIED: 2026-10-08 13:10:16
+### SIZE: 649 B   MODIFIED: 2026-10-08 13:20:12
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -21,8 +21,10 @@ export default function BreastCancerFNPage() {
         task: "breast_cancer_fn",
         hero: "f2_pos",
         heroLabel: "F2 (malignant)",
-        defaultThreshold: 0.626923,
-        subtitle: "Второе мнение: FN критичен — порог сдвинут вверх от 0.5",
+        // FIX: FN критичен → порог НИЖЕ 0.5, чтобы чаще ловить malignant.
+        // Старое значение 0.626923 противоречило смыслу задачи.
+        defaultThreshold: 0.465385,
+        subtitle: "Второе мнение: FN критичен — порог сдвинут вниз от 0.5",
       }}
     />
   );
@@ -31,7 +33,7 @@ export default function BreastCancerFNPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fp\page.tsx
-### SIZE: 423 B   MODIFIED: 2026-10-08 13:10:16
+### SIZE: 645 B   MODIFIED: 2026-10-08 13:19:32
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -44,8 +46,10 @@ export default function BreastCancerFPPage() {
         task: "breast_cancer_fp",
         hero: "f0.5_pos",
         heroLabel: "F0.5 (malignant)",
-        defaultThreshold: 0.465385,
-        subtitle: "Скрининг: FP дорог — порог сдвинут вниз от 0.5",
+        // FIX: FP дорог → порог ВЫШЕ 0.5, чтобы реже поднимать тревогу.
+        // Старое значение 0.465385 противоречило смыслу задачи.
+        defaultThreshold: 0.626923,
+        subtitle: "Скрининг: FP дорог — порог сдвинут вверх от 0.5",
       }}
     />
   );
@@ -136,7 +140,7 @@ body {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\iris\page.tsx
-### SIZE: 2923 B   MODIFIED: 2026-10-08 13:10:16
+### SIZE: 3146 B   MODIFIED: 2026-10-08 13:26:05
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -157,7 +161,8 @@ import { useIrisData } from "@/lib/data/iris";
 export default function IrisPage() {
   const { selectedModel, setSelectedModel } = useAppStore();
   const { data: report, loading: rl, error: rErr } = useJson<any>("classification/iris/report.json");
-  const { iris, loading: il } = useIrisData();
+  // FIX: теперь useIrisData возвращает error — не застрянем в skeleton
+  const { iris, loading: il, error: iErr } = useIrisData();
 
   const models = useMemo(() => modelsFromReport(report), [report]);
   const currentModelId = selectedModel["iris"] ?? report?.headline?.best_model ?? models[0]?.id;
@@ -167,10 +172,13 @@ export default function IrisPage() {
   );
   const metrics = useMemo(() => metricsFromModel(currentModel), [currentModel]);
 
-  if (rErr) {
+  // FIX: различаем ошибки report.json и results.json
+  if (rErr || iErr) {
     return (
       <Card>
-        <p className="text-rose-500">Ошибка загрузки артефакта: {rErr}</p>
+        <p className="text-rose-500">
+          Ошибка загрузки артефакта: {rErr ?? iErr}
+        </p>
       </Card>
     );
   }
@@ -216,7 +224,6 @@ export default function IrisPage() {
     </div>
   );
 }
-
 
 
 ════════════════════════════════════════════════════════════════════════
@@ -299,7 +306,7 @@ export default function HomePage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\BCPage.tsx
-### SIZE: 10957 B   MODIFIED: 2026-10-08 13:10:16
+### SIZE: 18764 B   MODIFIED: 2026-10-08 14:12:58
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -314,10 +321,10 @@ import { ThresholdChart } from "./ThresholdChart";
 import { CostPanel } from "./CostPanel";
 import {
   BCReport,
+  BCModel,
   BCTask,
   countsFromSweep,
   loadBCReport,
-  findBestModel,
 } from "@/lib/data/breastCancer";
 
 type Config = {
@@ -328,10 +335,107 @@ type Config = {
   subtitle: string;
 };
 
+type Counts = { tp: number; fn: number; fp: number; tn: number };
+
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(1)}%`;
 const fmtNum = (v?: number | null) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
+
+/**
+ * Из всех конфигураций одной модели (LogReg @thr=0.5, @thr=0.3, ...)
+ * оставляем одну — с максимальной hero-метрикой. Пользователь выбирает
+ * ТИП модели, а порог для неё — тот, что дал лучший результат в артефакте.
+ */
+function bestConfigPerModel(report: BCReport, hero: string): BCModel[] {
+  const byModel = new Map<string, BCModel>();
+  for (const m of report.models ?? []) {
+    const cur = byModel.get(m.model);
+    const val = (m.metrics as any)?.[hero];
+    const curVal = cur ? (cur.metrics as any)?.[hero] : undefined;
+    if (!cur || (Number.isFinite(val) && (!Number.isFinite(curVal) || val > curVal))) {
+      byModel.set(m.model, m);
+    }
+  }
+  return Array.from(byModel.values()).sort((a, b) => {
+    const va = (a.metrics as any)?.[hero] ?? -Infinity;
+    const vb = (b.metrics as any)?.[hero] ?? -Infinity;
+    return vb - va;
+  });
+}
+
+/**
+ * Разные ноутбуки сохраняют confusion_counts с разными ключами — нормализуем.
+ * Если у выбранной модели нет confusion_counts, пробуем через sweep (только
+ * для той модели, для которой sweep построен).
+ */
+function extractCounts(
+  model: BCModel | null,
+  report: BCReport,
+  threshold: number
+): Counts {
+  if (!model) return { tp: 0, fn: 0, fp: 0, tn: 0 };
+
+  const cc: any = (model as any).confusion_counts ?? {};
+  const tp = Number(cc.tp_malignant ?? cc.tp ?? cc.TP ?? 0) || 0;
+  const fn = Number(cc.fn_malignant ?? cc.fn ?? cc.FN ?? 0) || 0;
+  const fp = Number(cc.fp_benign ?? cc.fp ?? cc.FP ?? 0) || 0;
+  const tn = Number(cc.tn_benign ?? cc.tn ?? cc.TN ?? 0) || 0;
+
+  if (tp || fn || fp || tn) return { tp, fn, fp, tn };
+
+  const sweep = report.threshold_sweep;
+  if (sweep?.model === model.model) {
+    const c = countsFromSweep(report, threshold);
+    return { tp: c.tp, fn: c.fn, fp: c.fp, tn: c.tn };
+  }
+  return { tp: 0, fn: 0, fp: 0, tn: 0 };
+}
+
+function ModelSelector({
+  models,
+  selectedName,
+  onSelect,
+  hero,
+}: {
+  models: BCModel[];
+  selectedName: string;
+  onSelect: (m: BCModel) => void;
+  hero: string;
+}) {
+  if (!models.length) return null;
+  const heroShort = hero === "f0.5_pos" ? "F0.5" : "F2";
+  return (
+    <div className="flex flex-wrap gap-2">
+      {models.map((m) => {
+        const active = m.name === selectedName;
+        const val = (m.metrics as any)?.[hero];
+        return (
+          <button
+            key={m.name}
+            onClick={() => onSelect(m)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              active
+                ? "bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/30"
+                : "border-border text-slate-500 hover:border-indigo-500/50"
+            }`}
+          >
+            <span>{m.model}</span>
+            <span className="ml-2 text-[11px] opacity-70">
+              thr={m.threshold.toFixed(3)}
+            </span>
+            {Number.isFinite(val) && (
+              <span className="ml-2 text-[11px] opacity-80">
+                {heroShort}={Number(val).toFixed(3)}
+              </span>
+            )}
+            {m.is_best && <span className="ml-2 text-[10px] opacity-80">★</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function HeroCard({
   report,
@@ -340,13 +444,15 @@ function HeroCard({
   heroLabel,
   threshold,
   counts,
+  model,
 }: {
   report: BCReport;
   hero: "f0.5_pos" | "f2_pos";
   heroValue: number;
   heroLabel: string;
   threshold: number;
-  counts: any;
+  counts: Counts;
+  model: BCModel;
 }) {
   const tone = hero === "f0.5_pos" ? "info" : "danger";
   return (
@@ -355,10 +461,16 @@ function HeroCard({
       <p className="text-xs uppercase tracking-widest text-slate-500">
         {report.meta.title}
       </p>
-      <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
+      <div className="flex items-center gap-3 mt-1 flex-wrap">
+        <h1 className="text-2xl font-bold">{model.model}</h1>
+        <span className="text-xs text-slate-500">
+          {model.name}
+          {model.is_best ? " · лучшая по hero-метрике" : ""}
+        </span>
+      </div>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-          {heroValue.toFixed(4)}
+          {Number.isFinite(heroValue) ? heroValue.toFixed(4) : "—"}
         </span>
         <Badge tone={tone as any}>{heroLabel}</Badge>
       </div>
@@ -405,7 +517,7 @@ function ConfusionGrid({
   return (
     <Card>
       <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
-        Confusion matrix @ текущий порог
+        Confusion matrix @ выбранный порог
       </h3>
       <div className="grid grid-cols-2 gap-2 mt-4">
         {cell("TP · malignant верно", tp, "bg-emerald-500/15 text-emerald-500")}
@@ -420,6 +532,18 @@ function ConfusionGrid({
 function FeatureImportanceChart({
   data,
 }: { data: { name: string; value: number }[] }) {
+  if (!Array.isArray(data) || !data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Feature importance
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет feature_importance для этой модели.
+        </p>
+      </Card>
+    );
+  }
   const colors = ["#6366f1", "#8b5cf6", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e", "#a855f7", "#14b8a6"];
   const top = [...data].slice(0, 15);
   return (
@@ -449,25 +573,73 @@ function FeatureImportanceChart({
 export function BCPage({ config }: { config: Config }) {
   const [report, setReport] = useState<BCReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(config.defaultThreshold);
 
   useEffect(() => {
     setReport(null);
     setError(null);
+    setThreshold(config.defaultThreshold);
+    setSelectedName(null);
     loadBCReport(config.task)
       .then(setReport)
       .catch((e) => setError(String(e)));
-  }, [config.task]);
+  }, [config.task, config.defaultThreshold]);
 
-  const counts = useMemo(
-    () => (report ? countsFromSweep(report, threshold) : null),
-    [report, threshold]
+  // Уникальные модели (по одной конфигурации на модель), отсортированные по hero
+  const models = useMemo(
+    () => (report ? bestConfigPerModel(report, config.hero) : []),
+    [report, config.hero]
   );
 
-  const best = useMemo(
-    () => (report ? findBestModel(report) : null),
-    [report]
+  // Выбранная модель — пользовательский выбор, иначе лучшая
+  const selected: BCModel | null = useMemo(() => {
+    if (!models.length) return null;
+    if (selectedName) {
+      const found = models.find((m) => m.name === selectedName);
+      if (found) return found;
+    }
+    return models[0];
+  }, [models, selectedName]);
+
+  // Когда меняется выбранная модель — синхронизируем порог с её порогом
+  useEffect(() => {
+    if (selected) setThreshold(selected.threshold);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.name]);
+
+  // Есть ли sweep для выбранной модели (обычно только у LogReg)
+  const hasSweepForSelected =
+    !!report?.threshold_sweep &&
+    report.threshold_sweep.model === selected?.model;
+
+  const counts: Counts | null = useMemo(
+    () =>
+      report && selected
+        ? extractCounts(selected, report, threshold)
+        : null,
+    [report, selected, threshold]
   );
+
+  const optimalForHero = useMemo(() => {
+    if (!report?.threshold_sweep?.thresholds?.length) return null;
+    const sweep = report.threshold_sweep;
+    const arr =
+      config.hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
+    if (!Array.isArray(arr) || !arr.length) return null;
+    let bestIdx = -1;
+    let bestVal = -Infinity;
+    for (let i = 0; i < arr.length; i++) {
+      const v = arr[i];
+      if (Number.isFinite(v) && v > bestVal) {
+        bestVal = v;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) return null;
+    const t = sweep.thresholds[bestIdx];
+    return Number.isFinite(t) ? t : null;
+  }, [report, config.hero]);
 
   if (error) {
     return (
@@ -476,7 +648,7 @@ export function BCPage({ config }: { config: Config }) {
       </Card>
     );
   }
-  if (!report || !best || !counts) {
+  if (!report || !selected || !counts) {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="h-40 w-full rounded-2xl bg-slate-500/10" />
@@ -490,29 +662,31 @@ export function BCPage({ config }: { config: Config }) {
     );
   }
 
-  const heroValue = config.hero === "f0.5_pos" ? counts.f05 : counts.f2;
+  // Hero-метрика: ключ берём прямо из config.hero ("f0.5_pos" или "f2_pos").
+  // Обращение через квадратные скобки, потому что в имени есть точка.
+  const heroValue = Number((selected.metrics as any)[config.hero] ?? 0);
 
   const metrics: [string, number | undefined, boolean][] = [
-    ["Accuracy", best.metrics.accuracy, false],
-    ["Balanced Acc.", best.metrics.balanced_accuracy, false],
-    ["Precision (macro)", best.metrics.precision_macro, false],
-    ["Recall (macro)", best.metrics.recall_macro, false],
-    ["F1 (macro)", best.metrics.f1_macro, false],
+    ["Accuracy", selected.metrics.accuracy, false],
+    ["Balanced Acc.", selected.metrics.balanced_accuracy, false],
+    ["Precision (macro)", selected.metrics.precision_macro, false],
+    ["Recall (macro)", selected.metrics.recall_macro, false],
+    ["F1 (macro)", selected.metrics.f1_macro, false],
     [
       "F0.5 (macro)",
-      best.metrics["f0.5_macro"] ?? best.metrics.f05_macro ?? best.metrics.f0_5_macro,
+      selected.metrics["f0.5_macro"] ??
+        selected.metrics.f05_macro ??
+        selected.metrics.f0_5_macro,
       false,
     ],
-    ["F2 (macro)", best.metrics.f2_macro, false],
-    ["MCC", best.metrics.mcc, true],
-    ["Cohen κ", best.metrics.kappa, true],
-    ["ROC-AUC", best.metrics.roc_auc, false],
-    ["PR-AUC", best.metrics.pr_auc, false],
-    ["Specificity", best.metrics.specificity, false],
-    ["Sensitivity", best.metrics.sensitivity, false],
+    ["F2 (macro)", selected.metrics.f2_macro, false],
+    ["MCC", selected.metrics.mcc, true],
+    ["Cohen κ", selected.metrics.kappa, true],
+    ["ROC-AUC", selected.metrics.roc_auc, false],
+    ["PR-AUC", selected.metrics.pr_auc, false],
+    ["Specificity", selected.metrics.specificity, false],
+    ["Sensitivity", selected.metrics.sensitivity, false],
   ];
-
-  const optThreshold = report.threshold_sweep?.optimal_threshold;
 
   return (
     <div className="space-y-6">
@@ -523,7 +697,18 @@ export function BCPage({ config }: { config: Config }) {
         heroLabel={config.heroLabel}
         threshold={threshold}
         counts={counts}
+        model={selected}
       />
+
+      {/* Селектор моделей — переключение между типами моделей */}
+      {models.length > 1 && (
+        <ModelSelector
+          models={models}
+          selectedName={selected.name}
+          onSelect={(m) => setSelectedName(m.name)}
+          hero={config.hero}
+        />
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {metrics.map(([label, val, isNum]) => (
@@ -536,7 +721,7 @@ export function BCPage({ config }: { config: Config }) {
       </div>
 
       <Card>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
             Порог решения
           </h3>
@@ -544,6 +729,7 @@ export function BCPage({ config }: { config: Config }) {
             {threshold.toFixed(3)}
           </span>
         </div>
+
         <input
           type="range"
           min={0}
@@ -551,41 +737,43 @@ export function BCPage({ config }: { config: Config }) {
           step={0.001}
           value={threshold}
           onChange={(e) => setThreshold(parseFloat(e.target.value))}
-          className="w-full mt-4 accent-indigo-500 h-2 rounded-full cursor-pointer"
+          disabled={!hasSweepForSelected}
+          className={`w-full mt-4 accent-indigo-500 h-2 rounded-full ${
+            hasSweepForSelected
+              ? "cursor-pointer"
+              : "cursor-not-allowed opacity-50"
+          }`}
         />
+        {!hasSweepForSelected && (
+          <p className="text-xs text-slate-500 mt-2">
+            Для модели <b>{selected.model}</b> в артефакте нет threshold_sweep —
+            порог зафиксирован значением из отчёта (
+            {selected.threshold.toFixed(3)}). Свип по порогу доступен только
+            для модели-лидера (<b>{report.threshold_sweep?.model ?? "—"}</b>).
+          </p>
+        )}
 
-        <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
-          {optThreshold != null && Number.isFinite(optThreshold) && (
+        {hasSweepForSelected && (
+          <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
+            {optimalForHero != null && (
+              <button
+                onClick={() => setThreshold(optimalForHero)}
+                className="text-indigo-500 hover:text-indigo-600 font-medium"
+              >
+                ↺ К оптимальному для{" "}
+                {config.hero === "f0.5_pos" ? "F0.5" : "F2"} (
+                {optimalForHero.toFixed(3)})
+              </button>
+            )}
             <button
-              onClick={() => setThreshold(optThreshold)}
-              className="text-indigo-500 hover:text-indigo-600 font-medium"
+              onClick={() => setThreshold(selected.threshold)}
+              className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium"
             >
-              ↺ Сбросить к оптимальному ({optThreshold.toFixed(3)})
+              ↺ К порогу из артефакта ({selected.threshold.toFixed(3)})
             </button>
-          )}
-          <button
-            onClick={() => setThreshold(config.defaultThreshold)}
-            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium"
-          >
-            ↺ К значению из конфига ({config.defaultThreshold.toFixed(3)})
-          </button>
-        </div>
+          </div>
+        )}
 
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-5">
-          {[
-            ["Precision", counts.precision],
-            ["Recall", counts.recall],
-            ["F1", (2 * counts.precision * counts.recall) / (counts.precision + counts.recall || 1)],
-            ["F0.5", counts.f05],
-            ["F2", counts.f2],
-            ["Specificity", counts.specificity],
-          ].map(([label, val]) => (
-            <div key={label as string} className="text-center">
-              <p className="text-[10px] text-slate-500 uppercase">{label}</p>
-              <p className="font-bold text-sm">{Number(val).toFixed(3)}</p>
-            </div>
-          ))}
-        </div>
         <div className="flex gap-4 mt-4 text-sm flex-wrap">
           <span className="text-rose-500 font-semibold">FP: {counts.fp}</span>
           <span className="text-amber-500 font-semibold">FN: {counts.fn}</span>
@@ -595,21 +783,43 @@ export function BCPage({ config }: { config: Config }) {
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <ConfusionGrid tp={counts.tp} fp={counts.fp} fn={counts.fn} tn={counts.tn} />
-        <ThresholdChart
-          sweep={report.threshold_sweep}
-          current={threshold}
-          hero={config.hero}
+        <ConfusionGrid
+          tp={counts.tp}
+          fp={counts.fp}
+          fn={counts.fn}
+          tn={counts.tn}
         />
+        {hasSweepForSelected ? (
+          <ThresholdChart
+            sweep={report.threshold_sweep}
+            current={threshold}
+            hero={config.hero}
+          />
+        ) : (
+          <Card>
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+              Threshold sweep
+            </h3>
+            <p className="text-sm text-slate-500 mt-3">
+              Для <b>{selected.model}</b> нет sweep по порогу в артефакте.
+              Переключись на <b>{report.threshold_sweep?.model ?? "—"}</b>,
+              чтобы посмотреть кривые Precision / Recall / Fβ vs порог.
+            </p>
+          </Card>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <FeatureImportanceChart data={best.feature_importance} />
-        <RiskMap samples={report.sample_predictions} threshold={threshold} />
+        <FeatureImportanceChart data={selected.feature_importance ?? []} />
+        <RiskMap
+          samples={report.sample_predictions ?? []}
+          threshold={threshold}
+        />
       </div>
 
       <CostPanel
         report={report}
+        currentThreshold={threshold}
         onApplyThreshold={(t) => setThreshold(t)}
       />
     </div>
@@ -619,7 +829,7 @@ export function BCPage({ config }: { config: Config }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\CostPanel.tsx
-### SIZE: 6392 B   MODIFIED: 2026-10-08 13:10:16
+### SIZE: 9622 B   MODIFIED: 2026-10-08 13:56:34
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -631,15 +841,21 @@ import {
 import { Card } from "@/components/ui/Card";
 import { BCReport, countsFromSweep } from "@/lib/data/breastCancer";
 
+const fmtMoney = (v: number) =>
+  Number.isFinite(v) ? Math.round(v).toLocaleString("ru-RU") + " ₽" : "—";
+
 export function CostPanel({
   report,
+  currentThreshold,
   onApplyThreshold,
 }: {
   report: BCReport;
+  currentThreshold?: number;
   onApplyThreshold?: (t: number) => void;
 }) {
+  // FIX: дефолт осмысленный — FN в медицинском скрининге стоит на порядок дороже FP.
   const [costFP, setCostFP] = useState(100);
-  const [costFN, setCostFN] = useState(500);
+  const [costFN, setCostFN] = useState(5000);
 
   const curve = useMemo(() => {
     const thresholds = report.threshold_sweep?.thresholds ?? [];
@@ -659,11 +875,21 @@ export function CostPanel({
 
   const optimal = useMemo(() => {
     if (!curve.length) return null;
+    return curve.reduce((best, p) => (p.cost < best.cost ? p : best), curve[0]);
+  }, [curve]);
+
+  // FIX: стоимость на текущем пороге пользователя (то, чего раньше не было)
+  const current = useMemo(() => {
+    if (!curve.length || currentThreshold === undefined) return null;
     return curve.reduce(
-      (best, p) => (p.cost < best.cost ? p : best),
+      (best, p) =>
+        Math.abs(p.threshold - currentThreshold) <
+        Math.abs(best.threshold - currentThreshold)
+          ? p
+          : best,
       curve[0]
     );
-  }, [curve]);
+  }, [curve, currentThreshold]);
 
   if (!optimal) {
     return (
@@ -681,17 +907,27 @@ export function CostPanel({
   const hi = Math.max(1, ...curve.map((c) => c.cost));
   const yMax = hi * 1.05;
 
+  const currentCost = current?.cost ?? optimal.cost;
+  const savings = currentCost - optimal.cost;
+  const isOptimal = current
+    ? Math.abs(current.threshold - optimal.threshold) < 1e-6
+    : false;
+
   return (
     <Card>
-      <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
-        Калькулятор стоимости ошибок
-      </h3>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Калькулятор стоимости ошибок
+        </h3>
+        <span className="text-xs text-slate-500">
+          FP = {costFP.toLocaleString("ru-RU")}₽ · FN ={" "}
+          {costFN.toLocaleString("ru-RU")}₽
+        </span>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 mt-4">
         <label className="text-sm">
-          <span className="text-slate-500 text-xs">
-            Цена FP · ложная тревога
-          </span>
+          <span className="text-slate-500 text-xs">Цена FP · ложная тревога</span>
           <input
             type="number"
             min={0}
@@ -712,35 +948,59 @@ export function CostPanel({
         </label>
       </div>
 
-      <div className="mt-5 p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-500/20">
-        <div className="flex items-baseline justify-between flex-wrap gap-2">
-          <div>
-            <p className="text-xs text-slate-500">
-              Оптимальный порог по стоимости
+      <div className="grid sm:grid-cols-2 gap-3 mt-5">
+        {/* Оптимум по стоимости */}
+        <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-500/20">
+          <p className="text-xs text-slate-500">Оптимум по стоимости</p>
+          <p className="text-3xl font-black text-indigo-500">
+            {optimal.threshold.toFixed(3)}
+          </p>
+          <p className="text-xs text-slate-500 mt-2">
+            FP: {optimal.fp} · FN: {optimal.fn}
+          </p>
+          <p className="text-sm font-bold mt-1">{fmtMoney(optimal.cost)}</p>
+          {onApplyThreshold && !isOptimal && (
+            <button
+              onClick={() => onApplyThreshold(optimal.threshold)}
+              className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors font-medium"
+            >
+              Применить ↑ к слайдеру
+            </button>
+          )}
+          {isOptimal && (
+            <p className="mt-2 text-xs text-emerald-500 font-semibold">
+              ✓ Совпадает с текущим порогом
             </p>
-            <p className="text-3xl font-black text-indigo-500">
-              {optimal.threshold.toFixed(3)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Ожидаемая стоимость</p>
-            <p className="text-xl font-bold">
-              {Math.round(optimal.cost).toLocaleString("ru-RU")} ₽
-            </p>
-          </div>
+          )}
         </div>
-        <p className="text-xs text-slate-500 mt-2">
-          FP: {optimal.fp} × {costFP.toLocaleString("ru-RU")}₽ · FN: {optimal.fn} ×{" "}
-          {costFN.toLocaleString("ru-RU")}₽
-        </p>
 
-        {onApplyThreshold && (
-          <button
-            onClick={() => onApplyThreshold(optimal.threshold)}
-            className="mt-3 text-xs px-3 py-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors font-medium"
+        {/* Стоимость на текущем пороге */}
+        {current && (
+          <div
+            className={`p-4 rounded-xl border ${
+              isOptimal
+                ? "bg-emerald-500/10 border-emerald-500/20"
+                : "bg-amber-500/10 border-amber-500/30"
+            }`}
           >
-            Применить этот порог ↑ к слайдеру
-          </button>
+            <p className="text-xs text-slate-500">Текущий порог</p>
+            <p
+              className={`text-3xl font-black ${
+                isOptimal ? "text-emerald-500" : "text-amber-500"
+              }`}
+            >
+              {current.threshold.toFixed(3)}
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              FP: {current.fp} · FN: {current.fn}
+            </p>
+            <p className="text-sm font-bold mt-1">{fmtMoney(currentCost)}</p>
+            {!isOptimal && savings > 0 && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                Потенциал экономии: <b>−{fmtMoney(savings)}</b>
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -748,10 +1008,10 @@ export function CostPanel({
         <p className="text-xs text-slate-500 mb-2">
           Стоимость vs порог решения
         </p>
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={240}>
           <LineChart
             data={curve}
-            margin={{ top: 10, right: 15, left: -5, bottom: 20 }}
+            margin={{ top: 15, right: 15, left: -5, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
             <XAxis
@@ -775,15 +1035,21 @@ export function CostPanel({
             />
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 12 }}
-              formatter={(v: number) =>
-                `${Math.round(Number(v)).toLocaleString("ru-RU")} ₽`
-              }
+              formatter={(v: number) => fmtMoney(Number(v))}
               labelFormatter={(l) => `threshold = ${l}`}
             />
+
+            {/* Метка оптимума */}
             <ReferenceLine
               x={optimal.threshold}
               stroke="#6366f1"
               strokeDasharray="4 4"
+              label={{
+                value: "оптимум",
+                fontSize: 10,
+                fill: "#6366f1",
+                position: "top",
+              }}
             />
             <ReferenceDot
               x={optimal.threshold}
@@ -793,6 +1059,32 @@ export function CostPanel({
               stroke="#fff"
               strokeWidth={2}
             />
+
+            {/* Метка текущего порога — не дублируем, если совпадает с оптимумом */}
+            {current && !isOptimal && (
+              <ReferenceLine
+                x={current.threshold}
+                stroke="#f59e0b"
+                strokeDasharray="4 4"
+                label={{
+                  value: "текущий",
+                  fontSize: 10,
+                  fill: "#f59e0b",
+                  position: "top",
+                }}
+              />
+            )}
+            {current && !isOptimal && (
+              <ReferenceDot
+                x={current.threshold}
+                y={current.cost}
+                r={4}
+                fill="#f59e0b"
+                stroke="#fff"
+                strokeWidth={2}
+              />
+            )}
+
             <Line
               type="monotone"
               dataKey="cost"
@@ -964,7 +1256,7 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\ThresholdChart.tsx
-### SIZE: 4142 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 4310 B   MODIFIED: 2026-10-08 13:21:02
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -980,24 +1272,25 @@ export function ThresholdChart({
   current,
   hero,
 }: {
-  sweep: BCSweep;
+  // FIX: sweep может отсутствовать в артефакте — делаем его опциональным
+  sweep?: BCSweep;
   current: number;
   hero: "f0.5_pos" | "f2_pos";
 }) {
   const safe = (v: any): number => (Number.isFinite(v) ? v : 0);
 
-  const data = (sweep.thresholds ?? []).map((t, i) => ({
+  const thresholds = sweep?.thresholds ?? [];
+  const data = thresholds.map((t, i) => ({
     threshold: +safe(t).toFixed(3),
-    precision: safe(sweep.precision_pos?.[i]),
-    recall: safe(sweep.recall_pos?.[i]),
-    f05: safe(sweep["f0.5_pos"]?.[i]),
-    f2: safe(sweep.f2_pos?.[i]),
+    precision: safe(sweep?.precision_pos?.[i]),
+    recall: safe(sweep?.recall_pos?.[i]),
+    f05: safe(sweep?.["f0.5_pos"]?.[i]),
+    f2: safe(sweep?.f2_pos?.[i]),
   }));
 
   const heroKey = hero === "f0.5_pos" ? "f05" : "f2";
   const heroLabel = hero === "f0.5_pos" ? "F0.5 (malignant)" : "F2 (malignant)";
 
-  // Авто-масштаб Y по данным, с фильтрацией NaN/null
   const values = data
     .flatMap((d) => [d.precision, d.recall, d[heroKey as "f05" | "f2"]])
     .filter((v) => Number.isFinite(v) && v >= 0 && v <= 1);
@@ -1016,6 +1309,7 @@ export function ThresholdChart({
     }
   }
 
+  // FIX: не падаем, если sweep пустой или отсутствует
   if (!data.length) {
     return (
       <Card>
@@ -1036,7 +1330,7 @@ export function ThresholdChart({
           Threshold sweep
         </h3>
         <span className="text-xs text-slate-500">
-          sweep source: {sweep.sweep_source ?? "validation"} · Y ∈ [
+          sweep source: {sweep?.sweep_source ?? "validation"} · Y ∈ [
           {yMin.toFixed(3)}, {yMax.toFixed(3)}]
         </span>
       </div>
@@ -1103,7 +1397,7 @@ export function ThresholdChart({
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\digits\DigitsPage.tsx
-### SIZE: 11352 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 13225 B   MODIFIED: 2026-10-08 13:29:12
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1115,16 +1409,16 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
-  DigitsReport, DigitsModel, DigitsSample,
+  DigitsReport, DigitsModel,
   loadDigitsReport, findBestDigitsModel,
 } from "@/lib/data/digits";
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(2)}%`;
 const fmtNum = (v?: number | null, digits = 4) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
+function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
@@ -1134,7 +1428,8 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
       <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-          {best.metrics.f1_macro.toFixed(4)}
+          {/* FIX: безопасный формат, а не .toFixed() на возможном null */}
+          {fmtNum(best.metrics.f1_macro)}
         </span>
         <Badge tone="info">macro-F1</Badge>
       </div>
@@ -1144,7 +1439,7 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
 }
 
 function WeightedVsMacroTrap({ report, best }: { report: DigitsReport; best: DigitsModel }) {
-  const gap = report.headline.diagnostic_verdict.weighted_minus_macro_gap;
+  const gap = report.headline?.diagnostic_verdict?.weighted_minus_macro_gap;
   return (
     <Card className="border border-amber-500/40 bg-amber-500/5">
       <p className="text-sm">
@@ -1155,33 +1450,42 @@ function WeightedVsMacroTrap({ report, best }: { report: DigitsReport; best: Dig
         <div>
           <p className="text-[11px] text-slate-500 uppercase">macro-F1</p>
           <p className="text-2xl font-bold text-violet-500">
-            {best.metrics.f1_macro.toFixed(4)}
+            {fmtNum(best.metrics.f1_macro)}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-slate-500 uppercase">weighted-F1</p>
           <p className="text-2xl font-bold text-slate-400">
-            {best.metrics.f1_weighted.toFixed(4)}
+            {fmtNum(best.metrics.f1_weighted)}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-slate-500 uppercase">разрыв</p>
           <p className="text-2xl font-bold text-amber-500">
-            +{gap.toFixed(4)}
+            {/* FIX: защита от undefined/NaN */}
+            {Number.isFinite(gap) ? `+${(gap as number).toFixed(4)}` : "—"}
           </p>
         </div>
       </div>
       <p className="text-xs text-slate-500 mt-3">
-        При imbalance {report.meta.target_stats.imbalance_ratio.toFixed(2)}:1 редкий класс
-        физически весит только {(report.meta.target_stats.rare_class_ratio * 100).toFixed(2)}% —
-        он не может сильно сдвинуть weighted-F1. Настоящая цена дисбаланса видна только
-        в <b>per-class recall</b>.
+        При imbalance{" "}
+        {Number.isFinite(report.meta.target_stats.imbalance_ratio)
+          ? report.meta.target_stats.imbalance_ratio.toFixed(2)
+          : "—"}
+        :1 редкий класс физически весит только{" "}
+        {Number.isFinite(report.meta.target_stats.rare_class_ratio)
+          ? (report.meta.target_stats.rare_class_ratio * 100).toFixed(2)
+          : "—"}
+        % — он не может сильно сдвинуть weighted-F1. Настоящая цена дисбаланса
+        видна только в <b>per-class recall</b>.
       </p>
     </Card>
   );
 }
 
-function MetricCard({ label, value, tone }: { label: string; value: string; tone?: "danger" | "success" | "info" }) {
+function MetricCard({
+  label, value, tone,
+}: { label: string; value: string; tone?: "danger" | "success" | "info" }) {
   const color =
     tone === "danger" ? "text-rose-500" :
     tone === "success" ? "text-emerald-500" :
@@ -1196,7 +1500,23 @@ function MetricCard({ label, value, tone }: { label: string; value: string; tone
 
 function PerClassRecallChart({
   data, rareClass,
-}: { data: { class: string; recall: number; support: number; is_rare: boolean }[]; rareClass: string }) {
+}: {
+  data: { class: string; recall: number; support: number; is_rare: boolean }[];
+  rareClass: string;
+}) {
+  // FIX: защита от пустого массива
+  if (!Array.isArray(data) || !data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Per-class recall
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет данных per_class_recall.
+        </p>
+      </Card>
+    );
+  }
   return (
     <Card>
       <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
@@ -1210,7 +1530,7 @@ function PerClassRecallChart({
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
             formatter={(v: number, n: string) =>
-              n === "recall" ? v.toFixed(3) : (v as any)
+              n === "recall" ? Number(v).toFixed(3) : (v as any)
             }
           />
           <ReferenceLine y={0.9} stroke="#94a3b8" strokeDasharray="4 4" />
@@ -1228,7 +1548,20 @@ function PerClassRecallChart({
 function Confusion10x10({
   labels, matrix, rareClass,
 }: { labels: string[]; matrix: number[][]; rareClass: string }) {
-  const max = Math.max(...matrix.flat());
+  // FIX: защита от пустой/отсутствующей матрицы
+  if (!Array.isArray(matrix) || !matrix.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Confusion matrix 10×10
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет confusion_matrix.
+        </p>
+      </Card>
+    );
+  }
+  const max = Math.max(1, ...matrix.flat());
   const rareIdx = labels.indexOf(rareClass);
   return (
     <Card>
@@ -1236,7 +1569,6 @@ function Confusion10x10({
         <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
           Confusion matrix 10×10
         </h3>
-        
       </div>
       <div className="mt-4 overflow-x-auto scrollbar-thin">
         <div
@@ -1247,7 +1579,9 @@ function Confusion10x10({
           {labels.map((l) => (
             <div
               key={l}
-              className={`text-[10px] text-center ${l === rareClass ? "text-rose-500 font-bold" : "text-slate-500"}`}
+              className={`text-[10px] text-center ${
+                l === rareClass ? "text-rose-500 font-bold" : "text-slate-500"
+              }`}
             >
               {l}
             </div>
@@ -1270,7 +1604,11 @@ function Confusion10x10({
                     key={`${i}-${j}`}
                     title={`actual=${labels[i]} → predicted=${labels[j]} · ${val}`}
                     className={`aspect-square rounded flex items-center justify-center text-[10px] font-semibold ${
-                      isDiag ? "text-emerald-900" : val > 0 ? "text-rose-900" : "text-slate-400"
+                      isDiag
+                        ? "text-emerald-900"
+                        : val > 0
+                        ? "text-rose-900"
+                        : "text-slate-400"
                     } ${isRareRow ? "ring-1 ring-rose-400/40" : ""}`}
                     style={{
                       backgroundColor: isDiag
@@ -1292,8 +1630,6 @@ function Confusion10x10({
   );
 }
 
-
-
 export function DigitsPage() {
   const [report, setReport] = useState<DigitsReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1312,7 +1648,7 @@ export function DigitsPage() {
   }, []);
 
   const best = useMemo(() => (report ? findBestDigitsModel(report) : null), [report]);
-  const selected = report ? report.models[modelIdx] : null;
+  const selected = report ? report.models[modelIdx] ?? null : null;
 
   if (error) {
     return (
@@ -1337,14 +1673,24 @@ export function DigitsPage() {
   }
 
   const rareClass = report.meta.target_stats.rare_class;
+
+  // FIX: поддержка обоих вариантов формата — объект per_class_recall
+  // либо массив report.per_class_recall
   const perClassRecall = selected.per_class_recall
     ? Object.entries(selected.per_class_recall).map(([cls, r]) => ({
         class: cls,
         recall: r as number,
-        support: selected.per_class[cls]?.support ?? 0,
+        support: selected.per_class?.[cls]?.support ?? 0,
         is_rare: cls === rareClass,
       }))
-    : report.per_class_recall;
+    : Array.isArray(report.per_class_recall)
+    ? report.per_class_recall.map((x) => ({
+        class: x.class,
+        recall: x.recall,
+        support: x.support,
+        is_rare: x.is_rare ?? x.class === rareClass,
+      }))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -1395,7 +1741,7 @@ export function DigitsPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\fraud\CreditFraudPage.tsx
-### SIZE: 12974 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 14932 B   MODIFIED: 2026-10-08 13:29:49
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1407,17 +1753,16 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
-  CFReport, CFModel, CFSample, loadCreditFraudReport, findBestCFModel,
+  CFReport, CFModel, CFSample,
+  loadCreditFraudReport, findBestCFModel,
 } from "@/lib/data/creditFraud";
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(2)}%`;
 const fmtNum = (v?: number | null, digits = 3) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({
-  report, best,
-}: { report: CFReport; best: CFModel }) {
+function HeroCard({ report, best }: { report: CFReport; best: CFModel }) {
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
@@ -1427,7 +1772,8 @@ function HeroCard({
       <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-          {best.metrics.mcc.toFixed(4)}
+          {/* FIX: безопасный формат вместо .toFixed() */}
+          {fmtNum(best.metrics.mcc, 4)}
         </span>
         <Badge tone="info">MCC</Badge>
       </div>
@@ -1436,11 +1782,12 @@ function HeroCard({
   );
 }
 
-
 function ModelComparison({ report }: { report: CFReport }) {
-  const rows = report.models;
-  const sortKey = (m: CFModel) => m.metrics.mcc;
-  const sorted = [...rows].sort((a, b) => sortKey(b) - sortKey(a));
+  const rows = report.models ?? [];
+  if (!rows.length) return null;
+  const sorted = [...rows].sort(
+    (a, b) => (b.metrics.mcc ?? -Infinity) - (a.metrics.mcc ?? -Infinity)
+  );
   return (
     <Card>
       <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
@@ -1466,22 +1813,33 @@ function ModelComparison({ report }: { report: CFReport }) {
               return (
                 <tr
                   key={m.name}
-                  className={`border-b border-border/50 ${isNaive ? "opacity-60" : ""} ${isBest ? "bg-emerald-500/5" : ""}`}
+                  className={`border-b border-border/50 ${isNaive ? "opacity-60" : ""} ${
+                    isBest ? "bg-emerald-500/5" : ""
+                  }`}
                 >
                   <td className="py-2">
-                    {m.name} {isBest && <Badge tone="success" className="ml-2">best</Badge>}
+                    {m.name}{" "}
+                    {isBest && <Badge tone="success" className="ml-2">best</Badge>}
                     {isNaive && <Badge tone="danger" className="ml-2">baseline</Badge>}
                   </td>
                   <td className={`text-right font-mono ${isBest ? "font-bold text-emerald-500" : ""}`}>
                     {fmtNum(m.metrics.mcc, 4)}
                   </td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.pr_auc ?? m.pr_auc, 4)}</td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.roc_auc ?? m.roc_auc, 4)}</td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.sensitivity, 3)}</td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.pr_auc ?? m.pr_auc, 4)}
+                  </td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.roc_auc ?? m.roc_auc, 4)}
+                  </td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.sensitivity, 3)}
+                  </td>
                   <td className="text-right font-mono">
                     {fmtNum(m.metrics.precision_macro, 3)}
                   </td>
-                  <td className="text-right font-mono">{fmtNum(m.metrics.accuracy, 4)}</td>
+                  <td className="text-right font-mono">
+                    {fmtNum(m.metrics.accuracy, 4)}
+                  </td>
                 </tr>
               );
             })}
@@ -1492,7 +1850,9 @@ function ModelComparison({ report }: { report: CFReport }) {
   );
 }
 
-function MetricCard({ label, value, tone }: { label: string; value: string; tone?: "info" | "danger" | "success" }) {
+function MetricCard({
+  label, value, tone,
+}: { label: string; value: string; tone?: "info" | "danger" | "success" }) {
   const color =
     tone === "danger" ? "text-rose-500" :
     tone === "success" ? "text-emerald-500" :
@@ -1511,7 +1871,9 @@ function ConfusionGrid({
   const cell = (label: string, val: number, tone: string) => (
     <div className={`rounded-lg p-3 text-center ${tone}`}>
       <p className="text-[10px] uppercase tracking-wide opacity-70">{label}</p>
-      <p className="text-2xl font-black">{val.toLocaleString("ru-RU")}</p>
+      <p className="text-2xl font-black">
+        {Number.isFinite(val) ? val.toLocaleString("ru-RU") : "—"}
+      </p>
     </div>
   );
   return (
@@ -1532,6 +1894,19 @@ function ConfusionGrid({
 function FeatureImportanceChart({
   data,
 }: { data: { name: string; value: number }[] }) {
+  // FIX: защита от пустого массива
+  if (!Array.isArray(data) || !data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Feature importance
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет feature_importance для этой модели.
+        </p>
+      </Card>
+    );
+  }
   const colors = ["#6366f1", "#8b5cf6", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e", "#a855f7", "#14b8a6"];
   const top = [...data].slice(0, 15);
   return (
@@ -1545,7 +1920,7 @@ function FeatureImportanceChart({
           <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => v.toFixed(4)}
+            formatter={(v: number) => Number(v).toFixed(4)}
           />
           <Bar dataKey="value" radius={[0, 8, 8, 0]}>
             {top.map((_, i) => (
@@ -1561,10 +1936,24 @@ function FeatureImportanceChart({
 function SampleScatter({
   samples, xKey, yKey,
 }: { samples: CFSample[]; xKey: string; yKey: string }) {
+  // FIX: защита от отсутствующего массива
+  if (!Array.isArray(samples) || !samples.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Образцы теста: {xKey} × {yKey}
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          В артефакте нет sample_predictions.
+        </p>
+      </Card>
+    );
+  }
   const data = samples.map((s, i) => ({
     id: i,
-    x: s.features[xKey] ?? 0,
-    y: s.features[yKey] ?? 0,
+    // FIX: безопасное чтение features через optional chaining
+    x: s.features?.[xKey] ?? 0,
+    y: s.features?.[yKey] ?? 0,
     sample: s,
     p: s.proba?.fraud ?? (s.predicted === "fraud" ? 1 : 0),
   }));
@@ -1582,7 +1971,9 @@ function SampleScatter({
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: any, n: string) => (n === "p" ? `${(v * 100).toFixed(1)}%` : v.toFixed(3))}
+            formatter={(v: any, n: string) =>
+              n === "p" ? `${(Number(v) * 100).toFixed(1)}%` : Number(v).toFixed(3)
+            }
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Scatter
@@ -1633,7 +2024,7 @@ export function CreditFraudPage() {
   }, []);
 
   const best = useMemo(() => (report ? findBestCFModel(report) : null), [report]);
-  const selected = report ? report.models[modelIdx] : null;
+  const selected = report ? report.models[modelIdx] ?? null : null;
 
   if (error) {
     return (
@@ -1655,12 +2046,19 @@ export function CreditFraudPage() {
       </div>
     );
   }
-  const cc = selected.confusion_counts;
+
+  const cc = selected.confusion_counts ?? {
+    tp_fraud: 0,
+    fn_fraud: 0,
+    fp_normal: 0,
+    tn_normal: 0,
+  };
+  const fraudPerClass = selected.per_class?.fraud;
+  const errorsOnTest = (cc.fp_normal ?? 0) + (cc.fn_fraud ?? 0);
 
   return (
     <div className="space-y-6">
       <HeroCard report={report} best={best} />
-      
 
       <div className="flex flex-wrap gap-2">
         {report.models.map((m, i) => (
@@ -1680,27 +2078,49 @@ export function CreditFraudPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MetricCard label="MCC" value={fmtNum(selected.metrics.mcc, 4)} tone={selected.is_naive ? "danger" : "success"} />
-        <MetricCard label="PR-AUC" value={fmtNum(selected.metrics.pr_auc ?? selected.pr_auc, 4)} />
-        <MetricCard label="ROC-AUC" value={fmtNum(selected.metrics.roc_auc ?? selected.roc_auc, 4)} />
-        <MetricCard label="Balanced Acc." value={fmtPct(selected.metrics.balanced_accuracy)} />
-        <MetricCard label="Sensitivity (fraud)" value={fmtPct(selected.metrics.sensitivity)} />
-        <MetricCard label="Specificity (normal)" value={fmtPct(selected.metrics.specificity)} />
-        <MetricCard label="Precision (fraud)" value={fmtPct(selected.per_class.fraud.precision)} />
-        <MetricCard label="F1 (fraud)" value={fmtPct(selected.per_class.fraud.f1)} />
-        <MetricCard label="Accuracy" value={fmtPct(selected.metrics.accuracy)} />
         <MetricCard
-          label="Errors on test"
-          value={String((cc.fp_normal ?? 0) + (cc.fn_fraud ?? 0))}
+          label="MCC"
+          value={fmtNum(selected.metrics.mcc, 4)}
+          tone={selected.is_naive ? "danger" : "success"}
         />
+        <MetricCard
+          label="PR-AUC"
+          value={fmtNum(selected.metrics.pr_auc ?? selected.pr_auc, 4)}
+        />
+        <MetricCard
+          label="ROC-AUC"
+          value={fmtNum(selected.metrics.roc_auc ?? selected.roc_auc, 4)}
+        />
+        <MetricCard
+          label="Balanced Acc."
+          value={fmtPct(selected.metrics.balanced_accuracy)}
+        />
+        <MetricCard
+          label="Sensitivity (fraud)"
+          value={fmtPct(selected.metrics.sensitivity)}
+        />
+        <MetricCard
+          label="Specificity (normal)"
+          value={fmtPct(selected.metrics.specificity)}
+        />
+        <MetricCard
+          label="Precision (fraud)"
+          value={fmtPct(fraudPerClass?.precision)}
+        />
+        <MetricCard
+          label="F1 (fraud)"
+          value={fmtPct(fraudPerClass?.f1)}
+        />
+        <MetricCard label="Accuracy" value={fmtPct(selected.metrics.accuracy)} />
+        <MetricCard label="Errors on test" value={String(errorsOnTest)} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <ConfusionGrid
-          tp={cc.tp_fraud}
-          fp={cc.fp_normal}
-          fn={cc.fn_fraud}
-          tn={cc.tn_normal}
+          tp={cc.tp_fraud ?? 0}
+          fp={cc.fp_normal ?? 0}
+          fn={cc.fn_fraud ?? 0}
+          tn={cc.tn_normal ?? 0}
           isNaive={selected.is_naive}
         />
         {selected.feature_importance ? (
@@ -1715,7 +2135,11 @@ export function CreditFraudPage() {
         )}
       </div>
 
-      <SampleScatter samples={report.sample_predictions} xKey="V14" yKey="V17" />
+      <SampleScatter
+        samples={report.sample_predictions ?? []}
+        xKey="V14"
+        yKey="V17"
+      />
 
       <ModelComparison report={report} />
     </div>
@@ -1725,7 +2149,7 @@ export function CreditFraudPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisLiveSimulator.tsx
-### SIZE: 3424 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 3718 B   MODIFIED: 2026-10-08 13:24:27
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1806,7 +2230,16 @@ export function IrisLiveSimulator({ data }: { data: IrisPoint[] }) {
 
       <div className="space-y-5">
         <ProbabilityRadar probs={probs} />
-        <IrisScatterMap data={data} current={{ x: values.pl, y: values.pw }} />
+        {/* FIX: передаём все четыре признака. Тип согласован с IrisScatterMap ниже. */}
+        <IrisScatterMap
+          data={data}
+          current={{
+            sepalLength: values.sl,
+            sepalWidth: values.sw,
+            petalLength: values.pl,
+            petalWidth: values.pw,
+          }}
+        />
       </div>
     </div>
   );
@@ -1815,27 +2248,47 @@ export function IrisLiveSimulator({ data }: { data: IrisPoint[] }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisScatterMap.tsx
-### SIZE: 4198 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 5047 B   MODIFIED: 2026-10-08 13:25:02
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
-import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  ScatterChart, Scatter, XAxis, YAxis, ZAxis,
+  Tooltip, ResponsiveContainer, CartesianGrid,
+} from "recharts";
 import { useState } from "react";
 import { IrisPoint } from "@/lib/data/iris";
 
 const FEATURES = ["sepalLength", "sepalWidth", "petalLength", "petalWidth"] as const;
-const COLORS: Record<string, string> = { setosa: "#10b981", versicolor: "#6366f1", virginica: "#f43f5e" };
-const LABELS: Record<string, string> = {
+type Feature = typeof FEATURES[number];
+
+// FIX: теперь тип current — полный набор признаков, а не { x, y }.
+// Экспортируем его, чтобы можно было использовать при вызове компонента.
+export type IrisCurrentValues = Record<Feature, number>;
+
+const COLORS: Record<string, string> = {
+  setosa: "#10b981",
+  versicolor: "#6366f1",
+  virginica: "#f43f5e",
+};
+
+const LABELS: Record<Feature, string> = {
   sepalLength: "Длина чашелистика",
   sepalWidth: "Ширина чашелистика",
   petalLength: "Длина лепестка",
   petalWidth: "Ширина лепестка",
 };
 
-export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?: { x: number; y: number } }) {
-  const [xAxis, setXAxis] = useState<typeof FEATURES[number]>("petalLength");
-  const [yAxis, setYAxis] = useState<typeof FEATURES[number]>("petalWidth");
+export function IrisScatterMap({
+  data,
+  current,
+}: {
+  data: IrisPoint[];
+  current?: IrisCurrentValues;
+}) {
+  const [xAxis, setXAxis] = useState<Feature>("petalLength");
+  const [yAxis, setYAxis] = useState<Feature>("petalWidth");
 
   const selectClass =
     "bg-slate-500/10 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 " +
@@ -1852,7 +2305,7 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
         <div className="flex gap-2 text-xs">
           <select
             value={xAxis}
-            onChange={(e) => setXAxis(e.target.value as any)}
+            onChange={(e) => setXAxis(e.target.value as Feature)}
             className={selectClass}
           >
             {FEATURES.map((f) => (
@@ -1863,7 +2316,7 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
           </select>
           <select
             value={yAxis}
-            onChange={(e) => setYAxis(e.target.value as any)}
+            onChange={(e) => setYAxis(e.target.value as Feature)}
             className={selectClass}
           >
             {FEATURES.map((f) => (
@@ -1880,24 +2333,45 @@ export function IrisScatterMap({ data, current }: { data: IrisPoint[]; current?:
           <XAxis dataKey={xAxis} type="number" name={LABELS[xAxis]} tick={{ fontSize: 11 }} />
           <YAxis dataKey={yAxis} type="number" name={LABELS[yAxis]} tick={{ fontSize: 11 }} />
           <ZAxis range={[60, 60]} />
-          <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ fontSize: 12, borderRadius: 12 }} />
-          <Scatter data={data} shape={(props: any) => {
-            const correct = props.payload.actual === props.payload.predicted;
-            return (
-              <circle cx={props.cx} cy={props.cy} r={5}
-                fill={COLORS[props.payload.actual]}
-                stroke={correct ? "none" : "#fff"} strokeWidth={correct ? 0 : 2}
-                opacity={0.85} />
-            );
-          }} />
+          <Tooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            contentStyle={{ fontSize: 12, borderRadius: 12 }}
+          />
+          <Scatter
+            data={data}
+            shape={(props: any) => {
+              const correct = props.payload.actual === props.payload.predicted;
+              return (
+                <circle
+                  cx={props.cx}
+                  cy={props.cy}
+                  r={5}
+                  fill={COLORS[props.payload.actual]}
+                  stroke={correct ? "none" : "#fff"}
+                  strokeWidth={correct ? 0 : 2}
+                  opacity={0.85}
+                />
+              );
+            }}
+          />
+          {/* FIX: текущая точка строится по выбранным осям, а не всегда по petal-* */}
           {current && (
-            <Scatter data={[{ [xAxis]: current.x, [yAxis]: current.y }]}
+            <Scatter
+              data={[{ [xAxis]: current[xAxis], [yAxis]: current[yAxis] }]}
               shape={(props: any) => (
                 <g>
-                  <circle cx={props.cx} cy={props.cy} r={10} fill="none" stroke="#fbbf24" strokeWidth={2.5} />
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={10}
+                    fill="none"
+                    stroke="#fbbf24"
+                    strokeWidth={2.5}
+                  />
                   <circle cx={props.cx} cy={props.cy} r={4} fill="#fbbf24" />
                 </g>
-              )} />
+              )}
+            />
           )}
         </ScatterChart>
       </ResponsiveContainer>
@@ -1999,7 +2473,7 @@ export function Sidebar() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\ThemeToggle.tsx
-### SIZE: 630 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 735 B   MODIFIED: 2026-10-08 13:27:24
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2014,17 +2488,20 @@ export function ThemeToggle() {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
   return (
-    <button onClick={toggleTheme} className="h-10 w-10 rounded-xl glass flex items-center justify-center hover:shadow-glow/30 transition-all">
+    <button
+      onClick={toggleTheme}
+      // FIX: убрал нерабочий shadow-glow/30
+      className="h-10 w-10 rounded-xl glass flex items-center justify-center transition-shadow hover:shadow-[0_0_24px_rgba(99,102,241,0.3)]"
+    >
       {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
     </button>
   );
 }
 
 
-
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\TopBar.tsx
-### SIZE: 901 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 1061 B   MODIFIED: 2026-10-08 13:27:43
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -2036,10 +2513,18 @@ export function TopBar() {
     <header className="flex items-center justify-between px-6 lg:px-10 py-4">
       <div className="hidden sm:flex items-center gap-2 glass rounded-xl px-3 py-2 w-80">
         <Search size={16} className="text-slate-400" />
-        <input placeholder="Поиск по моделям, метрикам..." className="bg-transparent outline-none text-sm w-full placeholder:text-slate-500" />
+        <input
+          placeholder="Поиск по моделям, метрикам..."
+          className="bg-transparent outline-none text-sm w-full placeholder:text-slate-500"
+        />
       </div>
       <div className="flex items-center gap-3 ml-auto">
-        <a href="/artifacts/index.json" download className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl glass hover:shadow-glow/30 transition-shadow">
+        <a
+          href="/artifacts/index.json"
+          download
+          // FIX: убрал нерабочий shadow-glow/30
+          className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl glass transition-shadow hover:shadow-[0_0_24px_rgba(99,102,241,0.3)]"
+        >
           <Download size={16} /> index.json
         </a>
         <ThemeToggle />
@@ -2047,7 +2532,6 @@ export function TopBar() {
     </header>
   );
 }
-
 
 
 ════════════════════════════════════════════════════════════════════════
@@ -2754,19 +3238,37 @@ export function Button({ className, variant = "default", ...props }: ButtonHTMLA
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Card.tsx
-### SIZE: 514 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 858 B   MODIFIED: 2026-10-08 13:26:57
 ════════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
 import { HTMLAttributes } from "react";
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("glass rounded-2xl p-5 transition-shadow hover:shadow-glow/40", className)} {...props} />;
-}
-export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-xs font-medium text-slate-500 dark:text-slate-400 tracking-widest uppercase", className)} {...props} />;
+  return (
+    <div
+      // FIX: shadow-glow — это box-shadow, а не цвет, /40 не сработает.
+      // Используем готовую тень либо произвольное значение.
+      className={cn(
+        "glass rounded-2xl p-5 transition-shadow hover:shadow-[0_0_24px_rgba(99,102,241,0.4)]",
+        className
+      )}
+      {...props}
+    />
+  );
 }
 
+export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h3
+      className={cn(
+        "text-xs font-medium text-slate-500 dark:text-slate-400 tracking-widest uppercase",
+        className
+      )}
+      {...props}
+    />
+  );
+}
 
 
 ════════════════════════════════════════════════════════════════════════
@@ -2860,7 +3362,7 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\breastCancer.ts
-### SIZE: 6072 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 6024 B   MODIFIED: 2026-10-08 13:26:28
 ════════════════════════════════════════════════════════════════════════
 
 // Загрузка реальных артефактов из public/artifacts/classification/{task}/report.json
@@ -2943,14 +3445,14 @@ export interface BCReport {
   };
   models: BCModel[];
   baseline?: { name: string; metrics: Record<string, number> };
-  threshold_sweep: BCSweep;
-  sample_predictions: BCSample[];
+  // FIX: sweep может отсутствовать в артефакте
+  threshold_sweep?: BCSweep;
+  sample_predictions?: BCSample[];
   charts?: Record<string, string>;
 }
 
 export type BCTask = "breast_cancer_fp" | "breast_cancer_fn";
 
-// Python json.dump кладёт NaN/Infinity — зачищаем в null, чтобы JSON.parse не падал
 function sanitize<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === "number") return (Number.isFinite(obj) ? obj : (null as any));
@@ -2981,15 +3483,13 @@ export function findBestModel(report: BCReport): BCModel {
   return report.models.find((m) => m.is_best) ?? report.models[0];
 }
 
-/** null-safe чтение значения из массива по индексу */
 function at<T>(arr: T[] | undefined | null, idx: number, fallback: T): T {
   if (!Array.isArray(arr) || idx < 0 || idx >= arr.length) return fallback;
   const v = arr[idx];
   return v === null || v === undefined ? fallback : v;
 }
 
-export function sweepAt(sweep: BCSweep, t: number) {
-  // пустой sweep — не даём циклу оставить idx=0 с undefined
+export function sweepAt(sweep: BCSweep | undefined, t: number) {
   if (!sweep?.thresholds?.length) {
     return {
       threshold: 0,
@@ -3020,19 +3520,29 @@ export function sweepAt(sweep: BCSweep, t: number) {
     f05: at(sweep["f0.5_pos"], idx, 0),
     f1: at(sweep.f1_pos, idx, 0),
     f2: at(sweep.f2_pos, idx, 0),
-    specificity: at(sweep.specificity, idx, 1),  // дефолт = «все TN», fp будет 0
+    specificity: at(sweep.specificity, idx, 1),
     sensitivity: at(sweep.sensitivity, idx, 0),
   };
 }
 
-// Восстанавливаем TP/FN/FP/TN из recall/specificity и размеров классов тестовой выборки.
-// Раньше использовали precision — она давала нестабильные FP из-за округления.
+// FIX: классы больше не хардкодятся как benign/malignant.
+// Берём positive_class из meta.target_stats, отрицательный считаем как n_test - nPos.
 export function countsFromSweep(report: BCReport, t: number) {
   const s = sweepAt(report.threshold_sweep, t);
-  const nPos = report.meta?.target_stats?.class_distribution_test?.malignant ?? 0;
-  const nNeg = report.meta?.target_stats?.class_distribution_test?.benign ?? 0;
 
-  // recall может быть null → 0; NaN безопасен через Number.isFinite
+  const dist = report.meta?.target_stats?.class_distribution_test ?? {};
+  const positiveClass = report.meta?.target_stats?.positive_class ?? "malignant";
+  const nTest =
+    report.meta?.n_test ??
+    Object.values(dist).reduce((acc, v) => acc + (Number(v) || 0), 0);
+
+  // positive class: явное значение из distribution, иначе — по prevalence * n_test
+  const nPosRaw =
+    dist[positiveClass] ??
+    Math.round((report.meta?.target_stats?.prevalence_positive ?? 0) * nTest);
+  const nPos = Number.isFinite(nPosRaw) ? nPosRaw : 0;
+  const nNeg = Math.max(0, nTest - nPos);
+
   const recall = Number.isFinite(s.recall) ? (s.recall as number) : 0;
   const spec = Number.isFinite(s.specificity) ? (s.specificity as number) : 1;
 
@@ -3048,7 +3558,6 @@ export function countsFromSweep(report: BCReport, t: number) {
     fp,
     tn,
     ...s,
-    // перезаписываем на безопасные значения
     recall,
     specificity: spec,
   };
@@ -3301,7 +3810,7 @@ export function pixelsFromSample(features: Record<string, number>): number[][] {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\iris.ts
-### SIZE: 3002 B   MODIFIED: 2026-10-08 13:10:17
+### SIZE: 3290 B   MODIFIED: 2026-10-08 13:25:37
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -3321,7 +3830,7 @@ export interface IrisPoint {
   correct: boolean;
 }
 
-export interface IrisRaw {       // что отдаёт results.json
+export interface IrisRaw {
   classes: string[];
   features: string[];
   points: IrisPoint[];
@@ -3331,8 +3840,20 @@ export interface IrisRaw {       // что отдаёт results.json
 }
 
 export function useIrisData() {
-  const { data, loading } = useJson<any>("classification/iris/results.json");
-  if (!data?.classification) return { iris: null as IrisRaw | null, loading };
+  // FIX: забираем error из useJson, а не глотаем его.
+  const { data, loading, error } = useJson<any>("classification/iris/results.json");
+
+  if (error) {
+    return { iris: null as IrisRaw | null, loading: false, error };
+  }
+  if (!data?.classification) {
+    // data ещё нет, но loading уже false → это ошибка контента, не «вечная загрузка»
+    return {
+      iris: null as IrisRaw | null,
+      loading,
+      error: loading ? null : "results.json не содержит поля classification",
+    };
+  }
 
   const c = data.classification;
   const classes: string[] = c.classes ?? [];
@@ -3355,6 +3876,7 @@ export function useIrisData() {
   return {
     iris: { classes, features: c.features ?? [], points, importance, cv: c.cv ?? [], roc: c.roc ?? [] },
     loading,
+    error: null as string | null,
   };
 }
 
@@ -3368,7 +3890,6 @@ export function predictIris(
     return { probs: {} as Record<IrisClass, number>, predicted: "setosa" as IrisClass };
   }
 
-  // масштабируем признаки так, чтобы длины и ширины давали сопоставимый вклад
   const W = { sepalLength: 1, sepalWidth: 1, petalLength: 1.5, petalWidth: 2 };
 
   const votes: Record<IrisClass, number> = { setosa: 1e-6, versicolor: 1e-6, virginica: 1e-6 };

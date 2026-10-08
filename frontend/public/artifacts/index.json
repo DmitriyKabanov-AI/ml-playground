@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-06T16:44:56.432826",
+  "generated_at": "2026-10-08T13:40:24.332152",
   "tasks": [
     {
       "id": "breast_cancer_fn",
       "title": "Breast Cancer · FN дорогой",
-      "best_model": "LogReg @thr=0.626923",
+      "best_model": "LogReg",
       "hero_metric": "f2_pos",
-      "hero_value": 0.9848484848484849,
+      "hero_value": 0.9774436090225563,
       "unit": "",
       "report": "artifacts/classification/breast_cancer_fn/report.json",
       "charts_dir": "artifacts/classification/breast_cancer_fn"
@@ -14,7 +14,7 @@
     {
       "id": "breast_cancer_fp",
       "title": "Breast Cancer · FP дорогой",
-      "best_model": "LogReg @thr=0.465385",
+      "best_model": "LogReg",
       "hero_metric": "f0.5_pos",
       "hero_value": 0.966542750929368,
       "unit": "",
