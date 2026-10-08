@@ -294,13 +294,19 @@ export default function HomePage() {
 
 ══════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\BCPage.tsx
-### SIZE: 19099 B  MODIFIED: 2026-10-08 14:53:39
+### SIZE: 18398 B  MODIFIED: 2026-10-08 17:10:51
 ══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -327,59 +333,55 @@ type Config = {
 type Counts = { tp: number; fn: number; fp: number; tn: number };
 
 const fmtPct = (v?: number | null) =>
-  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(1)}%`;
+  v === undefined || v === null || Number.isNaN(v)
+    ? "—"
+    : `${(v * 100).toFixed(1)}%`;
 const fmtNum = (v?: number | null) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
 
 /**
- * Из всех конфигураций одной модели (LogReg @thr=0.5, @thr=0.3, ...)
- * оставляем одну — с максимальной hero-метрикой. Пользователь выбирает
- * ТИП модели, а порог для неё — тот, что дал лучший результат в артефакте.
+ * Из всех конфигураций одной модели оставляем одну — с максимальной hero-метрикой.
+ * Пользователь выбирает ТИП модели, порог для неё — лучший из артефакта.
  */
 function bestConfigPerModel(report: BCReport, hero: string): BCModel[] {
   const byModel = new Map<string, BCModel>();
   for (const m of report.models ?? []) {
     const cur = byModel.get(m.model);
-    const val = (m.metrics as any)?.[hero];
-    const curVal = cur ? (cur.metrics as any)?.[hero] : undefined;
-    if (!cur || (Number.isFinite(val) && (!Number.isFinite(curVal) || val > curVal))) {
+    const val = m.metrics[hero];
+    const curVal = cur ? cur.metrics[hero] : undefined;
+    if (
+      !cur ||
+      (Number.isFinite(val) &&
+        (!Number.isFinite(curVal) || (val as number) > (curVal as number)))
+    ) {
       byModel.set(m.model, m);
     }
   }
   return Array.from(byModel.values()).sort((a, b) => {
-    const va = (a.metrics as any)?.[hero] ?? -Infinity;
-    const vb = (b.metrics as any)?.[hero] ?? -Infinity;
-    return vb - va;
+    const va = a.metrics[hero] ?? -Infinity;
+    const vb = b.metrics[hero] ?? -Infinity;
+    return (vb as number) - (va as number);
   });
 }
 
 /**
- * Считаем counts через sweep выбранной модели, а не через статичные
- * confusion_counts из артефакта. Тогда ConfusionGrid реагирует на движение
- * слайдера порога. Fallback на confusion_counts — только если sweep нет.
+ * Считаем counts через sweep выбранной модели (реагирует на слайдер).
+ * Fallback — статичные confusion_counts из артефакта.
  */
 function extractCounts(
   model: BCModel | null,
   report: BCReport,
+  sweep: BCSweep | null,
   threshold: number
 ): Counts {
   if (!model) return { tp: 0, fn: 0, fp: 0, tn: 0 };
-
-  const perModel = (report as any).threshold_sweeps as
-    | Record<string, BCSweep>
-    | undefined;
-  const sweep =
-    perModel?.[model.model] ??
-    (report.threshold_sweep?.model === model.model
-      ? report.threshold_sweep
-      : undefined);
 
   if (sweep) {
     const c = countsFromSweep(report, threshold, sweep);
     return { tp: c.tp, fn: c.fn, fp: c.fp, tn: c.tn };
   }
 
-  const cc: any = (model as any).confusion_counts ?? {};
+  const cc = model.confusion_counts ?? {};
   const tp = Number(cc.tp_malignant ?? cc.tp ?? cc.TP ?? 0) || 0;
   const fn = Number(cc.fn_malignant ?? cc.fn ?? cc.FN ?? 0) || 0;
   const fp = Number(cc.fp_benign ?? cc.fp ?? cc.FP ?? 0) || 0;
@@ -404,7 +406,7 @@ function ModelSelector({
     <div className="flex flex-wrap gap-2">
       {models.map((m) => {
         const active = m.name === selectedName;
-        const val = (m.metrics as any)?.[hero];
+        const val = m.metrics[hero];
         return (
           <button
             key={m.name}
@@ -467,7 +469,7 @@ function HeroCard({
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
           {Number.isFinite(heroValue) ? heroValue.toFixed(4) : "—"}
         </span>
-        <Badge tone={tone as any}>{heroLabel}</Badge>
+        <Badge tone={tone as "info" | "danger"}>{heroLabel}</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
@@ -501,8 +503,16 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 }
 
 function ConfusionGrid({
-  tp, fp, fn, tn,
-}: { tp: number; fp: number; fn: number; tn: number }) {
+  tp,
+  fp,
+  fn,
+  tn,
+}: {
+  tp: number;
+  fp: number;
+  fn: number;
+  tn: number;
+}) {
   const cell = (label: string, val: number, tone: string) => (
     <div className={`rounded-lg p-3 text-center ${tone}`}>
       <p className="text-[10px] uppercase tracking-wide opacity-70">{label}</p>
@@ -526,7 +536,9 @@ function ConfusionGrid({
 
 function FeatureImportanceChart({
   data,
-}: { data: { name: string; value: number }[] }) {
+}: {
+  data: { name: string; value: number }[];
+}) {
   if (!Array.isArray(data) || !data.length) {
     return (
       <Card>
@@ -539,7 +551,16 @@ function FeatureImportanceChart({
       </Card>
     );
   }
-  const colors = ["#6366f1", "#8b5cf6", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e", "#a855f7", "#14b8a6"];
+  const colors = [
+    "#6366f1",
+    "#8b5cf6",
+    "#0ea5e9",
+    "#10b981",
+    "#f59e0b",
+    "#f43f5e",
+    "#a855f7",
+    "#14b8a6",
+  ];
   const top = [...data].slice(0, 15);
   return (
     <Card>
@@ -549,10 +570,15 @@ function FeatureImportanceChart({
       <ResponsiveContainer width="100%" height={Math.max(260, top.length * 26)}>
         <BarChart data={top} layout="vertical" margin={{ left: 10 }}>
           <XAxis type="number" hide />
-          <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} />
+          <YAxis
+            dataKey="name"
+            type="category"
+            width={150}
+            tick={{ fontSize: 11 }}
+          />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 12 }}
-            formatter={(v: number) => Number(v).toFixed(4)}
+            formatter={(v) => Number(v).toFixed(4)}
           />
           <Bar dataKey="value" radius={[0, 8, 8, 0]}>
             {top.map((_, i) => (
@@ -581,7 +607,7 @@ export function BCPage({ config }: { config: Config }) {
       .catch((e) => setError(String(e)));
   }, [config.task, config.defaultThreshold]);
 
-  // Уникальные модели (по одной конфигурации на модель), отсортированные по hero
+  // Уникальные модели, отсортированные по hero
   const models = useMemo(
     () => (report ? bestConfigPerModel(report, config.hero) : []),
     [report, config.hero]
@@ -597,23 +623,18 @@ export function BCPage({ config }: { config: Config }) {
     return models[0];
   }, [models, selectedName]);
 
-  // Когда меняется выбранная модель — синхронизируем порог с её порогом
+  // При смене модели — синхронизируем порог с её порогом
   useEffect(() => {
     if (selected) setThreshold(selected.threshold);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.name]);
 
-  // Sweep для выбранной модели: сначала per-model, потом fallback на старый.
+  // Per-model sweep (из threshold_sweeps), fallback на старый threshold_sweep
   const sweepForSelected: BCSweep | null = useMemo(() => {
     if (!report || !selected) return null;
-    const perModel = (report as any).threshold_sweeps as
-      | Record<string, BCSweep>
-      | undefined;
-    if (perModel && perModel[selected.model]) return perModel[selected.model];
-    if (
-      report.threshold_sweep &&
-      report.threshold_sweep.model === selected.model
-    ) {
+    const perModel = report.threshold_sweeps;
+    if (perModel?.[selected.model]) return perModel[selected.model];
+    if (report.threshold_sweep?.model === selected.model) {
       return report.threshold_sweep;
     }
     return null;
@@ -624,17 +645,16 @@ export function BCPage({ config }: { config: Config }) {
   const counts: Counts | null = useMemo(
     () =>
       report && selected
-        ? extractCounts(selected, report, threshold)
+        ? extractCounts(selected, report, sweepForSelected, threshold)
         : null,
-    [report, selected, threshold]
+    [report, selected, sweepForSelected, threshold]
   );
 
   // Оптимум для hero считаем по sweep выбранной модели
   const optimalForHero = useMemo(() => {
     if (!sweepForSelected?.thresholds?.length) return null;
     const sweep = sweepForSelected;
-    const arr =
-      config.hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
+    const arr = config.hero === "f0.5_pos" ? sweep["f0.5_pos"] : sweep.f2_pos;
     if (!Array.isArray(arr) || !arr.length) return null;
     let bestIdx = -1;
     let bestVal = -Infinity;
@@ -671,10 +691,9 @@ export function BCPage({ config }: { config: Config }) {
     );
   }
 
-  // Hero-метрика: ключ берём прямо из config.hero ("f0.5_pos" или "f2_pos").
-  const heroValue = Number((selected.metrics as any)[config.hero] ?? 0);
+  const heroValue = Number(selected.metrics[config.hero] ?? 0);
 
-  const metrics: [string, number | undefined, boolean][] = [
+  const metrics: [string, number | null | undefined, boolean][] = [
     ["Accuracy", selected.metrics.accuracy, false],
     ["Balanced Acc.", selected.metrics.balanced_accuracy, false],
     ["Precision (macro)", selected.metrics.precision_macro, false],
@@ -708,7 +727,6 @@ export function BCPage({ config }: { config: Config }) {
         model={selected}
       />
 
-      {/* Селектор моделей — переключение между типами моделей */}
       {models.length > 1 && (
         <ModelSelector
           models={models}
@@ -835,14 +853,21 @@ export function BCPage({ config }: { config: Config }) {
 
 ══════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\CostPanel.tsx
-### SIZE: 9845 B  MODIFIED: 2026-10-08 14:54:33
+### SIZE: 9764 B  MODIFIED: 2026-10-08 17:10:05
 ══════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, ReferenceLine, ReferenceDot,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ReferenceLine,
+  ReferenceDot,
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { BCReport, BCSweep, countsFromSweep } from "@/lib/data/breastCancer";
@@ -850,47 +875,51 @@ import { BCReport, BCSweep, countsFromSweep } from "@/lib/data/breastCancer";
 const fmtMoney = (v: number) =>
   Number.isFinite(v) ? Math.round(v).toLocaleString("ru-RU") + " ₽" : "—";
 
+type CostPoint = { threshold: number; cost: number; fp: number; fn: number };
+
 export function CostPanel({
   report,
-  sweep,                          // ← sweep выбранной модели (если есть)
+  sweep,
   currentThreshold,
   onApplyThreshold,
 }: {
   report: BCReport;
-  sweep?: BCSweep | any;          // ← per-model sweep с фронта
+  sweep?: BCSweep;
   currentThreshold?: number;
   onApplyThreshold?: (t: number) => void;
 }) {
-  // FIX: дефолт осмысленный — FN в медицинском скрининге стоит на порядок дороже FP.
+  // FN в медицинском скрининге стоит на порядок дороже FP.
   const [costFP, setCostFP] = useState(100);
   const [costFN, setCostFN] = useState(5000);
 
-  const curve = useMemo(() => {
+  const curve = useMemo<CostPoint[]>(() => {
     const effectiveSweep = sweep ?? report.threshold_sweep;
     const thresholds = effectiveSweep?.thresholds ?? [];
     return thresholds
-      .map((t: number) => {
+      .map((t): CostPoint => {
         const c = countsFromSweep(report, t, effectiveSweep);
         const cost = c.fp * costFP + c.fn * costFN;
         return {
-          threshold: +Number(t).toFixed(3),
+          threshold: Number(Number(t).toFixed(3)),
           cost: Number.isFinite(cost) ? cost : 0,
           fp: c.fp,
           fn: c.fn,
         };
       })
-      .filter((p: any) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
+      .filter((p) => Number.isFinite(p.threshold) && Number.isFinite(p.cost));
   }, [report, costFP, costFN, sweep]);
 
-  const optimal = useMemo(() => {
+  const optimal = useMemo<CostPoint | null>(() => {
     if (!curve.length) return null;
-    return curve.reduce((best, p) => (p.cost < best.cost ? p : best), curve[0]);
+    return curve.reduce<CostPoint>(
+      (best, p) => (p.cost < best.cost ? p : best),
+      curve[0]
+    );
   }, [curve]);
 
-  // стоимость на текущем пороге пользователя
-  const current = useMemo(() => {
+  const current = useMemo<CostPoint | null>(() => {
     if (!curve.length || currentThreshold === undefined) return null;
-    return curve.reduce(
+    return curve.reduce<CostPoint>(
       (best, p) =>
         Math.abs(p.threshold - currentThreshold) <
         Math.abs(best.threshold - currentThreshold)
@@ -1044,7 +1073,7 @@ export function CostPanel({
             />
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 12 }}
-              formatter={(v: number) => fmtMoney(Number(v))}
+              formatter={(v) => fmtMoney(Number(v))}
               labelFormatter={(l) => `threshold = ${l}`}
             />
 
@@ -3340,7 +3369,7 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
 
 ══════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\breastCancer.ts
-### SIZE: 6251 B  MODIFIED: 2026-10-08 14:50:19
+### SIZE: 6413 B  MODIFIED: 2026-10-08 17:09:16
 ══════════════════════════════════════════════════════════════════════
 
 // Загрузка реальных артефактов из public/artifacts/classification/{task}/report.json
@@ -3352,13 +3381,17 @@ export interface BCModel {
   threshold: number;
   is_best: boolean;
   is_deployed?: boolean;
-  metrics: Record<string, number>;
-  per_class: Record<string, { precision: number; recall: number; f1: number; support: number }>;
+  /** sanitize превращает NaN/Infinity в null — тип это учитывает */
+  metrics: Record<string, number | null>;
+  per_class: Record<
+    string,
+    { precision: number; recall: number; f1: number; support: number }
+  >;
   confusion_matrix: number[][];
-  confusion_counts: Record<string, number>;
-  feature_importance: { name: string; value: number }[];
-  roc_auc?: number;
-  pr_auc?: number;
+  confusion_counts?: Record<string, number>;
+  feature_importance?: { name: string; value: number }[];
+  roc_auc?: number | null;
+  pr_auc?: number | null;
 }
 
 export interface BCSweep {
@@ -3419,13 +3452,13 @@ export interface BCReport {
     best_metric: string;
     best_metric_value: number;
     verdict: string;
-    diagnostic_verdict: Record<string, any>;
+    diagnostic_verdict: Record<string, unknown>;
   };
   models: BCModel[];
-  baseline?: { name: string; metrics: Record<string, number> };
-  // FIX: sweep может отсутствовать в артефакте
+  baseline?: { name: string; metrics: Record<string, number | null> };
+  /** Sweep только для модели-лидера (обычно LogReg) */
   threshold_sweep?: BCSweep;
-  // FIX: per-model sweep — ключи это имена моделей ("LogReg", "RandomForest", ...)
+  /** Per-model sweep: ключи — имена моделей ("LogReg", "RandomForest", "GradientBoosting") */
   threshold_sweeps?: Record<string, BCSweep>;
   sample_predictions?: BCSample[];
   charts?: Record<string, string>;
@@ -3435,25 +3468,32 @@ export type BCTask = "breast_cancer_fp" | "breast_cancer_fn";
 
 function sanitize<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
-  if (typeof obj === "number") return (Number.isFinite(obj) ? obj : (null as any));
-  if (Array.isArray(obj)) return obj.map(sanitize) as any;
+  if (typeof obj === "number") return (Number.isFinite(obj) ? obj : (null as unknown as T));
+  if (Array.isArray(obj)) return obj.map(sanitize) as unknown as T;
   if (typeof obj === "object") {
-    const out: any = {};
-    for (const k of Object.keys(obj as any)) out[k] = sanitize((obj as any)[k]);
-    return out;
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(obj as Record<string, unknown>)) {
+      out[k] = sanitize((obj as Record<string, unknown>)[k]);
+    }
+    return out as unknown as T;
   }
   return obj;
 }
 
 export async function loadBCReport(task: BCTask): Promise<BCReport> {
-  const res = await fetch(`/artifacts/classification/${task}/report.json`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Не удалось загрузить ${task}/report.json (${res.status})`);
+  const res = await fetch(`/artifacts/classification/${task}/report.json`, {
+    cache: "no-store",
+  });
+  if (!res.ok)
+    throw new Error(`Не удалось загрузить ${task}/report.json (${res.status})`);
   const txt = await res.text();
-  let raw: any;
+  let raw: unknown;
   try {
     raw = JSON.parse(txt);
   } catch {
-    const cleaned = txt.replace(/\bNaN\b/g, "null").replace(/\b-?Infinity\b/g, "null");
+    const cleaned = txt
+      .replace(/\bNaN\b/g, "null")
+      .replace(/\b-?Infinity\b/g, "null");
     raw = JSON.parse(cleaned);
   }
   return sanitize(raw) as BCReport;
@@ -3505,8 +3545,10 @@ export function sweepAt(sweep: BCSweep | undefined, t: number) {
   };
 }
 
-// FIX: добавлен необязательный 3-й аргумент — sweep конкретной модели.
-// Если передан, используется он, а не общий report.threshold_sweep.
+/**
+ * Считает tp/fn/fp/tn для заданного порога.
+ * Если передан sweepOverride — берёт кривые из него, иначе из report.threshold_sweep.
+ */
 export function countsFromSweep(
   report: BCReport,
   t: number,
@@ -3518,17 +3560,16 @@ export function countsFromSweep(
   const positiveClass = report.meta?.target_stats?.positive_class ?? "malignant";
   const nTest =
     report.meta?.n_test ??
-    Object.values(dist).reduce((acc, v) => acc + (Number(v) || 0), 0);
+    Object.values(dist).reduce<number>((acc, v) => acc + (Number(v) || 0), 0);
 
-  // positive class: явное значение из distribution, иначе — по prevalence * n_test
   const nPosRaw =
     dist[positiveClass] ??
     Math.round((report.meta?.target_stats?.prevalence_positive ?? 0) * nTest);
   const nPos = Number.isFinite(nPosRaw) ? nPosRaw : 0;
   const nNeg = Math.max(0, nTest - nPos);
 
-  const recall = Number.isFinite(s.recall) ? (s.recall as number) : 0;
-  const spec = Number.isFinite(s.specificity) ? (s.specificity as number) : 1;
+  const recall = Number.isFinite(s.recall) ? s.recall : 0;
+  const spec = Number.isFinite(s.specificity) ? s.specificity : 1;
 
   const tp = Math.round(recall * nPos);
   const fn = Math.max(0, nPos - tp);

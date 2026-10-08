@@ -16,6 +16,16 @@ const fmtPct = (v?: number | null) =>
 const fmtNum = (v?: number | null, digits = 4) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
+// FIX: baseline всегда уходит в конец — не забивает верх списка.
+function sortModels(models: DigitsModel[]): DigitsModel[] {
+  return [...models].sort((a, b) => {
+    if (!!a.is_naive !== !!b.is_naive) return a.is_naive ? 1 : -1;
+    const av = a.metrics.f1_macro ?? -Infinity;
+    const bv = b.metrics.f1_macro ?? -Infinity;
+    return bv - av;
+  });
+}
+
 function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
   return (
     <Card className="relative overflow-hidden">
@@ -26,7 +36,6 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
       <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-          {/* FIX: безопасный формат, а не .toFixed() на возможном null */}
           {fmtNum(best.metrics.f1_macro)}
         </span>
         <Badge tone="info">macro-F1</Badge>
@@ -38,6 +47,7 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
 
 function WeightedVsMacroTrap({ report, best }: { report: DigitsReport; best: DigitsModel }) {
   const gap = report.headline?.diagnostic_verdict?.weighted_minus_macro_gap;
+  const ts = report.meta.target_stats;
   return (
     <Card className="border border-amber-500/40 bg-amber-500/5">
       <p className="text-sm">
@@ -60,19 +70,18 @@ function WeightedVsMacroTrap({ report, best }: { report: DigitsReport; best: Dig
         <div>
           <p className="text-[11px] text-slate-500 uppercase">разрыв</p>
           <p className="text-2xl font-bold text-amber-500">
-            {/* FIX: защита от undefined/NaN */}
             {Number.isFinite(gap) ? `+${(gap as number).toFixed(4)}` : "—"}
           </p>
         </div>
       </div>
       <p className="text-xs text-slate-500 mt-3">
         При imbalance{" "}
-        {Number.isFinite(report.meta.target_stats.imbalance_ratio)
-          ? report.meta.target_stats.imbalance_ratio.toFixed(2)
+        {ts && Number.isFinite(ts.imbalance_ratio)
+          ? ts.imbalance_ratio.toFixed(2)
           : "—"}
         :1 редкий класс физически весит только{" "}
-        {Number.isFinite(report.meta.target_stats.rare_class_ratio)
-          ? (report.meta.target_stats.rare_class_ratio * 100).toFixed(2)
+        {ts && Number.isFinite(ts.rare_class_ratio)
+          ? (ts.rare_class_ratio * 100).toFixed(2)
           : "—"}
         % — он не может сильно сдвинуть weighted-F1. Настоящая цена дисбаланса
         видна только в <b>per-class recall</b>.
@@ -96,13 +105,75 @@ function MetricCard({
   );
 }
 
+// FIX: единая таблица сравнения — теперь видно и GBoost, и baseline рядом.
+function ModelComparisonTable({
+  models, rareClass,
+}: {
+  models: DigitsModel[];
+  rareClass: string;
+}) {
+  if (!models.length) return null;
+  return (
+    <Card>
+      <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+        Сравнение моделей · sorted by macro-F1
+      </h3>
+      <div className="mt-4 overflow-x-auto scrollbar-thin">
+        <table className="w-full text-sm">
+          <thead className="text-xs text-slate-500 border-b border-border">
+            <tr>
+              <th className="text-left py-2">Model</th>
+              <th className="text-right">macro-F1</th>
+              <th className="text-right">weighted-F1</th>
+              <th className="text-right">accuracy</th>
+              <th className="text-right">MCC</th>
+              <th className="text-right">Cohen κ</th>
+              <th className="text-right">recall «{rareClass}»</th>
+            </tr>
+          </thead>
+          <tbody>
+            {models.map((m) => {
+              const isBest = m.is_best;
+              const isNaive = !!m.is_naive;
+              const rare = m.per_class_recall?.[rareClass] ?? m.rare_class_recall;
+              return (
+                <tr
+                  key={m.name}
+                  className={`border-b border-border/50 ${isNaive ? "opacity-60" : ""} ${
+                    isBest ? "bg-emerald-500/5" : ""
+                  }`}
+                >
+                  <td className="py-2">
+                    {m.name}{" "}
+                    {isBest && <Badge tone="success" className="ml-2">best</Badge>}
+                    {isNaive && <Badge tone="danger" className="ml-2">baseline</Badge>}
+                  </td>
+                  <td className={`text-right font-mono ${isBest ? "font-bold text-emerald-500" : ""}`}>
+                    {fmtNum(m.metrics.f1_macro)}
+                  </td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.f1_weighted)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.accuracy)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.mcc, 3)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.kappa, 3)}</td>
+                  <td className={`text-right font-mono ${isNaive ? "text-rose-500" : ""}`}>
+                    {fmtNum(rare, 3)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 function PerClassRecallChart({
   data, rareClass,
 }: {
   data: { class: string; recall: number; support: number; is_rare: boolean }[];
   rareClass: string;
 }) {
-  // FIX: защита от пустого массива
   if (!Array.isArray(data) || !data.length) {
     return (
       <Card>
@@ -143,10 +214,58 @@ function PerClassRecallChart({
   );
 }
 
+// FIX: feature importance для выбранной модели.
+// У baseline её нет — показываем аккуратную заглушку, а не пустоту.
+function FeatureImportanceChart({
+  data, modelName, isNaive,
+}: {
+  data?: { name: string; value: number }[];
+  modelName: string;
+  isNaive: boolean;
+}) {
+  if (isNaive || !Array.isArray(data) || !data.length) {
+    return (
+      <Card>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+          Feature importance (top-15)
+        </h3>
+        <p className="text-sm text-slate-500 mt-3">
+          {isNaive
+            ? <>У baseline-модели <b>{modelName}</b> нет feature importance — она игнорирует признаки.</>
+            : <>В артефакте нет feature importance для <b>{modelName}</b>.</>}
+        </p>
+      </Card>
+    );
+  }
+  const colors = ["#6366f1", "#8b5cf6", "#0ea5e9", "#10b981", "#f59e0b", "#f43f5e", "#a855f7", "#14b8a6"];
+  const top = [...data].slice(0, 15);
+  return (
+    <Card>
+      <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+        Feature importance (top-15)
+      </h3>
+      <ResponsiveContainer width="100%" height={Math.max(260, top.length * 22)}>
+        <BarChart data={top} layout="vertical" margin={{ left: 10 }}>
+          <XAxis type="number" hide />
+          <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11 }} />
+          <Tooltip
+            contentStyle={{ fontSize: 12, borderRadius: 12 }}
+            formatter={(v: number) => Number(v).toFixed(4)}
+          />
+          <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+            {top.map((_, i) => (
+              <Cell key={i} fill={colors[i % colors.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+}
+
 function Confusion10x10({
   labels, matrix, rareClass,
 }: { labels: string[]; matrix: number[][]; rareClass: string }) {
-  // FIX: защита от пустой/отсутствующей матрицы
   if (!Array.isArray(matrix) || !matrix.length) {
     return (
       <Card>
@@ -231,7 +350,7 @@ function Confusion10x10({
 export function DigitsPage() {
   const [report, setReport] = useState<DigitsReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [modelIdx, setModelIdx] = useState(0);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
 
   useEffect(() => {
     setReport(null);
@@ -239,14 +358,27 @@ export function DigitsPage() {
     loadDigitsReport()
       .then((r) => {
         setReport(r);
-        const bestIdx = r.models.findIndex((m) => m.is_best);
-        setModelIdx(bestIdx >= 0 ? bestIdx : 0);
+        // FIX: стартуем с лучшей модели; baseline всегда в конце списка
+        const best = r.models.find((m) => m.is_best) ?? r.models[0];
+        setSelectedName(best?.name ?? null);
       })
       .catch((e) => setError(String(e)));
   }, []);
 
+  // FIX: сортируем один раз — baseline в конец, чтобы не мешал обзору.
+  const sortedModels = useMemo(
+    () => (report ? sortModels(report.models) : []),
+    [report]
+  );
   const best = useMemo(() => (report ? findBestDigitsModel(report) : null), [report]);
-  const selected = report ? report.models[modelIdx] ?? null : null;
+  const selected = useMemo(() => {
+    if (!sortedModels.length) return null;
+    if (selectedName) {
+      const found = sortedModels.find((m) => m.name === selectedName);
+      if (found) return found;
+    }
+    return sortedModels[0];
+  }, [sortedModels, selectedName]);
 
   if (error) {
     return (
@@ -270,10 +402,9 @@ export function DigitsPage() {
     );
   }
 
-  const rareClass = report.meta.target_stats.rare_class;
+  const rareClass = report.meta?.target_stats?.rare_class ?? "8";
 
-  // FIX: поддержка обоих вариантов формата — объект per_class_recall
-  // либо массив report.per_class_recall
+  // FIX: per-class recall выбранной модели; fallback — общий блок из артефакта
   const perClassRecall = selected.per_class_recall
     ? Object.entries(selected.per_class_recall).map(([cls, r]) => ({
         class: cls,
@@ -295,21 +426,38 @@ export function DigitsPage() {
       <HeroCard report={report} best={best} />
       <WeightedVsMacroTrap report={report} best={best} />
 
+      {/* FIX: кнопки моделей с бейджем baseline; baseline всегда в конце */}
       <div className="flex flex-wrap gap-2">
-        {report.models.map((m, i) => (
-          <button
-            key={m.name}
-            onClick={() => setModelIdx(i)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-              modelIdx === i
-                ? "bg-violet-500 text-white border-violet-500 shadow-lg shadow-violet-500/30"
-                : "border-border text-slate-500 hover:border-violet-500/50"
-            }`}
-          >
-            {m.name}
-            {m.is_best && <span className="ml-2 text-[10px] opacity-70">best</span>}
-          </button>
-        ))}
+        {sortedModels.map((m) => {
+          const active = m.name === selected.name;
+          return (
+            <button
+              key={m.name}
+              onClick={() => setSelectedName(m.name)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all inline-flex items-center gap-2 ${
+                active
+                  ? "bg-violet-500 text-white border-violet-500 shadow-lg shadow-violet-500/30"
+                  : "border-border text-slate-500 hover:border-violet-500/50"
+              }`}
+            >
+              <span>{m.name}</span>
+              {m.is_best && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  active ? "bg-white/20" : "bg-emerald-500/15 text-emerald-500"
+                }`}>
+                  best
+                </span>
+              )}
+              {m.is_naive && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  active ? "bg-white/20" : "bg-rose-500/15 text-rose-500"
+                }`}>
+                  baseline
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -325,13 +473,23 @@ export function DigitsPage() {
         <MetricCard label="Top-3 accuracy" value={fmtPct(selected.metrics.top3_accuracy)} />
       </div>
 
+      {/* FIX: таблица сравнения — GBoost, LogReg, RF и baseline рядом */}
+      <ModelComparisonTable models={sortedModels} rareClass={rareClass} />
+
       <PerClassRecallChart data={perClassRecall} rareClass={rareClass} />
 
-      <Confusion10x10
-        labels={report.meta.classes}
-        matrix={selected.confusion_matrix}
-        rareClass={rareClass}
-      />
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Confusion10x10
+          labels={report.meta.classes}
+          matrix={selected.confusion_matrix}
+          rareClass={rareClass}
+        />
+        <FeatureImportanceChart
+          data={selected.feature_importance}
+          modelName={selected.name}
+          isNaive={!!selected.is_naive}
+        />
+      </div>
     </div>
   );
 }

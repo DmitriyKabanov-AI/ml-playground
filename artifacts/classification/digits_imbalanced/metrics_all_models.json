@@ -1,4 +1,18 @@
 {
+  "Baseline(most_frequent)": {
+    "accuracy": 0.1111111111111111,
+    "balanced_accuracy": 0.1,
+    "precision_macro": 0.01111111111111111,
+    "recall_macro": 0.1,
+    "f1_macro": 0.02,
+    "f1_weighted": 0.022222222222222223,
+    "f0.5_macro": 0.013513513513513514,
+    "f2_macro": 0.038461538461538464,
+    "mcc": 0.0,
+    "kappa": 0.0,
+    "top2_accuracy": 0.21980676328502416,
+    "top3_accuracy": 0.2391304347826087
+  },
   "LogReg(bal)": {
     "accuracy": 0.9806763285024155,
     "balanced_accuracy": 0.9514350021958717,
@@ -26,5 +40,19 @@
     "kappa": 0.9783333987518154,
     "top2_accuracy": 0.9855072463768116,
     "top3_accuracy": 0.9927536231884058
+  },
+  "GradientBoosting(bal)": {
+    "accuracy": 0.966183574879227,
+    "balanced_accuracy": 0.9379962670180062,
+    "precision_macro": 0.958017267961764,
+    "recall_macro": 0.9379962670180062,
+    "f1_macro": 0.9453358344403352,
+    "f1_weighted": 0.9661001634934704,
+    "f0.5_macro": 0.9522335789653305,
+    "f2_macro": 0.9403438716252703,
+    "mcc": 0.9624732346696605,
+    "kappa": 0.962101546408605,
+    "top2_accuracy": 0.9879227053140096,
+    "top3_accuracy": 0.9903381642512077
   }
 }

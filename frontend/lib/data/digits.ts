@@ -3,6 +3,8 @@
 export interface DigitsModel {
   name: string;
   is_best: boolean;
+  /** baseline-модель (DummyClassifier) — на фронте рисуем бейдж «baseline». */
+  is_naive?: boolean;
   metrics: Record<string, number>;
   per_class: Record<string, {
     precision: number;
@@ -15,6 +17,8 @@ export interface DigitsModel {
   confusion_matrix: number[][];
   rare_class_recall: number;
   weighted_minus_macro_gap: number;
+  /** top-15 feature importance для деревьев и LogReg; у baseline нет. */
+  feature_importance?: { name: string; value: number }[];
 }
 
 export interface DigitsSample {
