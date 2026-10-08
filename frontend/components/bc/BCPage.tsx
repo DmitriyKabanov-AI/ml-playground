@@ -280,9 +280,6 @@ export function BCPage({ config }: { config: Config }) {
           <span className="text-amber-500 font-semibold">FN: {counts.fn}</span>
           <span className="text-emerald-500 font-semibold">TP: {counts.tp}</span>
           <span className="text-sky-500 font-semibold">TN: {counts.tn}</span>
-          <span className="ml-auto text-slate-500 text-xs self-center">
-            оптимальный порог из артефакта: {optThreshold.toFixed(3)} ({thrSource})
-          </span>
         </div>
       </Card>
 
@@ -301,32 +298,6 @@ export function BCPage({ config }: { config: Config }) {
       </div>
 
       <CostPanel report={report} />
-
-      <Card>
-        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
-          Вывод из ноутбука
-        </h3>
-        <p className="mt-3 text-sm leading-relaxed">{report.meta.narrative.context}</p>
-        <div className="mt-4 grid sm:grid-cols-2 gap-3 text-sm">
-          <div className="p-3 rounded-xl bg-indigo-500/10">
-            <p className="text-xs text-slate-500 uppercase">Hero-метрика</p>
-            <p className="font-bold">{report.meta.narrative.hero_metric}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-violet-500/10">
-            <p className="text-xs text-slate-500 uppercase">Почему не accuracy</p>
-            <p className="text-xs">{narrativeWhy}</p>
-          </div>
-        </div>
-        <p className="mt-4 text-sm leading-relaxed">
-          {report.meta.narrative.main_conclusion}
-        </p>
-        {report.meta.narrative.contrast_with_breast_cancer_fp && (
-          <p className="mt-3 text-sm leading-relaxed text-slate-500">
-            {report.meta.narrative.contrast_with_breast_cancer_fp}
-          </p>
-        )}
-        <p className="text-xs text-slate-500 mt-3">{report.headline.verdict}</p>
-      </Card>
     </div>
   );
 }

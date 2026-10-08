@@ -21,11 +21,6 @@ export default function HomePage() {
         <p className="text-slate-500 mt-2">
           Данные читаются напрямую из <code className="px-1.5 py-0.5 rounded bg-slate-500/10">public/artifacts/</code> (junction → ../artifacts)
         </p>
-        {index && (
-          <p className="text-xs text-slate-500 mt-2">
-            <b>index.json</b>: {Array.isArray(index) ? `${index.length} записей` : `${Object.keys(index).length} ключей`}
-          </p>
-        )}
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {TASKS_UI.map(({ href, title, desc, icon: Icon, accent }) => (
@@ -39,12 +34,6 @@ export default function HomePage() {
             </Card>
           </Link>
         ))}
-      </div>
-      <div className="mt-8 glass rounded-2xl p-5">
-        <h3 className="font-semibold mb-2">index.json (raw)</h3>
-        <pre className="text-xs overflow-auto scrollbar-thin max-h-60 bg-slate-500/5 p-3 rounded-lg">
-          {loading ? "Загрузка..." : JSON.stringify(index, null, 2)}
-        </pre>
       </div>
     </div>
   );

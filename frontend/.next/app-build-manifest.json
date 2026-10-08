@@ -1,40 +1,91 @@
 {
   "pages": {
-    "/iris/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/iris/page.js"
+    "/_not-found/page": [
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/app/_not-found/page-c544813505c7c646.js"
     ],
     "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
-    "/breast-cancer-fp/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/breast-cancer-fp/page.js"
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/css/323b52dff510c6af.css",
+      "static/chunks/868-ce60c19c63058295.js",
+      "static/chunks/718-03ea3bd35a487b1f.js",
+      "static/chunks/app/layout-6baa52d6731ef3fc.js"
     ],
     "/breast-cancer-fn/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/breast-cancer-fn/page.js"
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/868-ce60c19c63058295.js",
+      "static/chunks/213-302ea3c0d63706a5.js",
+      "static/chunks/116-d4a863aa2cdd72c7.js",
+      "static/chunks/566-0afb06469a352771.js",
+      "static/chunks/755-e689baf557501fff.js",
+      "static/chunks/app/breast-cancer-fn/page-5262abc314bff91d.js"
+    ],
+    "/fraud/page": [
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/app/fraud/page-24b8dfacb220a67d.js"
     ],
     "/credit-fraud/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/credit-fraud/page.js"
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/868-ce60c19c63058295.js",
+      "static/chunks/213-302ea3c0d63706a5.js",
+      "static/chunks/116-d4a863aa2cdd72c7.js",
+      "static/chunks/app/credit-fraud/page-4bd3ea3a14ac6b53.js"
     ],
     "/digits/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/digits/page.js"
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/868-ce60c19c63058295.js",
+      "static/chunks/213-302ea3c0d63706a5.js",
+      "static/chunks/app/digits/page-d539f4b16ff7dfcc.js"
+    ],
+    "/breast-cancer-fp/page": [
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/868-ce60c19c63058295.js",
+      "static/chunks/213-302ea3c0d63706a5.js",
+      "static/chunks/116-d4a863aa2cdd72c7.js",
+      "static/chunks/566-0afb06469a352771.js",
+      "static/chunks/755-e689baf557501fff.js",
+      "static/chunks/app/breast-cancer-fp/page-b4031d6aba482368.js"
+    ],
+    "/iris/page": [
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/868-ce60c19c63058295.js",
+      "static/chunks/213-302ea3c0d63706a5.js",
+      "static/chunks/116-d4a863aa2cdd72c7.js",
+      "static/chunks/101-ed55d51970e7a4ef.js",
+      "static/chunks/app/iris/page-76b5f8431a1e9e1e.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-4ebfcd0abd2e4b97.js",
+      "static/chunks/fd9d1056-4fb1e96e15a0b335.js",
+      "static/chunks/23-4600f48fa87edf6c.js",
+      "static/chunks/main-app-f6767dd17bfe14ae.js",
+      "static/chunks/868-ce60c19c63058295.js",
+      "static/chunks/718-03ea3bd35a487b1f.js",
+      "static/chunks/app/page-2ae7de97b3c712b4.js"
     ]
   }
 }

@@ -8,18 +8,15 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
   DigitsReport, DigitsModel, DigitsSample,
-  loadDigitsReport, findBestDigitsModel, pixelsFromSample,
+  loadDigitsReport, findBestDigitsModel,
 } from "@/lib/data/digits";
 
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
-const pctOrDash = (v?: number | null, digits = 1) =>
-  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(digits)}%`;
 const fmtNum = (v?: number | null, digits = 4) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
-  const d = report.headline.diagnostic_verdict;
+function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
@@ -34,23 +31,6 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
         <Badge tone="info">macro-F1</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
-      <div className="flex gap-4 mt-4 text-xs flex-wrap">
-        <span>Accuracy: <b>{pctOrDash(best.metrics.accuracy, 2)}</b></span>
-        <span className="text-rose-500">
-          rare-class recall («{d.rare_class}»): <b>{pctOrDash(d.rare_class_recall)}</b>
-        </span>
-        <span className="text-emerald-500">
-          common mean recall: <b>{pctOrDash(d.common_mean_recall)}</b>
-        </span>
-        <span className="text-amber-500">
-          gap:{" "}
-          <b>
-            {d.rare_vs_common_gap == null
-              ? "—"
-              : `${(d.rare_vs_common_gap * 100).toFixed(1)} п.п.`}
-          </b>
-        </span>
-      </div>
     </Card>
   );
 }
@@ -133,10 +113,6 @@ function PerClassRecallChart({
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <p className="text-xs text-slate-500 mt-2">
-        Класс «{rareClass}» — редкий (support = {data.find((d) => d.is_rare)?.support ?? 0} в тесте).
-        Его recall резко провален — это не видно ни в accuracy, ни в weighted-F1.
-      </p>
     </Card>
   );
 }
@@ -152,7 +128,7 @@ function Confusion10x10({
         <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
           Confusion matrix 10×10
         </h3>
-        <span className="text-xs text-slate-500">rare row/col = «{rareClass}»</span>
+        
       </div>
       <div className="mt-4 overflow-x-auto scrollbar-thin">
         <div
@@ -208,81 +184,7 @@ function Confusion10x10({
   );
 }
 
-function DigitImage({ pixels, size = 64 }: { pixels: number[][]; size?: number }) {
-  const cell = size / 8;
-  return (
-    <svg width={size} height={size} viewBox="0 0 8 8" shapeRendering="crispEdges">
-      {pixels.map((row, r) =>
-        row.map((v, c) => (
-          <rect
-            key={`${r}-${c}`}
-            x={c}
-            y={r}
-            width={1}
-            height={1}
-            fill="#0f172a"
-            opacity={Math.min(1, v / 16)}
-          />
-        )),
-      )}
-    </svg>
-  );
-}
 
-function SampleGallery({ samples, rareClass }: { samples: DigitsSample[]; rareClass: string }) {
-  return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
-          Образцы теста (реальные 8×8 пиксели из артефакта)
-        </h3>
-        <span className="text-xs text-slate-500">n = {samples.length}</span>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-        {samples.map((s) => {
-          const pixels = pixelsFromSample(s.features);
-          const borderTone = s.correct
-            ? s.is_rare_true
-              ? "border-emerald-500/60"
-              : "border-border"
-            : s.is_rare_true
-            ? "border-rose-500 ring-2 ring-rose-500/30"
-            : "border-amber-500/60";
-          return (
-            <div
-              key={s.index}
-              className={`p-3 rounded-xl bg-slate-500/5 border-2 ${borderTone}`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono text-slate-500">#{s.index}</span>
-                {s.is_rare_true && (
-                  <Badge tone={s.correct ? "success" : "danger"} className="text-[10px]">
-                    rare «{rareClass}»
-                  </Badge>
-                )}
-              </div>
-              <div className="flex justify-center">
-                <DigitImage pixels={pixels} />
-              </div>
-              <div className="mt-2 text-xs">
-                <p>
-                  true: <b>{s.true}</b> · pred:{" "}
-                  <b className={s.correct ? "text-emerald-500" : "text-rose-500"}>
-                    {s.predicted}
-                  </b>
-                </p>
-                <p className="text-slate-500 mt-1">
-                  top-3:{" "}
-                  {s.top3.map((t) => `${t.class}(${(t.proba * 100).toFixed(0)}%)`).join(" ")}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
 
 export function DigitsPage() {
   const [report, setReport] = useState<DigitsReport | null>(null);
@@ -378,40 +280,6 @@ export function DigitsPage() {
         matrix={selected.confusion_matrix}
         rareClass={rareClass}
       />
-
-      <SampleGallery samples={report.sample_predictions} rareClass={rareClass} />
-
-      <Card>
-        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
-          Вывод из ноутбука
-        </h3>
-        <p className="mt-3 text-sm leading-relaxed">{report.meta.narrative.context}</p>
-        <div className="mt-4 grid sm:grid-cols-2 gap-3 text-sm">
-          <div className="p-3 rounded-xl bg-violet-500/10">
-            <p className="text-xs text-slate-500 uppercase">Hero-метрика</p>
-            <p className="font-bold">{report.meta.narrative.hero_metric}</p>
-          </div>
-          {report.meta.narrative.why_not_weighted && (
-            <div className="p-3 rounded-xl bg-amber-500/10">
-              <p className="text-xs text-slate-500 uppercase">Почему не weighted-F1</p>
-              <p className="text-xs">{report.meta.narrative.why_not_weighted}</p>
-            </div>
-          )}
-        </div>
-        <p className="mt-4 text-sm leading-relaxed">
-          {report.meta.narrative.main_conclusion}
-        </p>
-        <div className="flex gap-4 mt-4 text-xs text-slate-500 flex-wrap">
-          <span>n_samples = {report.meta.n_samples}</span>
-          <span>n_classes = {report.meta.n_classes}</span>
-          <span>
-            rare «{rareClass}» = {report.meta.target_stats.rare_class_support} (
-            {(report.meta.target_stats.rare_class_ratio * 100).toFixed(2)}%)
-          </span>
-          <span>imbalance = {report.meta.target_stats.imbalance_ratio.toFixed(2)}:1</span>
-        </div>
-        <p className="text-xs text-slate-500 mt-3">{report.headline.verdict}</p>
-      </Card>
     </div>
   );
 }

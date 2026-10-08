@@ -1,14 +1,14 @@
 # ============================================================
 # FRONTEND CODE DUMP
 # Root   : C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
-# Created: 2026-10-07 15:54:17
+# Created: 2026-10-08 10:42:20
 # Files  : 59
 # ============================================================
 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fn\page.tsx
-### SIZE: 419 B   MODIFIED: 2026-10-07 15:23:44
+### SIZE: 421 B   MODIFIED: 2026-10-07 16:03:16
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -22,7 +22,7 @@ export default function BreastCancerFNPage() {
         hero: "f2_pos",
         heroLabel: "F2 (malignant)",
         defaultThreshold: 0.626923,
-        subtitle: "Второе мнение: FN критичен — порог сдвинут вниз от 0.5",
+        subtitle: "Второе мнение: FN критичен — порог сдвинут вверх от 0.5",
       }}
     />
   );
@@ -31,7 +31,7 @@ export default function BreastCancerFNPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fp\page.tsx
-### SIZE: 410 B   MODIFIED: 2026-10-07 15:23:39
+### SIZE: 408 B   MODIFIED: 2026-10-07 16:02:56
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -45,7 +45,7 @@ export default function BreastCancerFPPage() {
         hero: "f0.5_pos",
         heroLabel: "F0.5 (malignant)",
         defaultThreshold: 0.465385,
-        subtitle: "Скрининг: FP дорог — порог сдвинут вверх от 0.5",
+        subtitle: "Скрининг: FP дорог — порог сдвинут вниз от 0.5",
       }}
     />
   );
@@ -136,11 +136,12 @@ body {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\iris\page.tsx
-### SIZE: 2625 B   MODIFIED: 2026-10-07 14:07:13
+### SIZE: 2846 B   MODIFIED: 2026-10-07 16:05:51
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo } from "react";
+import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { HeroMetric } from "@/components/shared/HeroMetric";
 import { MetricsGrid } from "@/components/shared/MetricsGrid";
@@ -155,7 +156,7 @@ import { useIrisData } from "@/lib/data/iris";
 
 export default function IrisPage() {
   const { selectedModel, setSelectedModel } = useAppStore();
-  const { data: report, loading: rl } = useJson<any>("classification/iris/report.json");
+  const { data: report, loading: rl, error: rErr } = useJson<any>("classification/iris/report.json");
   const { iris, loading: il } = useIrisData();
 
   const models = useMemo(() => modelsFromReport(report), [report]);
@@ -165,6 +166,14 @@ export default function IrisPage() {
     [report, currentModelId]
   );
   const metrics = useMemo(() => metricsFromModel(currentModel), [currentModel]);
+
+  if (rErr) {
+    return (
+      <Card>
+        <p className="text-rose-500">Ошибка загрузки артефакта: {rErr}</p>
+      </Card>
+    );
+  }
 
   if (rl || il || !report || !iris) {
     return (
@@ -242,7 +251,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: app\page.tsx
-### SIZE: 2817 B   MODIFIED: 2026-10-07 13:25:24
+### SIZE: 2867 B   MODIFIED: 2026-10-08 10:40:46
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -301,7 +310,7 @@ export default function HomePage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\BCPage.tsx
-### SIZE: 11441 B   MODIFIED: 2026-10-07 15:23:29
+### SIZE: 11871 B   MODIFIED: 2026-10-08 10:40:46
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -339,12 +348,14 @@ function HeroCard({
   report,
   hero,
   heroValue,
+  heroLabel,
   threshold,
   counts,
 }: {
   report: BCReport;
   hero: "f0.5_pos" | "f2_pos";
   heroValue: number;
+  heroLabel: string;
   threshold: number;
   counts: any;
 }) {
@@ -360,7 +371,7 @@ function HeroCard({
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
           {heroValue.toFixed(4)}
         </span>
-        <Badge tone={tone as any}>{hero === "f0.5_pos" ? "F0.5 (malignant)" : "F2 (malignant)"}</Badge>
+        <Badge tone={tone as any}>{heroLabel}</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
@@ -498,7 +509,11 @@ export function BCPage({ config }: { config: Config }) {
     ["Precision (macro)", best.metrics.precision_macro, false],
     ["Recall (macro)", best.metrics.recall_macro, false],
     ["F1 (macro)", best.metrics.f1_macro, false],
-    ["F0.5 (macro)", best.metrics["f0.5_macro"], false],
+    [
+      "F0.5 (macro)",
+      best.metrics["f0.5_macro"] ?? best.metrics.f05_macro ?? best.metrics.f0_5_macro,
+      false,
+    ],
     ["F2 (macro)", best.metrics.f2_macro, false],
     ["MCC", best.metrics.mcc, true],
     ["Cohen κ", best.metrics.kappa, true],
@@ -527,6 +542,7 @@ export function BCPage({ config }: { config: Config }) {
         report={report}
         hero={config.hero}
         heroValue={heroValue}
+        heroLabel={config.heroLabel}
         threshold={threshold}
         counts={counts}
       />
@@ -908,7 +924,7 @@ export function ThresholdChart({
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\digits\DigitsPage.tsx
-### SIZE: 16414 B   MODIFIED: 2026-10-07 15:44:04
+### SIZE: 17100 B   MODIFIED: 2026-10-08 10:40:46
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -926,8 +942,10 @@ import {
 
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
-const fmtNum = (v?: number | null) =>
-  v === undefined || v === null ? "—" : v.toFixed(4);
+const pctOrDash = (v?: number | null, digits = 1) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(digits)}%`;
+const fmtNum = (v?: number | null, digits = 4) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
 function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
   const d = report.headline.diagnostic_verdict;
@@ -946,15 +964,20 @@ function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel })
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
-        <span>Accuracy: <b>{(best.metrics.accuracy * 100).toFixed(2)}%</b></span>
+        <span>Accuracy: <b>{pctOrDash(best.metrics.accuracy, 2)}</b></span>
         <span className="text-rose-500">
-          rare-class recall («{d.rare_class}»): <b>{(d.rare_class_recall * 100).toFixed(1)}%</b>
+          rare-class recall («{d.rare_class}»): <b>{pctOrDash(d.rare_class_recall)}</b>
         </span>
         <span className="text-emerald-500">
-          common mean recall: <b>{(d.common_mean_recall * 100).toFixed(1)}%</b>
+          common mean recall: <b>{pctOrDash(d.common_mean_recall)}</b>
         </span>
         <span className="text-amber-500">
-          gap: <b>{(d.rare_vs_common_gap * 100).toFixed(1)} п.п.</b>
+          gap:{" "}
+          <b>
+            {d.rare_vs_common_gap == null
+              ? "—"
+              : `${(d.rare_vs_common_gap * 100).toFixed(1)} п.п.`}
+          </b>
         </span>
       </div>
     </Card>
@@ -1325,7 +1348,7 @@ export function DigitsPage() {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\fraud\CreditFraudPage.tsx
-### SIZE: 16692 B   MODIFIED: 2026-10-07 15:43:39
+### SIZE: 17394 B   MODIFIED: 2026-10-08 10:40:46
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -1342,8 +1365,10 @@ import {
 
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
-const fmtNum = (v?: number | null) =>
-  v === undefined || v === null ? "—" : v.toFixed(3);
+const pctOrDash = (v?: number | null, digits = 1) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(digits)}%`;
+const fmtNum = (v?: number | null, digits = 3) =>
+  v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
 function HeroCard({
   report, best,
@@ -1364,9 +1389,9 @@ function HeroCard({
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
       <div className="flex gap-4 mt-4 text-xs flex-wrap">
-        <span>PR-AUC: <b>{best.metrics.pr_auc.toFixed(4)}</b></span>
-        <span>ROC-AUC: <b>{best.metrics.roc_auc.toFixed(4)}</b></span>
-        <span>Sensitivity: <b>{(d.sensitivity_fraud * 100).toFixed(1)}%</b></span>
+        <span>PR-AUC: <b>{fmtNum(best.metrics.pr_auc ?? best.pr_auc, 4)}</b></span>
+        <span>ROC-AUC: <b>{fmtNum(best.metrics.roc_auc ?? best.roc_auc, 4)}</b></span>
+        <span>Sensitivity: <b>{pctOrDash(d.sensitivity_fraud)}</b></span>
         <span className="text-rose-500">FP: <b>{d.fp_normal}</b></span>
         <span className="text-amber-500">FN: <b>{d.fn_fraud}</b></span>
       </div>
@@ -1384,12 +1409,12 @@ function AccuracyTrap({ report }: { report: CFReport }) {
         <b>⚠️ Accuracy-ловушка:</b> модель <span className="font-mono">«{naive.name}»</span>{" "}
         даёт accuracy = <b>{fmtPct(naive.metrics.accuracy)}</b> — это <b>выше</b>, чем у многих
         честных моделей, но она не поймала ни одного мошенничества:
-        MCC = 0, PR-AUC = {naive.metrics.pr_auc.toFixed(5)} (baseline).
+        MCC = 0, PR-AUC = {fmtNum(naive.metrics.pr_auc ?? naive.pr_auc, 5)} (baseline).
       </p>
       <p className="text-xs text-slate-500 mt-2">
-        ROC-AUC тоже маскирует: LogReg показывает {report.models[0].metrics.roc_auc.toFixed(4)} —
+        ROC-AUC тоже маскирует: LogReg показывает {fmtNum(report.models[0]?.metrics.roc_auc ?? report.models[0]?.roc_auc, 4)} —
         выше, чем у лучшей по MCC модели ({report.headline.best_model.split(" ")[0]}:
-        {" "}{d.roc_auc?.toFixed(4) ?? d.best_roc_auc?.toFixed(4)}). На дисбалансе 1:
+        {" "}{fmtNum(d.roc_auc ?? d.best_roc_auc, 4)}). На дисбалансе 1:
         {Math.round(d.imbalance_ratio)} судим по <b>MCC</b> и <b>PR-AUC</b>.
       </p>
     </Card>
@@ -1432,15 +1457,15 @@ function ModelComparison({ report }: { report: CFReport }) {
                     {isNaive && <Badge tone="danger" className="ml-2">baseline</Badge>}
                   </td>
                   <td className={`text-right font-mono ${isBest ? "font-bold text-emerald-500" : ""}`}>
-                    {m.metrics.mcc.toFixed(4)}
+                    {fmtNum(m.metrics.mcc, 4)}
                   </td>
-                  <td className="text-right font-mono">{m.metrics.pr_auc.toFixed(4)}</td>
-                  <td className="text-right font-mono">{m.metrics.roc_auc.toFixed(4)}</td>
-                  <td className="text-right font-mono">{m.metrics.sensitivity.toFixed(3)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.pr_auc ?? m.pr_auc, 4)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.roc_auc ?? m.roc_auc, 4)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.sensitivity, 3)}</td>
                   <td className="text-right font-mono">
-                    {m.metrics.precision_macro.toFixed(3)}
+                    {fmtNum(m.metrics.precision_macro, 3)}
                   </td>
-                  <td className="text-right font-mono">{m.metrics.accuracy.toFixed(4)}</td>
+                  <td className="text-right font-mono">{fmtNum(m.metrics.accuracy, 4)}</td>
                 </tr>
               );
             })}
@@ -1646,9 +1671,9 @@ export function CreditFraudPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MetricCard label="MCC" value={selected.metrics.mcc.toFixed(4)} tone={selected.is_naive ? "danger" : "success"} />
-        <MetricCard label="PR-AUC" value={selected.metrics.pr_auc.toFixed(4)} />
-        <MetricCard label="ROC-AUC" value={selected.metrics.roc_auc.toFixed(4)} />
+        <MetricCard label="MCC" value={fmtNum(selected.metrics.mcc, 4)} tone={selected.is_naive ? "danger" : "success"} />
+        <MetricCard label="PR-AUC" value={fmtNum(selected.metrics.pr_auc ?? selected.pr_auc, 4)} />
+        <MetricCard label="ROC-AUC" value={fmtNum(selected.metrics.roc_auc ?? selected.roc_auc, 4)} />
         <MetricCard label="Balanced Acc." value={fmtPct(selected.metrics.balanced_accuracy)} />
         <MetricCard label="Sensitivity (fraud)" value={fmtPct(selected.metrics.sensitivity)} />
         <MetricCard label="Specificity (normal)" value={fmtPct(selected.metrics.specificity)} />
@@ -2239,7 +2264,7 @@ export function HeroMetric({ title, model, metricLabel, metricValue, tone = "inf
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\MetaStats.tsx
-### SIZE: 740 B   MODIFIED: 2026-10-07 13:28:50
+### SIZE: 763 B   MODIFIED: 2026-10-08 10:40:46
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -3421,7 +3446,7 @@ export function useCsv(path: string | null) {
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\normalize.ts
-### SIZE: 1743 B   MODIFIED: 2026-10-07 13:30:53
+### SIZE: 2089 B   MODIFIED: 2026-10-07 16:00:30
 ════════════════════════════════════════════════════════════════════════
 
 import { MetricsSet, ThresholdPoint } from "../types";
@@ -3460,19 +3485,29 @@ export function modelsFromReport(report: any): { id: string; name: string; isBes
 
 /** threshold_sweep.csv → ThresholdPoint[] */
 export function normalizeSweep(rows: Record<string, string>[]): ThresholdPoint[] {
+  const pick = (row: Record<string, string>, ...keys: string[]): number | null => {
+    for (const k of keys) {
+      const raw = row[k];
+      if (raw !== undefined && raw !== null && raw !== "") {
+        const v = Number(raw);
+        if (Number.isFinite(v)) return v;
+      }
+    }
+    return null;
+  };
+
   return rows.map((r) => {
-    const n = (k: string) => Number(r[k] ?? 0);
-    const threshold = n("threshold") || n("thr") || n("t");
-    const precision = n("precision");
-    const recall = n("recall");
-    const f1 = n("f1") || n("f1_score");
-    const f05 = n("f05") || n("f0_5") || n("f0.5") || f1;
-    const f2 = n("f2") || f1;
-    const mcc = n("mcc");
-    const tp = n("tp");
-    const fp = n("fp");
-    const fn = n("fn");
-    const tn = n("tn");
+    const threshold = pick(r, "threshold", "thr", "t") ?? 0;
+    const precision = pick(r, "precision") ?? 0;
+    const recall = pick(r, "recall") ?? 0;
+    const f1 = pick(r, "f1", "f1_score") ?? 0;
+    const f05 = pick(r, "f05", "f0_5", "f0.5") ?? f1;
+    const f2 = pick(r, "f2") ?? f1;
+    const mcc = pick(r, "mcc") ?? 0;
+    const tp = pick(r, "tp") ?? 0;
+    const fp = pick(r, "fp") ?? 0;
+    const fn = pick(r, "fn") ?? 0;
+    const tn = pick(r, "tn") ?? 0;
     return { threshold, precision, recall, f1, f05, f2, mcc, fp, fn, tp, tn };
   }).sort((a, b) => a.threshold - b.threshold);
 }

@@ -1,16 +1,16 @@
-﻿"use client";
+"use client";
 import { Card } from "@/components/ui/Card";
 
 export function MetaStats({ meta }: { meta: any }) {
   if (!meta) return null;
-  const items: [string, any][] = [
+  const items = ([
     ["n_samples", meta.n_samples],
     ["n_train", meta.n_train],
     ["n_test", meta.n_test],
     ["n_features", meta.n_features],
     ["n_classes", meta.n_classes],
     ["seed", meta.seed],
-  ].filter(([, v]) => v != null);
+  ] as [string, any][]).filter(([, v]) => v != null);
   return (
     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
       {items.map(([k, v]) => (

@@ -12,15 +12,12 @@ import {
 
 const fmtPct = (v?: number | null) =>
   v === undefined || v === null ? "—" : `${(v * 100).toFixed(2)}%`;
-const pctOrDash = (v?: number | null, digits = 1) =>
-  v === undefined || v === null || Number.isNaN(v) ? "—" : `${(v * 100).toFixed(digits)}%`;
 const fmtNum = (v?: number | null, digits = 3) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
 function HeroCard({
   report, best,
-}: { report: CFReport; best: CFModel }) {
-  const d = report.headline.diagnostic_verdict;
+}: { report: CFReport; best: CFModel }) {
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
@@ -35,38 +32,10 @@ function HeroCard({
         <Badge tone="info">MCC</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
-      <div className="flex gap-4 mt-4 text-xs flex-wrap">
-        <span>PR-AUC: <b>{fmtNum(best.metrics.pr_auc ?? best.pr_auc, 4)}</b></span>
-        <span>ROC-AUC: <b>{fmtNum(best.metrics.roc_auc ?? best.roc_auc, 4)}</b></span>
-        <span>Sensitivity: <b>{pctOrDash(d.sensitivity_fraud)}</b></span>
-        <span className="text-rose-500">FP: <b>{d.fp_normal}</b></span>
-        <span className="text-amber-500">FN: <b>{d.fn_fraud}</b></span>
-      </div>
     </Card>
   );
 }
 
-function AccuracyTrap({ report }: { report: CFReport }) {
-  const d = report.headline.diagnostic_verdict;
-  const naive = report.models.find((m) => m.is_naive);
-  if (!naive) return null;
-  return (
-    <Card className="border border-amber-500/40 bg-amber-500/5">
-      <p className="text-sm">
-        <b>⚠️ Accuracy-ловушка:</b> модель <span className="font-mono">«{naive.name}»</span>{" "}
-        даёт accuracy = <b>{fmtPct(naive.metrics.accuracy)}</b> — это <b>выше</b>, чем у многих
-        честных моделей, но она не поймала ни одного мошенничества:
-        MCC = 0, PR-AUC = {fmtNum(naive.metrics.pr_auc ?? naive.pr_auc, 5)} (baseline).
-      </p>
-      <p className="text-xs text-slate-500 mt-2">
-        ROC-AUC тоже маскирует: LogReg показывает {fmtNum(report.models[0]?.metrics.roc_auc ?? report.models[0]?.roc_auc, 4)} —
-        выше, чем у лучшей по MCC модели ({report.headline.best_model.split(" ")[0]}:
-        {" "}{fmtNum(d.roc_auc ?? d.best_roc_auc, 4)}). На дисбалансе 1:
-        {Math.round(d.imbalance_ratio)} судим по <b>MCC</b> и <b>PR-AUC</b>.
-      </p>
-    </Card>
-  );
-}
 
 function ModelComparison({ report }: { report: CFReport }) {
   const rows = report.models;
@@ -119,11 +88,6 @@ function ModelComparison({ report }: { report: CFReport }) {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-slate-500 mt-3">
-        Naive «всё normal» даёт accuracy <b>{fmtPct(report.models.find((m) => m.is_naive)?.metrics.accuracy)}</b>,
-        но MCC = 0. На дисбалансе 1:{Math.round(report.meta.target_stats.imbalance_ratio)} accuracy
-        бесполезна, судим по MCC.
-      </p>
     </Card>
   );
 }
@@ -291,14 +255,12 @@ export function CreditFraudPage() {
       </div>
     );
   }
-
-  const d = report.headline.diagnostic_verdict;
   const cc = selected.confusion_counts;
 
   return (
     <div className="space-y-6">
       <HeroCard report={report} best={best} />
-      <AccuracyTrap report={report} />
+      
 
       <div className="flex flex-wrap gap-2">
         {report.models.map((m, i) => (
@@ -356,46 +318,6 @@ export function CreditFraudPage() {
       <SampleScatter samples={report.sample_predictions} xKey="V14" yKey="V17" />
 
       <ModelComparison report={report} />
-
-      <Card>
-        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
-          Вывод из ноутбука
-        </h3>
-        <p className="mt-3 text-sm leading-relaxed">{report.meta.narrative.context}</p>
-        <div className="mt-4 grid sm:grid-cols-3 gap-3 text-sm">
-          <div className="p-3 rounded-xl bg-indigo-500/10">
-            <p className="text-xs text-slate-500 uppercase">Hero-метрика</p>
-            <p className="font-bold">{report.meta.narrative.hero_metric}</p>
-          </div>
-          {report.meta.narrative.why_not_accuracy && (
-            <div className="p-3 rounded-xl bg-amber-500/10">
-              <p className="text-xs text-slate-500 uppercase">Почему не accuracy</p>
-              <p className="text-xs">{report.meta.narrative.why_not_accuracy}</p>
-            </div>
-          )}
-          {report.meta.narrative.why_not_roc_auc && (
-            <div className="p-3 rounded-xl bg-rose-500/10">
-              <p className="text-xs text-slate-500 uppercase">Почему не ROC-AUC</p>
-              <p className="text-xs">{report.meta.narrative.why_not_roc_auc}</p>
-            </div>
-          )}
-        </div>
-        <p className="mt-4 text-sm leading-relaxed">
-          {report.meta.narrative.main_conclusion}
-        </p>
-        {report.meta.narrative.why_mcc && (
-          <p className="mt-3 text-sm text-slate-500 leading-relaxed">
-            {report.meta.narrative.why_mcc}
-          </p>
-        )}
-        <div className="flex gap-4 mt-4 text-xs text-slate-500 flex-wrap">
-          <span>imbalance = 1:{Math.round(d.imbalance_ratio)}</span>
-          <span>prevalence = {(d.prevalence_positive * 100).toFixed(3)}%</span>
-          <span>PR-AUC / baseline = {Math.round(d.pr_auc_over_baseline)}×</span>
-          <span>errors on test = {d.n_errors_on_test}</span>
-        </div>
-        <p className="text-xs text-slate-500 mt-3">{report.headline.verdict}</p>
-      </Card>
     </div>
   );
 }
