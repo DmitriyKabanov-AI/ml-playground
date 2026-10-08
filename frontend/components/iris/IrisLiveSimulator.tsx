@@ -25,32 +25,52 @@ export function IrisLiveSimulator({ data }: { data: IrisPoint[] }) {
   );
 
   return (
-    <div className="grid lg:grid-cols-2 gap-5">
-      <Card>
+    <div className="grid lg:grid-cols-2 gap-5 items-stretch">
+      <Card className="flex flex-col">
         <div className="flex items-center justify-between">
           <CardTitle>Live-симулятор цветка</CardTitle>
           <Badge tone="info" className="capitalize">{predicted}</Badge>
         </div>
-        <div className="space-y-5 mt-5">
-          {SLIDERS.map((s) => (
-            <div key={s.key}>
-              <div className="flex justify-between text-xs text-slate-500 mb-1">
-                <span>{s.label}</span>
-                <span className="font-semibold text-slate-700 dark:text-slate-300">{values[s.key].toFixed(1)}</span>
+
+        <div className="flex-1 flex flex-col justify-between gap-6 mt-6">
+          <div className="space-y-6">
+            {SLIDERS.map((s) => (
+              <div key={s.key}>
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>{s.label}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    {values[s.key].toFixed(1)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={s.min}
+                  max={s.max}
+                  step={s.step}
+                  value={values[s.key]}
+                  onChange={(e) =>
+                    setValues((v) => ({ ...v, [s.key]: parseFloat(e.target.value) }))
+                  }
+                  className="w-full accent-indigo-500 h-2 rounded-full cursor-pointer"
+                />
               </div>
-              <input type="range" min={s.min} max={s.max} step={s.step} value={values[s.key]}
-                onChange={(e) => setValues((v) => ({ ...v, [s.key]: parseFloat(e.target.value) }))}
-                className="w-full accent-indigo-500 h-2 rounded-full" />
-            </div>
-          ))}
-        </div>
-        <div className="mt-5 grid grid-cols-3 gap-2">
-          {Object.entries(probs).map(([cls, p]) => (
-            <div key={cls} className="text-center p-3 rounded-xl" style={{ background: `${COLORS[cls]}14` }}>
-              <p className="text-xs capitalize text-slate-500">{cls}</p>
-              <p className="font-bold" style={{ color: COLORS[cls] }}>{(p * 100).toFixed(1)}%</p>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(probs).map(([cls, p]) => (
+              <div
+                key={cls}
+                className="text-center p-4 rounded-xl"
+                style={{ background: `${COLORS[cls]}14` }}
+              >
+                <p className="text-xs capitalize text-slate-500">{cls}</p>
+                <p className="font-bold text-lg" style={{ color: COLORS[cls] }}>
+                  {(p * 100).toFixed(1)}%
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </Card>
 
