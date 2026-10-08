@@ -69,6 +69,17 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# ---------- Next.js ----------
+# Билд-кэш и производные артефакты — регенерируются при каждом запуске dev/build
+frontend/.next/
+.next/
+out/
+frontend/out/
+
+# TypeScript incremental build info — тоже кэш
+*.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
+
 # ---------- IDE / OS ----------
 .vscode/
 .idea/
