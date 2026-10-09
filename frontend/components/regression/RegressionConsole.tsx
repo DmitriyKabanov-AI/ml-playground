@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Activity,
   ArrowDownRight,
@@ -126,7 +127,15 @@ function RegressionConsole() {
   const [theme, setTheme] = useState<Theme>(() => {
     try { return (localStorage.getItem('ml-hub-theme') as Theme | null) ?? 'dark' } catch { return 'dark' }
   })
+  const searchParams = useSearchParams()
+  const tabParam = searchParams?.get('tab') ?? null
   const [activeModule, setActiveModule] = useState<Module>('property')
+
+  useEffect(() => {
+    if (tabParam === 'diamonds' || tabParam === 'walmart' || tabParam === 'property') {
+      setActiveModule(tabParam)
+    }
+  }, [tabParam])
   const [selectedRegModel, setSelectedRegModel] = useState('XGBoost')
   const [selectedDiamondModel, setSelectedDiamondModel] = useState('XGBoost')
   const [diamond, setDiamond] = useState<DiamondInputs>(initialDiamond)
