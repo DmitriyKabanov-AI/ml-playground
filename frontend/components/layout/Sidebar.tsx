@@ -1,25 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Flower2,
-  Ribbon,
-  Stethoscope,
-  ShieldAlert,
-  Grid3x3,
-  Activity,
-  Layers,
-  TrendingUp,} from "lucide-react";
+import { Activity, TrendingUp, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TASKS } from "@/lib/data/tasks";
-
-const ICONS: Record<string, any> = {
-  flower: Flower2,
-  ribbon: Ribbon,
-  stethoscope: Stethoscope,
-  shield: ShieldAlert,
-  grid: Grid3x3,
-};
 
 type NavItem = { href: string; label: string; icon: any };
 type NavGroup = { label: string | null; items: NavItem[] };
@@ -31,19 +14,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Классификация",
-    items: [
-      // опциональный лендинг раздела — если файл app/classification/page.tsx есть, ссылка рабочая
-      { href: "/classification", label: "Все задачи", icon: Layers },
-      ...TASKS.map((t) => ({
-        href: t.href,
-        label: t.title,
-        icon: ICONS[t.icon],
-      })),
-    ],
-  },
-  {
-    label: "Регрессия",
-    items: [{ href: "/regression", label: "ML Regression", icon: TrendingUp }],
+    items: [{ href: "/classification", label: "ML Classification", icon: Layers }],
   },
   {
     label: "Регрессия",
