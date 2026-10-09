@@ -709,8 +709,9 @@ function RegressionConsole() {
                 </Card>
               </section>
             </div>
-                                        ) : activeModule === 'walmart' && walmart ? (
+                              ) : activeModule === 'walmart' && walmart ? (
             <div className="content-stack">
+              {/* ── Store picker ───────────────────────────────────── */}
               <section className="store-picker-panel">
                 <div className="store-picker-heading">
                   <div>
@@ -718,7 +719,8 @@ function RegressionConsole() {
                     <h2>Выберите магазин</h2>
                   </div>
                   <span className="store-picker-caption">
-                    {`${walmart.meta.series_span?.n_stores ?? walmart.per_store.length} магазинов · недельные данные`}
+                    {`${walmart.meta.series_span?.n_stores ?? walmart.per_store.length} магазинов · недельные данные · `}
+                    {`${walmart.meta.series_span?.n_weeks ?? '—'} недель`}
                   </span>
                 </div>
                 <div className="store-picker-grid">
@@ -746,6 +748,7 @@ function RegressionConsole() {
                 </div>
               </section>
 
+              {/* ── Control strip ─────────────────────────────────── */}
               <section className="control-strip walmart-controls">
                 <div className="controls-intro">
                   <span className="control-icon"><SlidersHorizontal size={16} /></span>
@@ -798,6 +801,7 @@ function RegressionConsole() {
                 </div>
               </section>
 
+              {/* ── Metrics ───────────────────────────────────────── */}
               <section className="metrics-grid">
                 <MetricCard
                   label="WMAE · ошибка"
@@ -829,6 +833,7 @@ function RegressionConsole() {
                 />
               </section>
 
+              {/* ── Weekly chart ──────────────────────────────────── */}
               <Card
                 title="Недельные продажи: факт и прогноз"
                 subtitle={`Store ${walmartActiveStoreId ?? '—'} · ${currentWalmartModel?.name ?? '—'} · жёлтые маркеры — праздничные недели`}
@@ -888,10 +893,11 @@ function RegressionConsole() {
                 </div>
                 <div className="chart-footnote">
                   <span><i className="legend-line actual-line" /> История до последней фактической недели</span>
-                  <span><i className="legend-line forecast-line" /> Прогноз · горизонт {walmartHorizon} нед.</span>
+                  <span><i className="legend-line forecast-line" /> Прогноз выбранной модели · горизонт {walmartHorizon} нед.</span>
                 </div>
               </Card>
 
+              {/* ── Model comparison + Insights ───────────────────── */}
               <section className="two-column walmart-detail-grid">
                 <Card
                   title="Сравнение моделей"
@@ -900,7 +906,11 @@ function RegressionConsole() {
                 >
                   <div className="chart-area chart-medium">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={walmartModelsComparison} layout="vertical" margin={{ top: 4, right: 26, bottom: 4, left: 6 }}>
+                      <BarChart
+                        data={walmartModelsComparison}
+                        layout="vertical"
+                        margin={{ top: 4, right: 26, bottom: 4, left: 6 }}
+                      >
                         <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" />
                         <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis type="category" dataKey="name" width={108} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
@@ -932,8 +942,8 @@ function RegressionConsole() {
                         </b>
                         <p>
                           {walmartHorizonRows.filter((r) => r.holiday).length
-                            ? `В горизонт попадают ${walmartHorizonRows.filter((r) => r.holiday).map((r) => `${r.holiday?.icon} ${r.holiday?.label}`).join(' и ')}.`
-                            : 'В выбранный горизонт не попали праздничные недели.'}
+                            ? `В горизонт попадают ${walmartHorizonRows.filter((r) => r.holiday).map((r) => `${r.holiday?.icon} ${r.holiday?.label}`).join(' и ')}. Эти недели дают всплески продаж.`
+                            : 'В выбранный горизонт не попали праздничные недели из календаря.'}
                         </p>
                       </div>
                     </div>
@@ -954,8 +964,9 @@ function RegressionConsole() {
                         <b>Масштаб магазина</b>
                         <p>
                           Store {walmartActiveStoreId} имеет базовый уровень{' '}
-                          <strong>{formatSales(walmartTopStores.find((r) => r.store === walmartActiveStoreId)?.avg_sales ?? 0)}</strong>{' '}
-                          в среднем за неделю.
+                          <strong>{formatSales(walmartTopStores.find((r) => r.store === walmartActiveStoreId)?.avg_sales ?? 0)}</strong>
+                          {' '}в среднем за неделю. Поэтому абсолютный прогноз отличается от других магазинов
+                          даже при схожей сезонности.
                         </p>
                       </div>
                     </div>
@@ -966,6 +977,7 @@ function RegressionConsole() {
                 </Card>
               </section>
 
+              {/* ── Seasonality + Weekly table ────────────────────── */}
               <section className="two-column walmart-bottom-grid">
                 <Card title="Сезонность по месяцам" subtitle="Средние продажи за доступную историю магазина.">
                   <div className="chart-area chart-medium">
@@ -1011,11 +1023,16 @@ function RegressionConsole() {
                 </Card>
               </section>
 
+              {/* ── Feature importance + Per-store MAPE ───────────── */}
               <section className="two-column lower-grid">
                 <Card title="Важность факторов" subtitle="RandomForest importance из артефакта">
                   <div className="chart-area chart-medium">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={walmart.feature_importance.RandomForest ?? []} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 12 }}>
+                      <BarChart
+                        data={walmart.feature_importance.RandomForest ?? []}
+                        layout="vertical"
+                        margin={{ top: 4, right: 12, bottom: 4, left: 12 }}
+                      >
                         <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" />
                         <XAxis type="number" tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis dataKey="name" type="category" width={140} tickFormatter={(v) => WALMART_LABELS[v] ?? v} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
@@ -1059,6 +1076,7 @@ function RegressionConsole() {
                 </Card>
               </section>
 
+              {/* ── Table ─────────────────────────────────────────── */}
               <Card
                 title="Таблица метрик"
                 subtitle="Нажмите строку — переключится модель в графиках"

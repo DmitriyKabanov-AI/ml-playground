@@ -1,8 +1,8 @@
 # ============================================================
 # FRONTEND CODE DUMP
 # Root   : C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
-# Created: 2026-10-09 15:31:30
-# Files  : 66
+# Created: 2026-10-09 17:56:18
+# Files  : 68
 # ============================================================
 
 
@@ -3466,7 +3466,7 @@ export const meanValue = mean
 
 ════════════════════════════════════════════════════════════════════════
 ### FILE: components\regression\RegressionConsole.tsx
-### SIZE: 60312 B   MODIFIED: 2026-10-09 13:34:55
+### SIZE: 63331 B   MODIFIED: 2026-10-09 17:42:53
 ════════════════════════════════════════════════════════════════════════
 
 "use client";
@@ -3513,28 +3513,26 @@ import {
   calculateDiamondPrice,
   diamondsDemo,
   meanValue,
-  regressionDemo,
-  walmartDemo,
   type DiamondInputs,
   type MetricSummary,
-  type WalmartModel,
-  type WalmartStore,
 } from './demoData'
+import {
+  useHousingReport,
+  predictHousing,
+  HOUSING_LABELS,
+} from '@/lib/data/housing'
+import {
+  useWalmartReport,
+  WALMART_LABELS,
+  type WalmartModel,
+} from '@/lib/data/walmart'
 
 type Theme = 'dark' | 'light'
 type Module = 'property' | 'diamonds' | 'walmart'
-type PropertyInputs = {
-  area: number
-  rooms: number
-  age: number
-  distance: number
-  income: number
-  finish: number
-}
 
 const formatNumber = (value: number, digits = 1) => value.toLocaleString('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: 0 })
 const formatPercent = (value: number, digits = 1) => `${value >= 0 ? '+' : ''}${formatNumber(value * 100, digits)}%`
-const formatMoneyK = (value: number) => `$${formatNumber(value, 1)}k`
+const formatMoneyK = (value: number) => `$${formatNumber(value * 100, 1)}k`
 const formatUsd = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
 const formatSales = (value: number) => `$${(value / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`
 const formatAxisDate = (value: string) => value ? `${value.slice(5, 7)}/${value.slice(2, 4)}` : ''
@@ -3547,15 +3545,6 @@ const chartPalette = {
   amber: '#fbbf24',
   rose: '#fb7185',
   purple: '#c4b5fd',
-}
-
-const initialProperty: PropertyInputs = {
-  area: 90,
-  rooms: 3,
-  age: 10,
-  distance: 15,
-  income: 80,
-  finish: 5,
 }
 
 const initialDiamond: DiamondInputs = {
@@ -3607,42 +3596,88 @@ function RegressionConsole() {
       setActiveModule(tabParam)
     }
   }, [tabParam])
-  const [selectedRegModel, setSelectedRegModel] = useState('XGBoost')
+  const { data: housing, loading: housingLoading, error: housingError } = useHousingReport()
+  const { data: walmart, loading: walmartLoading, error: walmartError } = useWalmartReport()
+  const [selectedRegModel, setSelectedRegModel] = useState<string>('')
   const [selectedDiamondModel, setSelectedDiamondModel] = useState('XGBoost')
   const [diamond, setDiamond] = useState<DiamondInputs>(initialDiamond)
-  const [property, setProperty] = useState<PropertyInputs>(initialProperty)
-  const [storeIndex, setStoreIndex] = useState(0)
-  const [selectedWalmartModel, setSelectedWalmartModel] = useState('LightGBM')
-  const [horizon, setHorizon] = useState<4 | 8 | 13>(13)
-  const [showConfidence, setShowConfidence] = useState(true)
-  const [showHolidays, setShowHolidays] = useState(true)
-  const [rangeStart, setRangeStart] = useState(walmartDemo.dates[Math.max(0, walmartDemo.historicalCount - 52)])
-  const [rangeEnd, setRangeEnd] = useState(walmartDemo.dates[walmartDemo.dates.length - 1])
-  const [autoEnd, setAutoEnd] = useState(true)
+  const [propertyInputs, setPropertyInputs] = useState<Record<string, number>>({})
+  const [selectedWalmartModel, setSelectedWalmartModel] = useState<string>('RandomForest')
 
   useEffect(() => {
     // theme applied via data-theme on .mlr-root
     try { localStorage.setItem('ml-hub-theme', theme) } catch { /* storage may be unavailable */ }
   }, [theme])
 
-  const currentRegModel = regressionDemo.models.find((model) => model.name === selectedRegModel) ?? regressionDemo.models[regressionDemo.models.length - 1]
-  const currentDiamondModel = diamondsDemo.models.find((model) => model.name === selectedDiamondModel) ?? diamondsDemo.models[diamondsDemo.models.length - 1]
-  const store: WalmartStore = walmartDemo.stores[storeIndex] ?? walmartDemo.stores[0]
-  const currentWalmartModel: WalmartModel = store.models.find((model) => model.name === selectedWalmartModel) ?? store.models[store.models.length - 1]
+  // когда report подгрузился — выбрать best-модель и заполнить слайдеры медианами
+  useEffect(() => {
+    if (!housing) return
+    setSelectedRegModel(prev =>
+      housing.models.find(m => m.name === prev) ? prev : housing.headline.best_model
+    )
+    setPropertyInputs((prev) => {
+      // если уже есть значения пользователя — не перезатираем
+      if (Object.keys(prev).length) return prev
+      const defaults: Record<string, number> = {}
+      for (const f of housing.meta.features) {
+        const st = housing.data.feature_stats[f]
+        defaults[f] = st ? st.median : 0
+      }
+      return defaults
+    })
+  }, [housing])
 
-  const modelComparison = useMemo(() => regressionDemo.models.map((model) => ({
+  useEffect(() => {
+    if (!walmart) return
+    setSelectedWalmartModel(prev =>
+      walmart.models.find(m => m.name === prev) ? prev : walmart.headline.best_model
+    )
+  }, [walmart])
+
+  const housingModels = housing?.models ?? []
+  const currentRegModel =
+    housingModels.find((model) => model.name === selectedRegModel) ??
+    housingModels[0] ??
+    null
+  const currentDiamondModel = diamondsDemo.models.find((model) => model.name === selectedDiamondModel) ?? diamondsDemo.models[diamondsDemo.models.length - 1]
+
+  const currentWalmartModel: WalmartModel | null =
+    walmart?.models.find((m) => m.name === selectedWalmartModel)
+    ?? walmart?.models[walmart.models.length - 1]
+    ?? null
+
+  const walmartBest: WalmartModel | null =
+    walmart?.models.reduce<WalmartModel | null>(
+      (best, m) => (!best || m.metrics.mape < best.metrics.mape ? m : best),
+      null,
+    ) ?? null
+
+  const modelComparison = useMemo(() => housingModels.map((model) => ({
     name: model.name,
     rmse: Number(model.metrics.rmse.toFixed(2)),
     r2: Number(model.metrics.r2.toFixed(3)),
     mae: Number(model.metrics.mae.toFixed(2)),
     mape: Number(model.metrics.mape.toFixed(2)),
-    maxError: Number(model.metrics.maxError.toFixed(2)),
-  })), [])
+    maxError: Number(model.metrics.max_error.toFixed(2)),
+  })), [housingModels])
 
-  const scatterData = useMemo(() => regressionDemo.y.map((actual, index) => ({ actual, predicted: currentRegModel.pred[index] })), [currentRegModel])
-  const residualData = useMemo(() => regressionDemo.y.map((actual, index) => ({ predicted: currentRegModel.pred[index], residual: +(currentRegModel.pred[index] - actual).toFixed(2) })), [currentRegModel])
+  const yActual = housing?.data.y_test ?? []
+  const yPredicted = currentRegModel?.predictions ?? []
+
+  const scatterData = useMemo(
+    () => yActual.map((actual, i) => ({ actual, predicted: yPredicted[i] ?? 0 })),
+    [yActual, yPredicted]
+  )
+  const residualData = useMemo(
+    () => yActual.map((actual, i) => ({
+      predicted: yPredicted[i] ?? 0,
+      residual: +((yPredicted[i] ?? 0) - actual).toFixed(3),
+    })),
+    [yActual, yPredicted]
+  )
   const residualDistribution = useMemo(() => {
     const residuals = residualData.map((item) => item.residual)
+    if (!residuals.length) return [] as { range: string; count: number; center: number }[]
     const min = Math.min(...residuals)
     const max = Math.max(...residuals)
     const binCount = 16
@@ -3656,34 +3691,29 @@ function RegressionConsole() {
   }, [residualData])
 
   const propertyEstimate = useMemo(() => {
-    const base = 240
-      + (property.area - 90) * 2.1
-      + (property.rooms - 3) * 14
-      - (property.age - 10) * 1.1
-      - (property.distance - 15) * 2.1
-      + (property.income - 80) * 1.25
-      + (property.finish - 5) * 7
-      + (property.area - 90) * (property.income - 80) * 0.015
-    const modelAdjustment: Record<string, number> = {
-      'Linear Regression': 8,
-      Ridge: 5,
-      Lasso: 6,
-      'Random Forest': 2,
-      'Gradient Boosting': 0.8,
-      XGBoost: 0,
+    if (!housing || !currentRegModel) return null
+    if (Object.keys(propertyInputs).length === 0) return null
+
+    const raw = predictHousing(propertyInputs, housing.calculator)   // в $100k
+    const uncertainty = Math.max(0.05, currentRegModel.metrics.rmse)
+
+    const drivers = housing.meta.features
+      .map(f => {
+        const median = housing.data.feature_stats[f].median
+        return {
+          label: HOUSING_LABELS[f] ?? f,
+          value: housing.calculator.coefficients[f] * (propertyInputs[f] - median),
+        }
+      })
+      .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+
+    return {
+      estimated: raw,
+      low:  Math.max(0, raw - uncertainty),
+      high: raw + uncertainty,
+      drivers,
     }
-    const estimated = Math.max(35, base + (modelAdjustment[currentRegModel.name] ?? 0))
-    const uncertainty = Math.max(4, currentRegModel.metrics.rmse * 0.52)
-    const drivers = [
-      { label: 'Площадь', value: (property.area - 90) * 2.1 },
-      { label: 'Доход района', value: (property.income - 80) * 1.25 },
-      { label: 'Расположение', value: -(property.distance - 15) * 2.1 },
-      { label: 'Отделка', value: (property.finish - 5) * 7 },
-      { label: 'Возраст', value: -(property.age - 10) * 1.1 },
-      { label: 'Комнаты', value: (property.rooms - 3) * 14 },
-    ].sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
-    return { estimated, low: Math.max(35, estimated - uncertainty), high: estimated + uncertainty, drivers }
-  }, [property, currentRegModel])
+  }, [housing, propertyInputs, currentRegModel])
 
   const diamondModelComparison = useMemo(() => diamondsDemo.models.map((model) => ({
     name: model.name,
@@ -3717,82 +3747,56 @@ function RegressionConsole() {
     ].sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
     return { raw, estimated, low: Math.max(100, estimated - uncertainty), high: estimated + uncertainty, drivers }
   }, [diamond, currentDiamondModel])
+  const walmartScatterData = useMemo(() => {
+    if (!walmart || !currentWalmartModel) return []
+    return walmart.data.y_test.map((actual, i) => ({
+      actual,
+      predicted: currentWalmartModel.predictions[i] ?? 0,
+    }))
+  }, [walmart, currentWalmartModel])
 
-  const walmartForecast = useMemo(() => {
-    const start = walmartDemo.historicalCount
-    const futureIndices = Array.from({ length: horizon }, (_, index) => start + index)
-    const forecast = futureIndices.map((index) => currentWalmartModel.forecast[index] ?? 0)
-    const lastYear = futureIndices.map((index) => Number(store.actual[index - 52] ?? 0))
-    const forecastTotal = sumValues(forecast)
-    const lastYearTotal = sumValues(lastYear)
-    const recent = store.actual.slice(Math.max(0, store.actual.length - 13)).filter((value): value is number => value != null)
-    const forecastVsRecent = mean(forecast) / (mean(recent) || 1) - 1
-    const holidayRows = futureIndices.map((index) => ({ index, date: store.dates[index], holiday: walmartDemo.holidays.find((holiday) => holiday.date === store.dates[index]) })).filter((item) => item.holiday)
-    return {
-      futureIndices,
-      forecast,
-      forecastTotal,
-      yoy: lastYearTotal ? forecastTotal / lastYearTotal - 1 : 0,
-      lastYearTotal,
-      forecastVsRecent,
-      holidayRows,
-    }
-  }, [currentWalmartModel, horizon, store])
+  const walmartModelsComparison = useMemo(() => {
+    if (!walmart) return []
+    return walmart.models.map((m) => ({
+      name: m.name,
+      r2: Number(m.metrics.r2.toFixed(4)),
+      mae: Math.round(m.metrics.mae),
+      rmse: Math.round(m.metrics.rmse),
+      mape: Number(m.metrics.mape.toFixed(2)),
+      medae: Math.round(m.metrics.medae),
+      max_error: Math.round(m.metrics.max_error),
+      cv_mape: m.cv?.mape_mean != null ? Number(m.cv.mape_mean.toFixed(2)) : null,
+    }))
+  }, [walmart])
 
-  const walmartChartData = useMemo(() => store.dates.map((date, index) => {
-    const forecastAllowed = index < walmartDemo.historicalCount + horizon
-    return {
-      date,
-      axisDate: formatAxisDate(date),
-      actual: store.actual[index] ?? null,
-      forecast: forecastAllowed ? currentWalmartModel.forecast[index] : null,
-      low: showConfidence && forecastAllowed ? currentWalmartModel.lo[index] : null,
-      high: showConfidence && forecastAllowed ? currentWalmartModel.hi[index] : null,
-      holiday: walmartDemo.holidays.find((item) => item.date === date),
-      index,
-    }
-  }).filter((item) => item.date >= rangeStart && item.date <= rangeEnd), [store, currentWalmartModel, horizon, rangeStart, rangeEnd, showConfidence])
-
-  const seasonality = useMemo(() => {
-    const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-    const buckets = months.map((month) => ({ month, values: [] as number[] }))
-    store.actual.forEach((value, index) => {
-      if (value == null) return
-      const month = Number(store.dates[index].slice(5, 7)) - 1
-      buckets[month].values.push(value)
-    })
-    return buckets.map((bucket) => ({ month: bucket.month, sales: Math.round(mean(bucket.values)) }))
-  }, [store])
-
-  const weeklyForecastRows = walmartForecast.futureIndices.map((index) => {
-    const forecast = Number(currentWalmartModel.forecast[index] ?? 0)
-    const lastYear = Number(store.actual[index - 52] ?? 0)
-    return {
-      date: store.dates[index],
-      forecast,
-      yoy: lastYear ? forecast / lastYear - 1 : 0,
-      holiday: walmartDemo.holidays.find((item) => item.date === store.dates[index]),
-    }
-  })
-
-  const regressionBest = regressionDemo.models.reduce((best, model) => model.metrics.rmse < best.metrics.rmse ? model : best, regressionDemo.models[0])
-  const walmartBest = store.models.reduce((best, model) => model.metrics.mape < best.metrics.mape ? model : best, store.models[0])
+  const walmartPerStore = useMemo(() => {
+    if (!walmart) return []
+    return [...walmart.per_store].sort((a, b) => a.mape - b.mape)
+  }, [walmart])
+  const regressionBest = housingModels.length
+    ? housingModels.reduce((best, model) => model.metrics.rmse < best.metrics.rmse ? model : best, housingModels[0])
+    : null
 
   const downloadReport = () => {
     const payload = activeModule === 'property'
-      ? { source: 'synthetic demo data', section: 'regression-property', selectedModel: currentRegModel.name, metrics: currentRegModel.metrics, propertyInputs: property, estimate: propertyEstimate }
+      ? { source: 'artifact:regression/housing/report.json', section: 'regression-property', selectedModel: currentRegModel?.name, metrics: currentRegModel?.metrics, propertyInputs: propertyInputs, estimate: propertyEstimate }
       : activeModule === 'diamonds'
         ? { source: 'synthetic demo data', section: 'regression-diamonds', selectedModel: currentDiamondModel.name, metrics: currentDiamondModel.metrics, diamondInputs: diamond, estimate: diamondEstimate, sampleSize: diamondsDemo.samples.length }
-        : { source: 'synthetic demo data', section: 'walmart-sales', store: store.name, model: currentWalmartModel.name, horizonWeeks: horizon, dateRange: { start: rangeStart, end: rangeEnd }, metrics: currentWalmartModel.metrics, forecast: weeklyForecastRows }
+        : { source: 'artifact:regression/walmart/report.json', section: 'regression-walmart', model: currentWalmartModel?.name, metrics: currentWalmartModel?.metrics, perStore: walmart?.per_store, samplePredictions: walmart?.sample_predictions }
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = activeModule === 'property' ? 'regression-report.json' : activeModule === 'diamonds' ? 'diamonds-regression-report.json' : 'walmart-forecast.json'
+    link.download = activeModule === 'property'
+      ? 'regression-report.json'
+      : activeModule === 'diamonds'
+        ? 'diamonds-regression-report.json'
+        : 'walmart-regression-report.json'
     link.click()
     URL.revokeObjectURL(url)
   }
 
-  const updateProperty = (key: keyof PropertyInputs, value: number) => setProperty((current) => ({ ...current, [key]: value }))
+  const updateProperty = (key: string, value: number) =>
+    setPropertyInputs(prev => ({ ...prev, [key]: value }))
   const updateDiamond = (key: keyof DiamondInputs, value: number | string) => setDiamond((current) => {
     if (key === 'carat') {
       const nextCarat = Number(value)
@@ -3801,10 +3805,46 @@ function RegressionConsole() {
     }
     return { ...current, [key]: value } as DiamondInputs
   })
-  const setHorizonValue = (value: 4 | 8 | 13) => {
-    setHorizon(value)
-    if (autoEnd) setRangeEnd(walmartDemo.dates[Math.min(walmartDemo.dates.length - 1, walmartDemo.historicalCount + value - 1)])
-  }
+    const walmartFailed = !!walmartError || (!walmartLoading && !walmart)
+
+    if (activeModule === 'walmart' && walmartLoading) {
+      return (
+        <div className="mlr-root app-shell" data-theme={theme}>
+          <div className="page-content" style={{ padding: 40, textAlign: 'center' }}>
+            Загрузка отчёта walmart…
+          </div>
+        </div>
+      )
+    }
+    if (activeModule === 'walmart' && walmartFailed) {
+      return (
+        <div className="mlr-root app-shell" data-theme={theme}>
+          <div className="page-content" style={{ padding: 40, textAlign: 'center', color: '#fb7185' }}>
+            Не удалось загрузить walmart/report.json: {walmartError ?? 'нет данных'}
+          </div>
+        </div>
+      )
+    }
+    const housingFailed = !!housingError || (!housingLoading && !housing)
+
+    if (activeModule === 'property' && housingLoading) {
+      return (
+        <div className="mlr-root app-shell" data-theme={theme}>
+          <div className="page-content" style={{ padding: 40, textAlign: 'center' }}>
+            Загрузка отчёта housing…
+          </div>
+        </div>
+      )
+    }
+    if (activeModule === 'property' && housingFailed) {
+      return (
+        <div className="mlr-root app-shell" data-theme={theme}>
+          <div className="page-content" style={{ padding: 40, textAlign: 'center', color: '#fb7185' }}>
+            Не удалось загрузить report.json: {housingError ?? 'нет данных'}
+          </div>
+        </div>
+      )
+    }
 
   return (
     <div className="mlr-root app-shell" data-theme={theme}>
@@ -3813,8 +3853,8 @@ function RegressionConsole() {
         <div className="nav-caption">РАБОЧЕЕ ПРОСТРАНСТВО</div>
         <button className="nav-item selected" type="button"><BarChart3 size={18} /><span>Регрессия</span><span className="nav-pip" /></button>
         <div className="sidebar-bottom">
-          <div className="source-card"><span className="source-dot" /><div><b>Demo data</b><span>Синтетический набор</span></div></div>
-          <div className="sidebar-note">Один раздел для моделей, бизнес-оценки и прогноза продаж.</div>
+          <div className="source-card"><span className="source-dot" /><div><b>Real artifacts + demo</b><span>Housing &amp; Walmart — artifacts · Diamonds — demo</span></div></div>
+          <div className="sidebar-note">Недвижимость и Walmart читаются из artifacts/regression/. Алмазы — синтетика.</div>
         </div>
       </aside>
 
@@ -3822,7 +3862,7 @@ function RegressionConsole() {
         <header className="topbar">
           <div className="breadcrumbs"><span>ML Hub</span><span className="crumb-slash">/</span><b>Регрессия</b></div>
           <div className="top-actions">
-            <span className="data-badge"><span className="status-dot" /> DEMO DATA</span>
+            <span className="data-badge"><span className="status-dot" /> {(activeModule === 'property' || activeModule === 'walmart') ? 'ARTIFACT' : 'DEMO DATA'}</span>
             <button type="button" className="icon-button" onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} aria-label="Переключить тему" title="Переключить тему">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
             <button type="button" className="button button-quiet" onClick={downloadReport}><Download size={15} /> Экспорт JSON</button>
           </div>
@@ -3830,14 +3870,24 @@ function RegressionConsole() {
 
         <div className="page-content">
           <section className="page-title-row">
-            <div><div className="eyebrow">MODEL PERFORMANCE CONSOLE</div><h1>Регрессия</h1><p>Метрики моделей, оценка недвижимости и бриллиантов, а также прогноз продаж Walmart — в одном пространстве.</p></div>
-            <div className="last-run"><span className="last-run-icon"><Check size={14} /></span><span><b>Рабочая среда готова</b><small>Локальные демо-данные · без API</small></span></div>
+            <div>
+              <div className="eyebrow">MODEL PERFORMANCE CONSOLE</div>
+              <h1>Регрессия</h1>
+              <p>Метрики моделей, оценка недвижимости и алмазов, регрессия продаж Walmart — в одном пространстве.</p>
+            </div>
+            <div className="last-run">
+              <span className="last-run-icon"><Check size={14} /></span>
+              <span>
+                <b>Рабочая среда готова</b>
+                <small>Housing &amp; Walmart — artifact · Diamonds — demo</small>
+              </span>
+            </div>
           </section>
 
           <section className="module-tabs" aria-label="Раздел регрессии">
             <button type="button" className={activeModule === 'property' ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule('property')}><Building2 size={17} /><span>Недвижимость</span><small>Модель + калькулятор</small></button>
             <button type="button" className={activeModule === 'diamonds' ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule('diamonds')}><Gem size={17} /><span>Алмазы</span><small>Diamonds · цена и метрики</small></button>
-            <button type="button" className={activeModule === 'walmart' ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule('walmart')}><ShoppingCart size={17} /><span>Walmart Sales</span><small>Магазины + прогноз</small></button>
+            <button type="button" className={activeModule === 'walmart' ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule('walmart')}><ShoppingCart size={17} /><span>Walmart Sales</span><small>Регрессия · MAPE как hero</small></button>
           </section>
 
           {activeModule === 'diamonds' ? (
@@ -3912,45 +3962,59 @@ function RegressionConsole() {
                 <div className="table-note"><Info size={13} /> Демо-набор: {diamondsDemo.samples.length} синтетических наблюдений. Метрики показывают поведение интерфейса, не результаты обучения на официальном датасете Diamonds.</div>
               </Card>
             </div>
-          ) : activeModule === 'property' ? (
+          ) : activeModule === 'property' && housing ? (
             <div className="content-stack">
               <section className="control-strip">
                 <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Параметры модели</b><span>Выберите алгоритм для всех графиков и оценки объекта</span></div></div>
-                <label className="select-field"><span>Модель регрессии</span><select value={selectedRegModel} onChange={(event) => setSelectedRegModel(event.target.value)}>{regressionDemo.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
-                <div className="model-context"><span className="mini-status" />{selectedRegModel === regressionBest.name ? 'Лучшая по RMSE' : `RMSE ${formatNumber(currentRegModel.metrics.rmse, 2)}`}</div>
+                <label className="select-field"><span>Модель регрессии</span><select value={selectedRegModel} onChange={(event) => setSelectedRegModel(event.target.value)}>{housingModels.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
+                <div className="model-context"><span className="mini-status" />{regressionBest && selectedRegModel === regressionBest.name ? 'Лучшая по RMSE' : `RMSE ${formatNumber(currentRegModel?.metrics.rmse ?? 0, 2)}`}</div>
               </section>
 
               <section className="metrics-grid">
-                <MetricCard label="R² · качество" value={formatNumber(currentRegModel.metrics.r2, 3)} note="Доля объяснённой дисперсии" tone="cyan" icon={<TrendingUp size={17} />} />
-                <MetricCard label="RMSE" value={formatNumber(currentRegModel.metrics.rmse, 2)} note="Штрафует большие ошибки" tone="green" icon={<Activity size={17} />} />
-                <MetricCard label="MAE" value={formatNumber(currentRegModel.metrics.mae, 2)} note="Средняя абсолютная ошибка" tone="amber" icon={<TargetIcon />} />
-                <MetricCard label="MAPE" value={`${formatNumber(currentRegModel.metrics.mape, 2)}%`} note="Средняя относительная ошибка" tone="purple" icon={<BarChart3 size={17} />} />
+                <MetricCard label="R² · качество" value={formatNumber(currentRegModel?.metrics.r2 ?? 0, 3)} note="Доля объяснённой дисперсии" tone="cyan" icon={<TrendingUp size={17} />} />
+                <MetricCard label="RMSE" value={formatNumber(currentRegModel?.metrics.rmse ?? 0, 2)} note="Штрафует большие ошибки" tone="green" icon={<Activity size={17} />} />
+                <MetricCard label="MAE" value={formatNumber(currentRegModel?.metrics.mae ?? 0, 2)} note="Средняя абсолютная ошибка" tone="amber" icon={<TargetIcon />} />
+                <MetricCard label="MAPE" value={`${formatNumber(currentRegModel?.metrics.mape ?? 0, 2)}%`} note="Средняя относительная ошибка" tone="purple" icon={<BarChart3 size={17} />} />
               </section>
 
               <section className="two-column property-main-grid">
-                <Card title="Калькулятор недвижимости" subtitle="Поиграйте с характеристиками — оценка обновляется сразу." className="calculator-panel" right={<span className="small-tag"><Sparkles size={12} /> DEMO ESTIMATOR</span>}>
+                <Card title="Калькулятор недвижимости" subtitle="Ridge-модель из артефакта — реальные коэффициенты." className="calculator-panel" right={<span className="small-tag"><Sparkles size={12} /> RIDGE · REAL ARTIFACT</span>}>
                   <div className="estimate-block">
-                    <div><span className="estimate-label">Расчётная стоимость</span><div className="estimate-value">{formatMoneyK(propertyEstimate.estimated)}</div></div>
-                    <div className="estimate-range"><span>Оценочный коридор</span><b>{formatMoneyK(propertyEstimate.low)} — {formatMoneyK(propertyEstimate.high)}</b></div>
+                    <div><span className="estimate-label">Расчётная стоимость</span><div className="estimate-value">{propertyEstimate ? formatMoneyK(propertyEstimate.estimated) : '—'}</div></div>
+                    <div className="estimate-range"><span>Оценочный коридор</span><b>{propertyEstimate ? `${formatMoneyK(propertyEstimate.low)} — ${formatMoneyK(propertyEstimate.high)}` : '—'}</b></div>
                   </div>
                   <div className="slider-grid">
-                    <SliderField label="Площадь" value={property.area} min={25} max={250} suffix=" м²" onChange={(value) => updateProperty('area', value)} />
-                    <SliderField label="Комнаты" value={property.rooms} min={1} max={6} onChange={(value) => updateProperty('rooms', value)} />
-                    <SliderField label="Возраст объекта" value={property.age} min={0} max={50} suffix=" лет" onChange={(value) => updateProperty('age', value)} />
-                    <SliderField label="До центра" value={property.distance} min={1} max={40} suffix=" км" onChange={(value) => updateProperty('distance', value)} />
-                    <SliderField label="Доход района" value={property.income} min={25} max={180} suffix=" тыс.$" onChange={(value) => updateProperty('income', value)} />
-                    <SliderField label="Качество отделки" value={property.finish} min={1} max={10} onChange={(value) => updateProperty('finish', value)} />
+                    {housing.meta.features.map((f) => {
+                      const st = housing.data.feature_stats[f]
+                      const range = st.max - st.min
+                      const step = range > 100 ? 1 : range > 5 ? 0.1 : 0.01
+                      return (
+                        <SliderField
+                          key={f}
+                          label={HOUSING_LABELS[f] ?? f}
+                          value={propertyInputs[f] ?? st.median}
+                          min={+st.min.toFixed(2)}
+                          max={+st.max.toFixed(2)}
+                          step={step}
+                          onChange={(value) => updateProperty(f, value)}
+                        />
+                      )
+                    })}
                   </div>
-                  <div className="calculator-footer"><Info size={14} /><span>Демо-оценка на синтетических данных. Не является рыночной или банковской оценкой.</span><button type="button" className="text-button" onClick={() => setProperty(initialProperty)}><RefreshCw size={13} /> Сбросить</button></div>
+                  <div className="calculator-footer"><Info size={14} /><span>Ridge-модель из артефакта. Значения в единицах $100k. Не является рыночной оценкой.</span><button type="button" className="text-button" onClick={() => {
+                    const defaults: Record<string, number> = {}
+                    for (const f of housing.meta.features) defaults[f] = housing.data.feature_stats[f].median
+                    setPropertyInputs(defaults)
+                  }}><RefreshCw size={13} /> Сбросить</button></div>
                 </Card>
 
-                <Card title="Actual vs Predicted" subtitle={`Сопоставление фактической цены и предсказания · ${regressionDemo.y.length} объектов`} right={<span className="legend-pill"><i className="legend-dot cyan" /> Выбранная модель</span>}>
+                <Card title="Actual vs Predicted" subtitle={`Сопоставление фактической цены и предсказания · ${yActual.length} объектов`} right={<span className="legend-pill"><i className="legend-dot cyan" /> {currentRegModel?.name ?? '—'}</span>}>
                   <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 18, bottom: 16, left: 8 }}>
                     <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" />
                     <XAxis type="number" dataKey="actual" name="Факт" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · $ тыс.', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
                     <YAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<RegressionScatterTooltip />} />
-                    <Scatter name={currentRegModel.name} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                    <Scatter name={currentRegModel?.name ?? ''} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
                   </ScatterChart></ResponsiveContainer></div>
                   <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — один объект</span><span>Чем ближе к диагонали, тем точнее прогноз</span></div>
                 </Card>
@@ -3961,16 +4025,18 @@ function RegressionConsole() {
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 10, bottom: 12, left: -6 }}>
                     <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis type="number" dataKey="residual" name="Остаток" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={40} /><ReferenceLine y={0} stroke={chartPalette.rose} strokeDasharray="5 4" /><Tooltip content={<ResidualTooltip />} /><Scatter data={residualData} fill={chartPalette.purple} fillOpacity={0.65} />
                   </ScatterChart></ResponsiveContainer></div>
-                  <div className="chart-footnote"><span>Остаток = прогноз − факт</span><span className={currentRegModel.metrics.bias >= 0 ? 'positive-text' : 'negative-text'}>Bias {currentRegModel.metrics.bias > 0 ? '+' : ''}{formatNumber(currentRegModel.metrics.bias, 2)}</span></div>
+                  <div className="chart-footnote"><span>Остаток = прогноз − факт</span><span className={(currentRegModel?.metrics.bias ?? 0) >= 0 ? 'positive-text' : 'negative-text'}>Bias {(currentRegModel?.metrics.bias ?? 0) > 0 ? '+' : ''}{formatNumber(currentRegModel?.metrics.bias ?? 0, 3)}</span></div>
                 </Card>
                 <Card title="Сравнение моделей" subtitle="RMSE на одной тестовой выборке · меньше лучше">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={modelComparison} layout="vertical" margin={{ top: 4, right: 22, bottom: 4, left: 12 }}>
                     <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => formatNumber(value, 2)} />} /><Bar dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{modelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedRegModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
-                  <button type="button" className="inline-link" onClick={() => setSelectedRegModel(regressionBest.name)}>Выбрать лучшую: {regressionBest.name} <ArrowUpRight size={14} /></button>
+                  {regressionBest && (
+                    <button type="button" className="inline-link" onClick={() => setSelectedRegModel(regressionBest.name)}>Выбрать лучшую: {regressionBest.name} <ArrowUpRight size={14} /></button>
+                  )}
                 </Card>
-                <Card title="Важность факторов" subtitle="Относительный вклад в цену объекта">
-                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={regressionDemo.importance} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
+                <Card title="Важность факторов" subtitle="RandomForest importance из артефакта">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={housing.feature_importance.RandomForest ?? []} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
                     <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.4]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={120} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 0)}%`} />} /><Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={14} />
                   </BarChart></ResponsiveContainer></div>
                 </Card>
@@ -3979,88 +4045,380 @@ function RegressionConsole() {
               <section className="two-column lower-grid">
                 <Card title="Распределение остатков" subtitle="Центр распределения должен быть около нуля.">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={residualDistribution} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
-                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="range" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${value} объектов`} />} /><Bar dataKey="count" name="Объекты" radius={[4, 4, 0, 0]}>{residualDistribution.map((bin, index) => <Cell key={`${bin.range}-${index}`} fill={Math.abs(bin.center) < currentRegModel.metrics.rmse * 0.45 ? chartPalette.green : chartPalette.indigo} />)}</Bar>
+                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="range" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${value} объектов`} />} /><Bar dataKey="count" name="Объекты" radius={[4, 4, 0, 0]}>{residualDistribution.map((bin, index) => <Cell key={`${bin.range}-${index}`} fill={Math.abs(bin.center) < (currentRegModel?.metrics.rmse ?? 1) * 0.45 ? chartPalette.green : chartPalette.indigo} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
                 </Card>
-                <Card title="Таблица метрик" subtitle="Нажмите на строку, чтобы переключить модель." right={<span className="small-tag">{regressionDemo.models.length} МОДЕЛЕЙ</span>}>
-                  <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{modelComparison.map((model) => <tr key={model.name} className={model.name === selectedRegModel ? 'row-selected' : ''} onClick={() => setSelectedRegModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedRegModel(model.name) }}><td><span className="model-cell">{model.name}{model.name === regressionBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatNumber(model.rmse, 2)}</td><td>{formatNumber(model.mae, 2)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatNumber(model.maxError, 1)}</td></tr>)}</tbody></table></div>
-                  <div className="table-note"><Info size={13} /> Метрики вычисляются по одному и тому же набору демо-наблюдений.</div>
+                <Card title="Таблица метрик" subtitle="Нажмите на строку, чтобы переключить модель." right={<span className="small-tag">{housingModels.length} МОДЕЛЕЙ</span>}>
+                  <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{modelComparison.map((model) => <tr key={model.name} className={model.name === selectedRegModel ? 'row-selected' : ''} onClick={() => setSelectedRegModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedRegModel(model.name) }}><td><span className="model-cell">{model.name}{regressionBest && model.name === regressionBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatNumber(model.rmse, 2)}</td><td>{formatNumber(model.mae, 2)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatNumber(model.maxError, 1)}</td></tr>)}</tbody></table></div>
+                  <div className="table-note"><Info size={13} /> Метрики на одной тестовой выборке ({housing.meta.n_test} объектов). Источник — artifacts/regression/housing/report.json.</div>
                 </Card>
               </section>
             </div>
-          ) : (
+          ) : activeModule === 'walmart' && walmart ? (
             <div className="content-stack">
-              <section className="store-picker-panel">
-                <div className="store-picker-heading"><div><div className="eyebrow">RETAIL TIME SERIES</div><h2>Выберите магазин</h2></div><span className="store-picker-caption">Все магазины · недельные данные</span></div>
-                <div className="store-picker-grid">{walmartDemo.stores.map((item, index) => {
-                  const average = mean(item.actual.filter((value): value is number => value != null))
-                  return <button type="button" className={`store-option ${storeIndex === index ? 'active' : ''}`} key={item.name} onClick={() => setStoreIndex(index)}><span className="store-option-icon"><ShoppingCart size={17} /></span><span className="store-option-copy"><b>{item.name}</b><small>Средняя неделя · {formatSales(average)}</small></span><span className="store-factor">×{formatNumber(item.factor, 2)}</span>{storeIndex === index && <span className="store-check"><Check size={12} /></span>}</button>
-                })}</div>
-              </section>
-
-              <section className="control-strip walmart-controls">
-                <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Настройки прогноза</b><span>Модель, горизонт и отображаемый интервал</span></div></div>
-                <label className="select-field"><span>Модель прогноза</span><select value={currentWalmartModel.name} onChange={(event) => setSelectedWalmartModel(event.target.value)}>{store.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
-                <div className="horizon-control"><span>Горизонт</span><div className="segmented">{([4, 8, 13] as const).map((value) => <button type="button" key={value} className={horizon === value ? 'active' : ''} onClick={() => setHorizonValue(value)}>{value} нед.</button>)}</div></div>
-                <div className="range-control"><span><CalendarDays size={13} /> Период на графике</span><div className="date-range"><input aria-label="Дата начала периода" type="date" value={rangeStart} min={walmartDemo.dates[0]} max={rangeEnd} onChange={(event) => setRangeStart(event.target.value)} /><span>—</span><input aria-label="Дата окончания периода" type="date" value={rangeEnd} min={rangeStart} max={walmartDemo.dates[walmartDemo.dates.length - 1]} onChange={(event) => { setRangeEnd(event.target.value); setAutoEnd(false) }} /></div></div>
-                <div className="toggle-controls"><button type="button" className={`toggle-chip ${showConfidence ? 'active' : ''}`} onClick={() => setShowConfidence((value) => !value)}><span className="toggle-check">{showConfidence && <Check size={11} />}</span> 95% интервал</button><button type="button" className={`toggle-chip ${showHolidays ? 'active' : ''}`} onClick={() => setShowHolidays((value) => !value)}><span className="toggle-check">{showHolidays && <Check size={11} />}</span> Праздники</button></div>
+              <section className="control-strip">
+                <div className="controls-intro">
+                  <span className="control-icon"><SlidersHorizontal size={16} /></span>
+                  <div>
+                    <b>Параметры модели Walmart</b>
+                    <span>Регрессия на 6 алгоритмах · MAPE как hero-метрика</span>
+                  </div>
+                </div>
+                <label className="select-field">
+                  <span>Модель регрессии</span>
+                  <select
+                    value={selectedWalmartModel}
+                    onChange={(e) => setSelectedWalmartModel(e.target.value)}
+                  >
+                    {walmart.models.map((m) => (
+                      <option key={m.name} value={m.name}>{m.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="model-context">
+                  <span className="mini-status" />
+                  {currentWalmartModel && walmartBest && currentWalmartModel.name === walmartBest.name
+                    ? `Лучшая по MAPE · ${formatNumber(currentWalmartModel.metrics.mape, 2)}%`
+                    : `MAPE ${formatNumber(currentWalmartModel?.metrics.mape ?? 0, 2)}%`}
+                </div>
               </section>
 
               <section className="metrics-grid">
-                <MetricCard label="WMAE · ошибка" value={formatSales(currentWalmartModel.metrics.wmae)} note="Праздничные недели имеют больший вес" tone="cyan" icon={<Activity size={17} />} />
-                <MetricCard label="MAPE" value={`${formatNumber(currentWalmartModel.metrics.mape, 2)}%`} note="Ошибка на отложенном отрезке" tone="green" icon={<TrendingUp size={17} />} />
-                <MetricCard label={`Прогноз · ${horizon} нед.`} value={formatSales(walmartForecast.forecastTotal)} note="Ожидаемая сумма продаж магазина" tone="amber" icon={<ShoppingCart size={17} />} />
-                <MetricCard label="YoY · к прошлому году" value={formatPercent(walmartForecast.yoy)} note={`Сравнение с теми же неделями · ${formatSales(walmartForecast.lastYearTotal)}`} tone="purple" icon={walmartForecast.yoy >= 0 ? <ArrowUpRight size={17} /> : <ArrowDownRight size={17} />} />
+                <MetricCard
+                  label="MAPE · hero"
+                  value={`${formatNumber(currentWalmartModel?.metrics.mape ?? 0, 2)}%`}
+                  note="Относительная ошибка — честна между магазинами"
+                  tone="cyan"
+                  icon={<TrendingUp size={17} />}
+                />
+                <MetricCard
+                  label="MAE"
+                  value={formatUsd(currentWalmartModel?.metrics.mae ?? 0)}
+                  note="Средняя абсолютная ошибка в $"
+                  tone="green"
+                  icon={<Activity size={17} />}
+                />
+                <MetricCard
+                  label="R²"
+                  value={formatNumber(currentWalmartModel?.metrics.r2 ?? 0, 3)}
+                  note="Доля объяснённой дисперсии"
+                  tone="amber"
+                  icon={<TargetIcon />}
+                />
+                <MetricCard
+                  label="RMSE"
+                  value={formatUsd(currentWalmartModel?.metrics.rmse ?? 0)}
+                  note="Штрафует большие ошибки"
+                  tone="purple"
+                  icon={<BarChart3 size={17} />}
+                />
               </section>
 
-              <Card title="Недельные продажи: факт и прогноз" subtitle={`${store.name} · ${currentWalmartModel.name} · жёлтые маркеры — праздничные недели`} className="sales-chart-panel" right={<div className="chart-legend"><span><i className="legend-line actual-line" /> Факт</span><span><i className="legend-line forecast-line" /> Прогноз</span>{showConfidence && <span><i className="legend-line interval-line" /> 95% интервал</span>}</div>}>
-                <div className="chart-area sales-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={walmartChartData} margin={{ top: 14, right: 18, bottom: 8, left: 6 }}>
-                  <defs><linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={chartPalette.cyan} stopOpacity={0.2} /><stop offset="100%" stopColor={chartPalette.cyan} stopOpacity={0.01} /></linearGradient></defs>
-                  <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" vertical={false} /><XAxis dataKey="date" tickFormatter={formatAxisDate} minTickGap={24} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => `$${(value / 1_000_000).toFixed(1)}M`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={54} /><Tooltip content={<SalesTooltip />} />
-                  {showConfidence && <><Line dataKey="low" name="Нижняя граница" stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} /><Line dataKey="high" name="Верхняя граница" stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} /></>}
-                  <Area type="monotone" dataKey="actual" name="Факт" stroke={undefined} fill="url(#salesGradient)" fillOpacity={0.15} connectNulls={false} activeDot={false} />
-                  <Line type="monotone" dataKey="actual" name="Факт" stroke="var(--text)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} />
-                  <Line type="monotone" dataKey="forecast" name="Прогноз" stroke={chartPalette.cyan} strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} connectNulls={false} />
-                  {showHolidays && walmartChartData.filter((row) => row.holiday).map((row) => <ReferenceLine key={row.date} x={row.date} stroke={chartPalette.amber} strokeDasharray="3 4" strokeOpacity={0.8} label={{ value: row.holiday?.icon, position: 'insideTop', fill: chartPalette.amber, fontSize: 13 }} />)}
-                  <ReferenceLine x={walmartDemo.dates[walmartDemo.testStart]} stroke="var(--muted)" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'ТЕСТ', fill: 'var(--muted)', fontSize: 10, position: 'insideTopLeft' }} />
-                </ComposedChart></ResponsiveContainer></div>
-                <div className="chart-footnote"><span><i className="legend-line actual-line" /> История до последней фактической недели</span><span><i className="legend-line forecast-line" /> Прогноз выбранной модели до {horizon} недель вперёд</span></div>
-              </Card>
-
-              <section className="two-column walmart-detail-grid">
-                <Card title="Сравнение моделей" subtitle="MAPE на отложенной выборке · меньше лучше" right={<span className="small-tag">BEST: {walmartBest.name}</span>}>
-                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={store.models.map((model) => ({ name: model.name, mape: Number(model.metrics.mape.toFixed(2)) }))} layout="vertical" margin={{ top: 4, right: 26, bottom: 4, left: 6 }}>
-                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `${value}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis type="category" dataKey="name" width={108} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value, 2)}%`} />} /><Bar dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={17}>{store.models.map((model) => <Cell key={model.name} fill={model.name === selectedWalmartModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
-                  </BarChart></ResponsiveContainer></div>
-                  <button type="button" className="inline-link" onClick={() => setSelectedWalmartModel(walmartBest.name)}>Выбрать лучшую модель <ArrowUpRight size={14} /></button>
+              <section className="two-column property-main-grid">
+                <Card
+                  title="Actual vs Predicted"
+                  subtitle={`Тестовая выборка · ${walmart.data.y_test.length} объектов`}
+                  right={
+                    <span className="legend-pill">
+                      <i className="legend-dot cyan" /> {currentWalmartModel?.name ?? '—'}
+                    </span>
+                  }
+                >
+                  <div className="chart-area chart-tall">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ScatterChart margin={{ top: 12, right: 18, bottom: 16, left: 8 }}>
+                        <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" />
+                        <XAxis
+                          type="number"
+                          dataKey="actual"
+                          name="Факт"
+                          tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
+                          tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          label={{
+                            value: 'Actual · USD',
+                            position: 'insideBottom',
+                            offset: -8,
+                            fill: 'var(--muted)',
+                            fontSize: 11,
+                          }}
+                        />
+                        <YAxis
+                          type="number"
+                          dataKey="predicted"
+                          name="Прогноз"
+                          tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
+                          tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={54}
+                        />
+                        <Tooltip
+                          content={<GenericTooltip valueFormatter={(v) => formatUsd(Number(v))} />}
+                        />
+                        <Scatter
+                          name={currentWalmartModel?.name ?? ''}
+                          data={walmartScatterData}
+                          fill={chartPalette.cyan}
+                          fillOpacity={0.55}
+                          shape="circle"
+                        />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="chart-footnote">
+                    <span><i className="legend-dot cyan" /> Каждая точка — магазин×неделя</span>
+                    <span>
+                      Bias: {formatUsd(walmart.residual_diagnostics.bias)} · MAPE{' '}
+                      {formatNumber(currentWalmartModel?.metrics.mape ?? 0, 2)}%
+                    </span>
+                  </div>
                 </Card>
 
-                <Card title="Почему прогноз такой?" subtitle="Факторы, которые объясняют расчёт на выбранный период." className="insights-card">
-                  <div className="insight-list">
-                    <div className="insight-item"><span className="insight-icon holiday"><CalendarDays size={16} /></span><div><b>{walmartForecast.holidayRows.length ? `Праздничный календарь: ${walmartForecast.holidayRows.length} недели` : 'Праздничный календарь'}</b><p>{walmartForecast.holidayRows.length ? `В горизонт попадают ${walmartForecast.holidayRows.map((row) => `${row.holiday?.icon} ${row.holiday?.label}`).join(' и ')}. В демо-ряду эти периоды связаны с нетипичным уровнем продаж.` : 'В выбранный горизонт не попали праздничные недели из календаря демо-данных.'}</p></div>
-                    </div>
-                    <div className="insight-item"><span className="insight-icon season"><TrendingUp size={16} /></span><div><b>Сезонность и недавний уровень</b><p>{walmartForecast.forecastVsRecent >= 0 ? 'Средний прогноз выше' : 'Средний прогноз ниже'} среднего за последние 13 наблюдаемых недель на <strong>{formatNumber(Math.abs(walmartForecast.forecastVsRecent * 100), 1)}%</strong>. Модель учитывает годовой цикл и небольшой тренд.</p></div></div>
-                    <div className="insight-item"><span className="insight-icon scale"><ShoppingCart size={16} /></span><div><b>Масштаб магазина</b><p>{store.name} имеет базовый уровень примерно в <strong>{formatNumber(store.factor, 2)} раза</strong> относительно Store 1 в демонстрационном наборе. Поэтому абсолютный прогноз отличается даже при схожей сезонности.</p></div></div>
-                    <div className="insight-footnote"><Info size={13} /> Объяснения рассчитаны по синтетическим данным интерфейса, а не по официальному набору Walmart.</div>
+                <Card
+                  title="Per-store MAPE"
+                  subtitle="Относительная ошибка по каждому магазину — видно слабые звенья"
+                  right={
+                    walmart.meta.store_spread ? (
+                      <span className="small-tag">
+                        spread ×{formatNumber(walmart.meta.store_spread.ratio_max_min, 2)}
+                      </span>
+                    ) : null
+                  }
+                >
+                  <div className="chart-area chart-tall">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={walmartPerStore}
+                        layout="vertical"
+                        margin={{ top: 8, right: 20, bottom: 8, left: 12 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 5"
+                          horizontal={false}
+                          stroke="var(--chart-grid)"
+                        />
+                        <XAxis
+                          type="number"
+                          tickFormatter={(v) => `${v}%`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          dataKey="store"
+                          type="category"
+                          width={54}
+                          tickFormatter={(v) => `#${v}`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          content={
+                            <GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />
+                          }
+                        />
+                        <Bar dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={12}>
+                          {walmartPerStore.map((row) => (
+                            <Cell
+                              key={row.store}
+                              fill={
+                                row.mape > 2 * (currentWalmartModel?.metrics.mape ?? 1)
+                                  ? chartPalette.rose
+                                  : chartPalette.purple
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="chart-footnote">
+                    <span>Розовым — магазины с MAPE &gt; 2× от среднего</span>
+                    <span>Всего {walmartPerStore.length} магазинов в тесте</span>
                   </div>
                 </Card>
               </section>
 
-              <section className="two-column walmart-bottom-grid">
-                <Card title="Сезонность по месяцам" subtitle="Средние продажи за доступную историю магазина.">
-                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={seasonality} margin={{ top: 8, right: 8, bottom: 4, left: -8 }}>
-                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="month" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => `$${(value / 1_000_000).toFixed(1)}M`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={formatSales} />} /><Bar dataKey="sales" name="Средние продажи" fill={chartPalette.purple} radius={[5, 5, 0, 0]} barSize={20} />
-                  </BarChart></ResponsiveContainer></div>
+              <section className="two-column lower-grid">
+                <Card
+                  title="Сравнение моделей"
+                  subtitle="MAPE на общей тестовой выборке · меньше лучше"
+                  right={<span className="small-tag">BEST: {walmartBest?.name ?? '—'}</span>}
+                >
+                  <div className="chart-area chart-medium">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={walmartModelsComparison}
+                        layout="vertical"
+                        margin={{ top: 4, right: 20, bottom: 4, left: 10 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 5"
+                          horizontal={false}
+                          stroke="var(--chart-grid)"
+                        />
+                        <XAxis
+                          type="number"
+                          tickFormatter={(v) => `${v}%`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          width={112}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          content={
+                            <GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />
+                          }
+                        />
+                        <Bar dataKey="mape" name="MAPE" radius={[0, 6, 6, 0]} barSize={15}>
+                          {walmartModelsComparison.map((item) => (
+                            <Cell
+                              key={item.name}
+                              fill={
+                                item.name === selectedWalmartModel
+                                  ? chartPalette.cyan
+                                  : 'var(--bar-muted)'
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {walmartBest && (
+                    <button
+                      type="button"
+                      className="inline-link"
+                      onClick={() => setSelectedWalmartModel(walmartBest.name)}
+                    >
+                      Выбрать лучшую: {walmartBest.name} <ArrowUpRight size={14} />
+                    </button>
+                  )}
                 </Card>
-                <Card title="Прогноз по неделям" subtitle={`Сумма на ${horizon} недель вперёд · YoY — к той же неделе год назад`} right={<span className="small-tag">{store.name}</span>}>
-                  <div className="table-wrap weekly-table-wrap"><table className="data-table"><thead><tr><th>Неделя</th><th>Событие</th><th>Прогноз</th><th>YoY</th></tr></thead><tbody>{weeklyForecastRows.map((row) => <tr key={row.date}><td>{row.date}</td><td>{row.holiday ? <span className="holiday-chip">{row.holiday.icon} {row.holiday.label}</span> : <span className="muted-cell">—</span>}</td><td className="money-cell">{formatSales(row.forecast)}</td><td className={row.yoy >= 0 ? 'positive-text' : 'negative-text'}>{formatPercent(row.yoy)}</td></tr>)}</tbody></table></div>
-                  <div className="table-note"><Info size={13} /> Интервал прогноза можно менять над графиком.</div>
+
+                <Card
+                  title="Важность факторов"
+                  subtitle="RandomForest importance из артефакта"
+                >
+                  <div className="chart-area chart-medium">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={walmart.feature_importance.RandomForest ?? []}
+                        layout="vertical"
+                        margin={{ top: 4, right: 12, bottom: 4, left: 12 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 5"
+                          horizontal={false}
+                          stroke="var(--chart-grid)"
+                        />
+                        <XAxis
+                          type="number"
+                          tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          width={140}
+                          tickFormatter={(v) => WALMART_LABELS[v] ?? v}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          content={
+                            <GenericTooltip
+                              valueFormatter={(v) => `${formatNumber(v * 100, 1)}%`}
+                            />
+                          }
+                        />
+                        <Bar
+                          dataKey="value"
+                          name="Важность"
+                          fill={chartPalette.purple}
+                          radius={[0, 5, 5, 0]}
+                          barSize={13}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </Card>
               </section>
-            </div>
-          )}
 
-          <footer className="page-footer"><span>ML Hub <span className="footer-separator">/</span> Regression Console</span><span>Демо-данные · интерактивный прототип</span></footer>
+              <Card
+                title="Таблица метрик"
+                subtitle="Нажмите строку — переключится модель в графиках"
+                right={<span className="small-tag">{walmart.models.length} моделей</span>}
+              >
+                <div className="table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Модель</th>
+                        <th>MAPE</th>
+                        <th>MAE</th>
+                        <th>RMSE</th>
+                        <th>R²</th>
+                        <th>MedAE</th>
+                        <th>Max err.</th>
+                        <th>CV MAPE</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {walmartModelsComparison.map((model) => (
+                        <tr
+                          key={model.name}
+                          className={model.name === selectedWalmartModel ? 'row-selected' : ''}
+                          onClick={() => setSelectedWalmartModel(model.name)}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') setSelectedWalmartModel(model.name)
+                          }}
+                        >
+                          <td>
+                            <span className="model-cell">
+                              {model.name}
+                              {walmartBest && model.name === walmartBest.name && (
+                                <span className="best-mark">BEST</span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="money-cell">{formatNumber(model.mape, 2)}%</td>
+                          <td>{formatUsd(model.mae)}</td>
+                          <td>{formatUsd(model.rmse)}</td>
+                          <td>{formatNumber(model.r2, 3)}</td>
+                          <td>{formatUsd(model.medae)}</td>
+                          <td>{formatUsd(model.max_error)}</td>
+                          <td>{model.cv_mape != null ? `${formatNumber(model.cv_mape, 2)}%` : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="table-note">
+                  <Info size={13} /> Источник — artifacts/regression/walmart/report.json
+                </div>
+              </Card>
+            </div>
+          ) : activeModule === 'property' ? null : null}
+
+          <footer className="page-footer">
+            <span>ML Hub <span className="footer-separator">/</span> Regression Console</span>
+            <span>Housing &amp; Walmart — artifacts · Diamonds — demo</span>
+          </footer>
         </div>
       </main>
     </div>
@@ -5401,6 +5759,87 @@ export function pixelsFromSample(features: Record<string, number>): number[][] {
 
 
 ════════════════════════════════════════════════════════════════════════
+### FILE: lib\data\housing.ts
+### SIZE: 2864 B   MODIFIED: 2026-10-09 15:42:48
+════════════════════════════════════════════════════════════════════════
+
+"use client";
+import { useJson } from "./loader";
+
+export interface HousingFeatureStats {
+  min: number; max: number; mean: number; median: number; std: number;
+}
+export interface HousingModelMetrics {
+  mae: number; rmse: number; mape: number; r2: number;
+  medae: number; bias: number; max_error: number; evs: number;
+}
+export interface HousingModel {
+  name: string;
+  is_best: boolean;
+  metrics: HousingModelMetrics;
+  predictions: number[];
+  diagnostics: { rmse_over_mae: number; mae_over_medae: number; abs_bias: number };
+  cv?: { r2_mean: number; r2_std: number; mae_mean: number; mae_std: number };
+}
+export interface HousingReport {
+  meta: {
+    task: string; title: string; subtitle: string; dataset: string;
+    target: string; target_unit: string; features: string[];
+    n_samples: number; n_features: number; n_test: number; n_points_in_json: number;
+    target_stats: Record<string, number>;
+    narrative: { context: string; hero_metric: string; main_conclusion: string };
+  };
+  headline: { best_model: string; best_metric: string; best_metric_value: number; verdict: string };
+  data: {
+    y_test: number[];
+    feature_names: string[];
+    feature_stats: Record<string, HousingFeatureStats>;
+  };
+  calculator: { model: string; intercept: number; coefficients: Record<string, number> };
+  models: HousingModel[];
+  by_metric: Record<string, string>;
+  residual_diagnostics: {
+    bias: number; median_residual: number; std_residual: number;
+    skew: number; kurtosis: number; pct_beyond_2mae: number;
+  };
+  feature_importance: Record<string, { name: string; value: number }[]>;
+  sample_predictions: Array<{
+    features: Record<string, number>;
+    actual: number; predicted: number; error: number; abs_error: number; within_mae: boolean;
+  }>;
+  charts: Record<string, string>;
+}
+
+export function useHousingReport() {
+  return useJson<HousingReport>("regression/housing/report.json");
+}
+
+/** Предсказание по сырым коэффициентам Ridge (в единицах $100k) */
+export function predictHousing(
+  values: Record<string, number>,
+  calc: HousingReport["calculator"]
+): number {
+  let sum = calc.intercept;
+  for (const [f, c] of Object.entries(calc.coefficients)) {
+    sum += c * (values[f] ?? 0);
+  }
+  return sum;
+}
+
+/** Человекочитаемые подписи для слайдеров */
+export const HOUSING_LABELS: Record<string, string> = {
+  MedInc:     "Медианный доход ($10k)",
+  HouseAge:   "Возраст дома (лет)",
+  AveRooms:   "Среднее число комнат",
+  AveBedrms:  "Среднее число спален",
+  Population: "Население округа",
+  AveOccup:   "Жителей на дом",
+  Latitude:   "Широта",
+  Longitude:  "Долгота",
+};
+
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\iris.ts
 ### SIZE: 3290 B   MODIFIED: 2026-10-08 13:25:37
 ════════════════════════════════════════════════════════════════════════
@@ -5743,6 +6182,115 @@ export const TASKS: TaskMeta[] = [
 ];
 
 export const getTask = (id: TaskId) => TASKS.find((t) => t.id === id)!;
+
+
+
+════════════════════════════════════════════════════════════════════════
+### FILE: lib\data\walmart.ts
+### SIZE: 2849 B   MODIFIED: 2026-10-09 17:30:43
+════════════════════════════════════════════════════════════════════════
+
+"use client";
+import { useJson } from "./loader";
+
+export interface WalmartModelMetrics {
+  mae: number; rmse: number; rmsle: number; mape: number;
+  r2: number; medae: number; bias: number; max_error: number; evs: number;
+}
+
+export interface WalmartModelDiagnostics {
+  rmse_over_mae: number;
+  mae_over_medae: number;
+  abs_bias: number;
+}
+
+export interface WalmartCV {
+  mape_mean: number; mape_std: number; mae_mean: number; mae_std: number;
+}
+
+export interface WalmartModel {
+  name: string;
+  is_best: boolean;
+  metrics: WalmartModelMetrics;
+  predictions: number[];
+  diagnostics: WalmartModelDiagnostics;
+  cv?: WalmartCV;
+}
+
+export interface PerStoreRow {
+  store: number;
+  n_weeks: number;
+  avg_sales: number;
+  mae: number;
+  rmse: number;
+  mape: number;
+}
+
+export interface Holiday { date: string; icon: string; label: string }
+
+export interface FeatureStat {
+  min: number; max: number; mean: number; median: number; std: number;
+}
+
+export interface WalmartReport {
+  meta: {
+    task: string; title: string; subtitle: string; dataset: string;
+    target: string; target_unit: string; target_format: string;
+    features: string[]; seed: number; generated_at: string;
+    n_samples: number; n_features: number; n_train: number; n_test: number;
+    target_stats: Record<string, number>;
+    store_spread: { ratio_max_min: number; median_min: number; median_max: number } | null;
+    holidays: Holiday[];
+    narrative: {
+      context: string;
+      hero_metric: string;
+      why_not_mae: string;
+      main_conclusion: string;
+    };
+  };
+  headline: {
+    best_model: string;
+    best_metric: string;
+    best_metric_value: number;
+    verdict: string;
+  };
+  data: {
+    y_test: number[];
+    stores_test: number[];
+    feature_names: string[];
+    feature_stats: Record<string, FeatureStat>;
+  };
+  models: WalmartModel[];
+  by_metric: Record<string, string>;
+  residual_diagnostics: {
+    bias: number; median_residual: number; std_residual: number;
+    skew: number; kurtosis: number; pct_beyond_2mae: number;
+  };
+  per_store: PerStoreRow[];
+  feature_importance: Record<string, { name: string; value: number }[]>;
+  sample_predictions: Array<{
+    features: Record<string, number>;
+    actual: number; predicted: number; error: number;
+    abs_error: number; within_mae: boolean;
+  }>;
+  charts: Record<string, string>;
+}
+
+export function useWalmartReport() {
+  return useJson<WalmartReport>("regression/walmart/report.json");
+}
+
+export const WALMART_LABELS: Record<string, string> = {
+  Store:         "Магазин",
+  Holiday_Flag:  "Праздник",
+  Temperature:   "Температура (°F)",
+  Fuel_Price:    "Цена топлива ($)",
+  CPI:           "CPI",
+  Unemployment:  "Безработица (%)",
+  year:          "Год",
+  month:         "Месяц",
+  week:          "Неделя",
+};
 
 
 

@@ -132,10 +132,6 @@ function RegressionConsole() {
   const [diamond, setDiamond] = useState<DiamondInputs>(initialDiamond)
   const [propertyInputs, setPropertyInputs] = useState<Record<string, number>>({})
   const [selectedWalmartModel, setSelectedWalmartModel] = useState<string>('RandomForest')
-  const [selectedWalmartStore, setSelectedWalmartStore] = useState<number | null>(null)
-  const [walmartHorizon, setWalmartHorizon] = useState<4 | 8 | 13>(13)
-  const [walmartShowConfidence, setWalmartShowConfidence] = useState(true)
-  const [walmartShowHolidays, setWalmartShowHolidays] = useState(true)
 
   useEffect(() => {
     // theme applied via data-theme on .mlr-root
@@ -167,135 +163,17 @@ function RegressionConsole() {
     )
   }, [walmart])
 
-  const currentWalmartModel: WalmartModel | null =
-    walmart?.models.find((m) => m.name === selectedWalmartModel)
-    ?? walmart?.models[walmart.models.length - 1]
-    ?? null
-
-  // 3 крупнейших + 2 мельчайших магазина: сразу видно контраст MAE vs MAPE.
-  const walmartTopStores = useMemo(() => {
-    if (!walmart) return []
-    const sorted = [...walmart.per_store].sort((a, b) => b.avg_sales - a.avg_sales)
-    return [...sorted.slice(0, 3), ...sorted.slice(-2)]
-  }, [walmart])
-
-  const walmartTopFeatures = useMemo(() => {
-    if (!walmart) return []
-    const list = walmart.feature_importance.RandomForest ?? []
-    return [...list].sort((a, b) => b.value - a.value).slice(0, 3)
-  }, [walmart])
-
-  // Активный магазин: явный выбор, иначе первый из top-stores
-  const walmartActiveStoreId: number | null =
-    selectedWalmartStore ?? walmartTopStores[0]?.store ?? null
-
-  // Полный недельный ряд выбранного магазина + наложение predictions на тестовые недели
-  const walmartStoreSeries = useMemo(() => {
-    if (!walmart || walmartActiveStoreId == null) return []
-    const storeSeries = walmart.series_by_store[String(walmartActiveStoreId)]
-    if (!storeSeries) return []
-
-    // Индексы тестовых строк этого магазина (дата -> индекс в y_test / predictions)
-    const testIdxForStore = new Map<string, number>()
-    walmart.data.dates_test.forEach((date, i) => {
-      if (walmart.data.stores_test[i] === walmartActiveStoreId) testIdxForStore.set(date, i)
-    })
-
-    const interval = currentWalmartModel ? 1.96 * currentWalmartModel.metrics.rmse : null
-
-    return storeSeries.dates.map((date, i) => {
-      const testIdx = testIdxForStore.get(date)
-      const predicted =
-        testIdx != null ? currentWalmartModel?.predictions[testIdx] ?? null : null
-      const holiday = walmart.meta.holidays.find((h) => h.date === date) ?? null
-      return {
-        date,
-        axisDate: formatAxisDate(date),
-        actual: storeSeries.sales[i],
-        predicted,
-        low: predicted != null && interval != null ? predicted - interval : null,
-        high: predicted != null && interval != null ? predicted + interval : null,
-        holiday,
-      }
-    })
-  }, [walmart, walmartActiveStoreId, currentWalmartModel])
-
-  // Слайс последних N тестовых недель (горизонт)
-  const walmartHorizonRows = useMemo(() => {
-    const testRows = walmartStoreSeries.filter((r) => r.predicted != null)
-    return testRows.slice(-walmartHorizon)
-  }, [walmartStoreSeries, walmartHorizon])
-
-  // WMAE / прогноз-сумма / YoY по горизонту
-  const walmartHorizonStats = useMemo(() => {
-    if (!walmart || walmartActiveStoreId == null || !walmartHorizonRows.length) {
-      return { wmae: 0, forecastSum: 0, yoy: 0, lastYearSum: 0 }
-    }
-    const storeSeries = walmart.series_by_store[String(walmartActiveStoreId)]
-    let wSum = 0, wAbs = 0, forecastSum = 0, lastYearSum = 0
-    for (const row of walmartHorizonRows) {
-      const y = row.actual
-      const p = row.predicted ?? 0
-      const isHoliday = !!row.holiday
-      const w = isHoliday ? 5 : 1
-      wSum += w
-      wAbs += w * Math.abs(y - p)
-      forecastSum += p
-      // YoY: та же неделя год назад (52 строки назад в отсортированном ряду)
-      const idx = storeSeries.dates.indexOf(row.date)
-      const lastYearIdx = idx - 52
-      if (lastYearIdx >= 0) lastYearSum += storeSeries.sales[lastYearIdx]
-    }
-    return {
-      wmae: wSum ? wAbs / wSum : 0,
-      forecastSum,
-      yoy: lastYearSum ? forecastSum / lastYearSum - 1 : 0,
-      lastYearSum,
-    }
-  }, [walmart, walmartActiveStoreId, walmartHorizonRows])
-
-  // Сезонность по месяцам за всю историю магазина
-  const walmartSeasonality = useMemo(() => {
-    if (!walmart || walmartActiveStoreId == null) return []
-    const storeSeries = walmart.series_by_store[String(walmartActiveStoreId)]
-    if (!storeSeries) return []
-    const names = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-    const buckets: number[][] = names.map(() => [])
-    storeSeries.dates.forEach((date, i) => {
-      const m = Number(date.slice(5, 7)) - 1
-      if (m >= 0 && m < 12) buckets[m].push(storeSeries.sales[i])
-    })
-    return names.map((name, i) => ({
-      month: name,
-      sales: buckets[i].length ? buckets[i].reduce((a, b) => a + b, 0) / buckets[i].length : 0,
-    }))
-  }, [walmart, walmartActiveStoreId])
-
-  // Таблица по неделям горизонта
-  const walmartForecastRows = useMemo(() => {
-    if (!walmart || walmartActiveStoreId == null) return []
-    const storeSeries = walmart.series_by_store[String(walmartActiveStoreId)]
-    if (!storeSeries) return []
-    return walmartHorizonRows.map((row) => {
-      const idx = storeSeries.dates.indexOf(row.date)
-      const lastYearIdx = idx - 52
-      const lastYear = lastYearIdx >= 0 ? storeSeries.sales[lastYearIdx] : 0
-      const p = row.predicted ?? 0
-      return {
-        date: row.date,
-        forecast: p,
-        yoy: lastYear ? p / lastYear - 1 : 0,
-        holiday: row.holiday,
-      }
-    })
-  }, [walmart, walmartActiveStoreId, walmartHorizonRows])
-
   const housingModels = housing?.models ?? []
   const currentRegModel =
     housingModels.find((model) => model.name === selectedRegModel) ??
     housingModels[0] ??
     null
   const currentDiamondModel = diamondsDemo.models.find((model) => model.name === selectedDiamondModel) ?? diamondsDemo.models[diamondsDemo.models.length - 1]
+
+  const currentWalmartModel: WalmartModel | null =
+    walmart?.models.find((m) => m.name === selectedWalmartModel)
+    ?? walmart?.models[walmart.models.length - 1]
+    ?? null
 
   const walmartBest: WalmartModel | null =
     walmart?.models.reduce<WalmartModel | null>(
@@ -400,15 +278,11 @@ function RegressionConsole() {
   }, [diamond, currentDiamondModel])
   const walmartScatterData = useMemo(() => {
     if (!walmart || !currentWalmartModel) return []
-    const all = walmart.data.y_test.map((actual, i) => ({
+    return walmart.data.y_test.map((actual, i) => ({
       actual,
       predicted: currentWalmartModel.predictions[i] ?? 0,
-      store: walmart.data.stores_test[i],
     }))
-    return selectedWalmartStore == null
-      ? all
-      : all.filter((d) => d.store === selectedWalmartStore)
-  }, [walmart, currentWalmartModel, selectedWalmartStore])
+  }, [walmart, currentWalmartModel])
 
   const walmartModelsComparison = useMemo(() => {
     if (!walmart) return []
@@ -709,53 +583,18 @@ function RegressionConsole() {
                 </Card>
               </section>
             </div>
-                                        ) : activeModule === 'walmart' && walmart ? (
+          ) : activeModule === 'walmart' && walmart ? (
             <div className="content-stack">
-              <section className="store-picker-panel">
-                <div className="store-picker-heading">
-                  <div>
-                    <div className="eyebrow">RETAIL REGRESSION · MAPE AS HERO</div>
-                    <h2>Выберите магазин</h2>
-                  </div>
-                  <span className="store-picker-caption">
-                    {`${walmart.meta.series_span?.n_stores ?? walmart.per_store.length} магазинов · недельные данные`}
-                  </span>
-                </div>
-                <div className="store-picker-grid">
-                  {walmartTopStores.map((row) => {
-                    const active = walmartActiveStoreId === row.store
-                    const minAvg = Math.min(...walmart.per_store.map((r) => r.avg_sales))
-                    const factor = row.avg_sales / Math.max(minAvg, 1)
-                    return (
-                      <button
-                        key={row.store}
-                        type="button"
-                        className={`store-option ${active ? 'active' : ''}`}
-                        onClick={() => setSelectedWalmartStore(row.store)}
-                      >
-                        <span className="store-option-icon"><ShoppingCart size={17} /></span>
-                        <span className="store-option-copy">
-                          <b>Store {row.store}</b>
-                          <small>Средняя неделя · {formatSales(row.avg_sales)}</small>
-                        </span>
-                        <span className="store-factor">×{formatNumber(factor, 2)}</span>
-                        {active && <span className="store-check"><Check size={12} /></span>}
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-
-              <section className="control-strip walmart-controls">
+              <section className="control-strip">
                 <div className="controls-intro">
                   <span className="control-icon"><SlidersHorizontal size={16} /></span>
                   <div>
-                    <b>Настройки прогноза</b>
-                    <span>Модель, горизонт и отображаемый интервал</span>
+                    <b>Параметры модели Walmart</b>
+                    <span>Регрессия на 6 алгоритмах · MAPE как hero-метрика</span>
                   </div>
                 </div>
                 <label className="select-field">
-                  <span>Модель прогноза</span>
+                  <span>Модель регрессии</span>
                   <select
                     value={selectedWalmartModel}
                     onChange={(e) => setSelectedWalmartModel(e.target.value)}
@@ -765,288 +604,161 @@ function RegressionConsole() {
                     ))}
                   </select>
                 </label>
-                <div className="horizon-control">
-                  <span>Горизонт</span>
-                  <div className="segmented">
-                    {([4, 8, 13] as const).map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        className={walmartHorizon === v ? 'active' : ''}
-                        onClick={() => setWalmartHorizon(v)}
-                      >{v} нед.</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="toggle-controls">
-                  <button
-                    type="button"
-                    className={`toggle-chip ${walmartShowConfidence ? 'active' : ''}`}
-                    onClick={() => setWalmartShowConfidence((v) => !v)}
-                  >
-                    <span className="toggle-check">{walmartShowConfidence && <Check size={11} />}</span>
-                    {' '}95% интервал
-                  </button>
-                  <button
-                    type="button"
-                    className={`toggle-chip ${walmartShowHolidays ? 'active' : ''}`}
-                    onClick={() => setWalmartShowHolidays((v) => !v)}
-                  >
-                    <span className="toggle-check">{walmartShowHolidays && <Check size={11} />}</span>
-                    {' '}Праздники
-                  </button>
+                <div className="model-context">
+                  <span className="mini-status" />
+                  {currentWalmartModel && walmartBest && currentWalmartModel.name === walmartBest.name
+                    ? `Лучшая по MAPE · ${formatNumber(currentWalmartModel.metrics.mape, 2)}%`
+                    : `MAPE ${formatNumber(currentWalmartModel?.metrics.mape ?? 0, 2)}%`}
                 </div>
               </section>
 
               <section className="metrics-grid">
                 <MetricCard
-                  label="WMAE · ошибка"
-                  value={formatSales(walmartHorizonStats.wmae)}
-                  note="Праздничные недели имеют больший вес"
-                  tone="cyan"
-                  icon={<Activity size={17} />}
-                />
-                <MetricCard
-                  label="MAPE"
+                  label="MAPE · hero"
                   value={`${formatNumber(currentWalmartModel?.metrics.mape ?? 0, 2)}%`}
-                  note="Ошибка на отложенном отрезке"
-                  tone="green"
+                  note="Относительная ошибка — честна между магазинами"
+                  tone="cyan"
                   icon={<TrendingUp size={17} />}
                 />
                 <MetricCard
-                  label={`Прогноз · ${walmartHorizon} нед.`}
-                  value={formatSales(walmartHorizonStats.forecastSum)}
-                  note="Ожидаемая сумма продаж магазина"
-                  tone="amber"
-                  icon={<ShoppingCart size={17} />}
+                  label="MAE"
+                  value={formatUsd(currentWalmartModel?.metrics.mae ?? 0)}
+                  note="Средняя абсолютная ошибка в $"
+                  tone="green"
+                  icon={<Activity size={17} />}
                 />
                 <MetricCard
-                  label="YoY · к прошлому году"
-                  value={formatPercent(walmartHorizonStats.yoy)}
-                  note={`Сравнение с теми же неделями · ${formatSales(walmartHorizonStats.lastYearSum)}`}
+                  label="R²"
+                  value={formatNumber(currentWalmartModel?.metrics.r2 ?? 0, 3)}
+                  note="Доля объяснённой дисперсии"
+                  tone="amber"
+                  icon={<TargetIcon />}
+                />
+                <MetricCard
+                  label="RMSE"
+                  value={formatUsd(currentWalmartModel?.metrics.rmse ?? 0)}
+                  note="Штрафует большие ошибки"
                   tone="purple"
-                  icon={walmartHorizonStats.yoy >= 0 ? <ArrowUpRight size={17} /> : <ArrowDownRight size={17} />}
+                  icon={<BarChart3 size={17} />}
                 />
               </section>
 
-              <Card
-                title="Недельные продажи: факт и прогноз"
-                subtitle={`Store ${walmartActiveStoreId ?? '—'} · ${currentWalmartModel?.name ?? '—'} · жёлтые маркеры — праздничные недели`}
-                className="sales-chart-panel"
-                right={
-                  <div className="chart-legend">
-                    <span><i className="legend-line actual-line" /> Факт</span>
-                    <span><i className="legend-line forecast-line" /> Прогноз</span>
-                    {walmartShowConfidence && <span><i className="legend-line interval-line" /> 95% интервал</span>}
-                  </div>
-                }
-              >
-                <div className="chart-area sales-chart">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={walmartStoreSeries} margin={{ top: 14, right: 18, bottom: 8, left: 6 }}>
-                      <defs>
-                        <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={chartPalette.cyan} stopOpacity={0.2} />
-                          <stop offset="100%" stopColor={chartPalette.cyan} stopOpacity={0.01} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" vertical={false} />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={formatAxisDate}
-                        minTickGap={24}
-                        tick={{ fill: 'var(--muted)', fontSize: 10 }}
-                        tickLine={false} axisLine={false}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => `$${(v / 1_000_000).toFixed(1)}M`}
-                        tick={{ fill: 'var(--muted)', fontSize: 10 }}
-                        tickLine={false} axisLine={false} width={54}
-                      />
-                      <Tooltip content={<GenericTooltip valueFormatter={(v) => formatUsd(Number(v))} />} />
-                      {walmartShowConfidence && (
-                        <>
-                          <Line dataKey="low"  stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} />
-                          <Line dataKey="high" stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} />
-                        </>
-                      )}
-                      <Area type="monotone" dataKey="actual" stroke={undefined} fill="url(#salesGradient)" fillOpacity={0.15} connectNulls={false} activeDot={false} />
-                      <Line type="monotone" dataKey="actual"    name="Факт"    stroke="var(--text)"       strokeWidth={2}   dot={false} activeDot={{ r: 4 }} connectNulls={false} />
-                      <Line type="monotone" dataKey="predicted" name="Прогноз" stroke={chartPalette.cyan} strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} connectNulls={false} />
-                      {walmartShowHolidays && walmartStoreSeries.filter((r) => r.holiday).map((r) => (
-                        <ReferenceLine
-                          key={r.date}
-                          x={r.date}
-                          stroke={chartPalette.amber}
-                          strokeDasharray="3 4"
-                          strokeOpacity={0.8}
-                          label={{ value: r.holiday?.icon, position: 'insideTop', fill: chartPalette.amber, fontSize: 13 }}
+              <section className="two-column property-main-grid">
+                <Card
+                  title="Actual vs Predicted"
+                  subtitle={`Тестовая выборка · ${walmart.data.y_test.length} объектов`}
+                  right={
+                    <span className="legend-pill">
+                      <i className="legend-dot cyan" /> {currentWalmartModel?.name ?? '—'}
+                    </span>
+                  }
+                >
+                  <div className="chart-area chart-tall">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ScatterChart margin={{ top: 12, right: 18, bottom: 16, left: 8 }}>
+                        <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" />
+                        <XAxis
+                          type="number"
+                          dataKey="actual"
+                          name="Факт"
+                          tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
+                          tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          label={{
+                            value: 'Actual · USD',
+                            position: 'insideBottom',
+                            offset: -8,
+                            fill: 'var(--muted)',
+                            fontSize: 11,
+                          }}
                         />
-                      ))}
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="chart-footnote">
-                  <span><i className="legend-line actual-line" /> История до последней фактической недели</span>
-                  <span><i className="legend-line forecast-line" /> Прогноз · горизонт {walmartHorizon} нед.</span>
-                </div>
-              </Card>
-
-              <section className="two-column walmart-detail-grid">
-                <Card
-                  title="Сравнение моделей"
-                  subtitle="MAPE на отложенной выборке · меньше лучше"
-                  right={<span className="small-tag">BEST: {walmartBest?.name ?? '—'}</span>}
-                >
-                  <div className="chart-area chart-medium">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={walmartModelsComparison} layout="vertical" margin={{ top: 4, right: 26, bottom: 4, left: 6 }}>
-                        <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" />
-                        <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <YAxis type="category" dataKey="name" width={108} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <Tooltip content={<GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />} />
-                        <Bar dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={17}>
-                          {walmartModelsComparison.map((model) => (
-                            <Cell key={model.name} fill={model.name === selectedWalmartModel ? chartPalette.cyan : 'var(--bar-muted)'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
+                        <YAxis
+                          type="number"
+                          dataKey="predicted"
+                          name="Прогноз"
+                          tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
+                          tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={54}
+                        />
+                        <Tooltip
+                          content={<GenericTooltip valueFormatter={(v) => formatUsd(Number(v))} />}
+                        />
+                        <Scatter
+                          name={currentWalmartModel?.name ?? ''}
+                          data={walmartScatterData}
+                          fill={chartPalette.cyan}
+                          fillOpacity={0.55}
+                          shape="circle"
+                        />
+                      </ScatterChart>
                     </ResponsiveContainer>
                   </div>
-                  {walmartBest && (
-                    <button type="button" className="inline-link" onClick={() => setSelectedWalmartModel(walmartBest.name)}>
-                      Выбрать лучшую модель <ArrowUpRight size={14} />
-                    </button>
-                  )}
-                </Card>
-
-                <Card title="Почему прогноз такой?" subtitle="Факторы, которые объясняют расчёт на выбранный период." className="insights-card">
-                  <div className="insight-list">
-                    <div className="insight-item">
-                      <span className="insight-icon holiday"><CalendarDays size={16} /></span>
-                      <div>
-                        <b>
-                          {walmartHorizonRows.filter((r) => r.holiday).length
-                            ? `Праздничный календарь: ${walmartHorizonRows.filter((r) => r.holiday).length} недели`
-                            : 'Праздничный календарь'}
-                        </b>
-                        <p>
-                          {walmartHorizonRows.filter((r) => r.holiday).length
-                            ? `В горизонт попадают ${walmartHorizonRows.filter((r) => r.holiday).map((r) => `${r.holiday?.icon} ${r.holiday?.label}`).join(' и ')}.`
-                            : 'В выбранный горизонт не попали праздничные недели.'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="insight-item">
-                      <span className="insight-icon season"><TrendingUp size={16} /></span>
-                      <div>
-                        <b>Сезонность и недавний уровень</b>
-                        <p>
-                          {walmartHorizonStats.yoy >= 0 ? 'Прогноз выше' : 'Прогноз ниже'} того же периода
-                          год назад на <strong>{formatNumber(Math.abs(walmartHorizonStats.yoy * 100), 1)}%</strong>.
-                          Модель учитывает годовой цикл и текущие цены на топливо/CPI.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="insight-item">
-                      <span className="insight-icon scale"><ShoppingCart size={16} /></span>
-                      <div>
-                        <b>Масштаб магазина</b>
-                        <p>
-                          Store {walmartActiveStoreId} имеет базовый уровень{' '}
-                          <strong>{formatSales(walmartTopStores.find((r) => r.store === walmartActiveStoreId)?.avg_sales ?? 0)}</strong>{' '}
-                          в среднем за неделю.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="insight-footnote">
-                    <Info size={13} /> Источник — <code>artifacts/regression/walmart/report.json</code>. Разбиение train/test случайное, не по времени.
-                  </div>
-                </Card>
-              </section>
-
-              <section className="two-column walmart-bottom-grid">
-                <Card title="Сезонность по месяцам" subtitle="Средние продажи за доступную историю магазина.">
-                  <div className="chart-area chart-medium">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={walmartSeasonality} margin={{ top: 8, right: 8, bottom: 4, left: -8 }}>
-                        <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" />
-                        <XAxis dataKey="month" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <YAxis tickFormatter={(v) => `$${(v / 1_000_000).toFixed(1)}M`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <Tooltip content={<GenericTooltip valueFormatter={formatSales} />} />
-                        <Bar dataKey="sales" name="Средние продажи" fill={chartPalette.purple} radius={[5, 5, 0, 0]} barSize={20} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-
-                <Card
-                  title="Прогноз по неделям"
-                  subtitle={`Сумма на ${walmartHorizon} недель вперёд · YoY — к той же неделе год назад`}
-                  right={<span className="small-tag">Store {walmartActiveStoreId}</span>}
-                >
-                  <div className="table-wrap weekly-table-wrap">
-                    <table className="data-table">
-                      <thead>
-                        <tr><th>Неделя</th><th>Событие</th><th>Прогноз</th><th>YoY</th></tr>
-                      </thead>
-                      <tbody>
-                        {walmartForecastRows.map((row) => (
-                          <tr key={row.date}>
-                            <td>{row.date}</td>
-                            <td>
-                              {row.holiday
-                                ? <span className="holiday-chip">{row.holiday.icon} {row.holiday.label}</span>
-                                : <span className="muted-cell">—</span>}
-                            </td>
-                            <td className="money-cell">{formatSales(row.forecast)}</td>
-                            <td className={row.yoy >= 0 ? 'positive-text' : 'negative-text'}>{formatPercent(row.yoy)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="table-note"><Info size={13} /> Все предсказания — на тестовой выборке.</div>
-                </Card>
-              </section>
-
-              <section className="two-column lower-grid">
-                <Card title="Важность факторов" subtitle="RandomForest importance из артефакта">
-                  <div className="chart-area chart-medium">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={walmart.feature_importance.RandomForest ?? []} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 12 }}>
-                        <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" />
-                        <XAxis type="number" tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <YAxis dataKey="name" type="category" width={140} tickFormatter={(v) => WALMART_LABELS[v] ?? v} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <Tooltip content={<GenericTooltip valueFormatter={(v) => `${formatNumber(v * 100, 1)}%`} />} />
-                        <Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={13} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="chart-footnote">
+                    <span><i className="legend-dot cyan" /> Каждая точка — магазин×неделя</span>
+                    <span>
+                      Bias: {formatUsd(walmart.residual_diagnostics.bias)} · MAPE{' '}
+                      {formatNumber(currentWalmartModel?.metrics.mape ?? 0, 2)}%
+                    </span>
                   </div>
                 </Card>
 
                 <Card
                   title="Per-store MAPE"
-                  subtitle="Относительная ошибка по каждому магазину"
-                  right={walmart.meta.store_spread ? (
-                    <span className="small-tag">spread ×{formatNumber(walmart.meta.store_spread.ratio_max_min, 2)}</span>
-                  ) : null}
+                  subtitle="Относительная ошибка по каждому магазину — видно слабые звенья"
+                  right={
+                    walmart.meta.store_spread ? (
+                      <span className="small-tag">
+                        spread ×{formatNumber(walmart.meta.store_spread.ratio_max_min, 2)}
+                      </span>
+                    ) : null
+                  }
                 >
-                  <div className="chart-area chart-medium">
+                  <div className="chart-area chart-tall">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={walmartPerStore} layout="vertical" margin={{ top: 8, right: 20, bottom: 8, left: 12 }}>
-                        <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" />
-                        <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <YAxis dataKey="store" type="category" width={54} tickFormatter={(v) => `#${v}`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
-                        <Tooltip content={<GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />} />
+                      <BarChart
+                        data={walmartPerStore}
+                        layout="vertical"
+                        margin={{ top: 8, right: 20, bottom: 8, left: 12 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 5"
+                          horizontal={false}
+                          stroke="var(--chart-grid)"
+                        />
+                        <XAxis
+                          type="number"
+                          tickFormatter={(v) => `${v}%`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          dataKey="store"
+                          type="category"
+                          width={54}
+                          tickFormatter={(v) => `#${v}`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          content={
+                            <GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />
+                          }
+                        />
                         <Bar dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={12}>
                           {walmartPerStore.map((row) => (
-                            <Cell key={row.store} fill={
-                              walmartActiveStoreId === row.store ? chartPalette.cyan
-                                : row.mape > 2 * (currentWalmartModel?.metrics.mape ?? 1) ? chartPalette.rose
-                                : chartPalette.purple
-                            } />
+                            <Cell
+                              key={row.store}
+                              fill={
+                                row.mape > 2 * (currentWalmartModel?.metrics.mape ?? 1)
+                                  ? chartPalette.rose
+                                  : chartPalette.purple
+                              }
+                            />
                           ))}
                         </Bar>
                       </BarChart>
@@ -1059,6 +771,122 @@ function RegressionConsole() {
                 </Card>
               </section>
 
+              <section className="two-column lower-grid">
+                <Card
+                  title="Сравнение моделей"
+                  subtitle="MAPE на общей тестовой выборке · меньше лучше"
+                  right={<span className="small-tag">BEST: {walmartBest?.name ?? '—'}</span>}
+                >
+                  <div className="chart-area chart-medium">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={walmartModelsComparison}
+                        layout="vertical"
+                        margin={{ top: 4, right: 20, bottom: 4, left: 10 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 5"
+                          horizontal={false}
+                          stroke="var(--chart-grid)"
+                        />
+                        <XAxis
+                          type="number"
+                          tickFormatter={(v) => `${v}%`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          width={112}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          content={
+                            <GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />
+                          }
+                        />
+                        <Bar dataKey="mape" name="MAPE" radius={[0, 6, 6, 0]} barSize={15}>
+                          {walmartModelsComparison.map((item) => (
+                            <Cell
+                              key={item.name}
+                              fill={
+                                item.name === selectedWalmartModel
+                                  ? chartPalette.cyan
+                                  : 'var(--bar-muted)'
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {walmartBest && (
+                    <button
+                      type="button"
+                      className="inline-link"
+                      onClick={() => setSelectedWalmartModel(walmartBest.name)}
+                    >
+                      Выбрать лучшую: {walmartBest.name} <ArrowUpRight size={14} />
+                    </button>
+                  )}
+                </Card>
+
+                <Card
+                  title="Важность факторов"
+                  subtitle="RandomForest importance из артефакта"
+                >
+                  <div className="chart-area chart-medium">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={walmart.feature_importance.RandomForest ?? []}
+                        layout="vertical"
+                        margin={{ top: 4, right: 12, bottom: 4, left: 12 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 5"
+                          horizontal={false}
+                          stroke="var(--chart-grid)"
+                        />
+                        <XAxis
+                          type="number"
+                          tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          width={140}
+                          tickFormatter={(v) => WALMART_LABELS[v] ?? v}
+                          tick={{ fill: 'var(--muted)', fontSize: 10 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          content={
+                            <GenericTooltip
+                              valueFormatter={(v) => `${formatNumber(v * 100, 1)}%`}
+                            />
+                          }
+                        />
+                        <Bar
+                          dataKey="value"
+                          name="Важность"
+                          fill={chartPalette.purple}
+                          radius={[0, 5, 5, 0]}
+                          barSize={13}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              </section>
+
               <Card
                 title="Таблица метрик"
                 subtitle="Нажмите строку — переключится модель в графиках"
@@ -1067,7 +895,16 @@ function RegressionConsole() {
                 <div className="table-wrap">
                   <table className="data-table">
                     <thead>
-                      <tr><th>Модель</th><th>MAPE</th><th>MAE</th><th>RMSE</th><th>R²</th><th>MedAE</th><th>Max err.</th><th>CV MAPE</th></tr>
+                      <tr>
+                        <th>Модель</th>
+                        <th>MAPE</th>
+                        <th>MAE</th>
+                        <th>RMSE</th>
+                        <th>R²</th>
+                        <th>MedAE</th>
+                        <th>Max err.</th>
+                        <th>CV MAPE</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {walmartModelsComparison.map((model) => (
@@ -1076,9 +913,18 @@ function RegressionConsole() {
                           className={model.name === selectedWalmartModel ? 'row-selected' : ''}
                           onClick={() => setSelectedWalmartModel(model.name)}
                           tabIndex={0}
-                          onKeyDown={(e) => { if (e.key === 'Enter') setSelectedWalmartModel(model.name) }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') setSelectedWalmartModel(model.name)
+                          }}
                         >
-                          <td><span className="model-cell">{model.name}{walmartBest && model.name === walmartBest.name && <span className="best-mark">BEST</span>}</span></td>
+                          <td>
+                            <span className="model-cell">
+                              {model.name}
+                              {walmartBest && model.name === walmartBest.name && (
+                                <span className="best-mark">BEST</span>
+                              )}
+                            </span>
+                          </td>
                           <td className="money-cell">{formatNumber(model.mape, 2)}%</td>
                           <td>{formatUsd(model.mae)}</td>
                           <td>{formatUsd(model.rmse)}</td>
@@ -1091,9 +937,12 @@ function RegressionConsole() {
                     </tbody>
                   </table>
                 </div>
-                <div className="table-note"><Info size={13} /> Источник — <code>artifacts/regression/walmart/report.json</code></div>
+                <div className="table-note">
+                  <Info size={13} /> Источник — artifacts/regression/walmart/report.json
+                </div>
               </Card>
-            </div>) : activeModule === 'property' ? null : null}
+            </div>
+          ) : activeModule === 'property' ? null : null}
 
           <footer className="page-footer">
             <span>ML Hub <span className="footer-separator">/</span> Regression Console</span>

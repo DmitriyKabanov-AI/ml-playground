@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-09T12:41:48.717309",
+  "generated_at": "2026-10-09T14:27:43.896153",
   "tasks": [
     {
       "id": "breast_cancer_fn",
@@ -74,6 +74,7 @@
     {
       "id": "walmart",
       "title": "Walmart Weekly Sales",
+      "kind": "regression",
       "best_model": "RandomForest",
       "hero_metric": "MAPE",
       "hero_value": 5.687099226986383,
