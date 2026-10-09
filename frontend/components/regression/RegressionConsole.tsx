@@ -42,28 +42,24 @@ import {
   calculateDiamondPrice,
   diamondsDemo,
   meanValue,
-  regressionDemo,
   walmartDemo,
   type DiamondInputs,
   type MetricSummary,
   type WalmartModel,
   type WalmartStore,
 } from './demoData'
+import {
+  useHousingReport,
+  predictHousing,
+  HOUSING_LABELS,
+} from '@/lib/data/housing'
 
 type Theme = 'dark' | 'light'
 type Module = 'property' | 'diamonds' | 'walmart'
-type PropertyInputs = {
-  area: number
-  rooms: number
-  age: number
-  distance: number
-  income: number
-  finish: number
-}
 
 const formatNumber = (value: number, digits = 1) => value.toLocaleString('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: 0 })
 const formatPercent = (value: number, digits = 1) => `${value >= 0 ? '+' : ''}${formatNumber(value * 100, digits)}%`
-const formatMoneyK = (value: number) => `$${formatNumber(value, 1)}k`
+const formatMoneyK = (value: number) => `$${formatNumber(value * 100, 1)}k`
 const formatUsd = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
 const formatSales = (value: number) => `$${(value / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`
 const formatAxisDate = (value: string) => value ? `${value.slice(5, 7)}/${value.slice(2, 4)}` : ''
@@ -76,15 +72,6 @@ const chartPalette = {
   amber: '#fbbf24',
   rose: '#fb7185',
   purple: '#c4b5fd',
-}
-
-const initialProperty: PropertyInputs = {
-  area: 90,
-  rooms: 3,
-  age: 10,
-  distance: 15,
-  income: 80,
-  finish: 5,
 }
 
 const initialDiamond: DiamondInputs = {
@@ -136,10 +123,11 @@ function RegressionConsole() {
       setActiveModule(tabParam)
     }
   }, [tabParam])
-  const [selectedRegModel, setSelectedRegModel] = useState('XGBoost')
+  const { data: housing, loading: housingLoading, error: housingError } = useHousingReport()
+  const [selectedRegModel, setSelectedRegModel] = useState<string>('')
   const [selectedDiamondModel, setSelectedDiamondModel] = useState('XGBoost')
   const [diamond, setDiamond] = useState<DiamondInputs>(initialDiamond)
-  const [property, setProperty] = useState<PropertyInputs>(initialProperty)
+  const [propertyInputs, setPropertyInputs] = useState<Record<string, number>>({})
   const [storeIndex, setStoreIndex] = useState(0)
   const [selectedWalmartModel, setSelectedWalmartModel] = useState('LightGBM')
   const [horizon, setHorizon] = useState<4 | 8 | 13>(13)
@@ -154,24 +142,59 @@ function RegressionConsole() {
     try { localStorage.setItem('ml-hub-theme', theme) } catch { /* storage may be unavailable */ }
   }, [theme])
 
-  const currentRegModel = regressionDemo.models.find((model) => model.name === selectedRegModel) ?? regressionDemo.models[regressionDemo.models.length - 1]
+  // когда report подгрузился — выбрать best-модель и заполнить слайдеры медианами
+  useEffect(() => {
+    if (!housing) return
+    setSelectedRegModel(prev =>
+      housing.models.find(m => m.name === prev) ? prev : housing.headline.best_model
+    )
+    setPropertyInputs((prev) => {
+      // если уже есть значения пользователя — не перезатираем
+      if (Object.keys(prev).length) return prev
+      const defaults: Record<string, number> = {}
+      for (const f of housing.meta.features) {
+        const st = housing.data.feature_stats[f]
+        defaults[f] = st ? st.median : 0
+      }
+      return defaults
+    })
+  }, [housing])
+
+  const housingModels = housing?.models ?? []
+  const currentRegModel =
+    housingModels.find((model) => model.name === selectedRegModel) ??
+    housingModels[0] ??
+    null
   const currentDiamondModel = diamondsDemo.models.find((model) => model.name === selectedDiamondModel) ?? diamondsDemo.models[diamondsDemo.models.length - 1]
   const store: WalmartStore = walmartDemo.stores[storeIndex] ?? walmartDemo.stores[0]
   const currentWalmartModel: WalmartModel = store.models.find((model) => model.name === selectedWalmartModel) ?? store.models[store.models.length - 1]
 
-  const modelComparison = useMemo(() => regressionDemo.models.map((model) => ({
+  const modelComparison = useMemo(() => housingModels.map((model) => ({
     name: model.name,
     rmse: Number(model.metrics.rmse.toFixed(2)),
     r2: Number(model.metrics.r2.toFixed(3)),
     mae: Number(model.metrics.mae.toFixed(2)),
     mape: Number(model.metrics.mape.toFixed(2)),
-    maxError: Number(model.metrics.maxError.toFixed(2)),
-  })), [])
+    maxError: Number(model.metrics.max_error.toFixed(2)),
+  })), [housingModels])
 
-  const scatterData = useMemo(() => regressionDemo.y.map((actual, index) => ({ actual, predicted: currentRegModel.pred[index] })), [currentRegModel])
-  const residualData = useMemo(() => regressionDemo.y.map((actual, index) => ({ predicted: currentRegModel.pred[index], residual: +(currentRegModel.pred[index] - actual).toFixed(2) })), [currentRegModel])
+  const yActual = housing?.data.y_test ?? []
+  const yPredicted = currentRegModel?.predictions ?? []
+
+  const scatterData = useMemo(
+    () => yActual.map((actual, i) => ({ actual, predicted: yPredicted[i] ?? 0 })),
+    [yActual, yPredicted]
+  )
+  const residualData = useMemo(
+    () => yActual.map((actual, i) => ({
+      predicted: yPredicted[i] ?? 0,
+      residual: +((yPredicted[i] ?? 0) - actual).toFixed(3),
+    })),
+    [yActual, yPredicted]
+  )
   const residualDistribution = useMemo(() => {
     const residuals = residualData.map((item) => item.residual)
+    if (!residuals.length) return [] as { range: string; count: number; center: number }[]
     const min = Math.min(...residuals)
     const max = Math.max(...residuals)
     const binCount = 16
@@ -185,34 +208,29 @@ function RegressionConsole() {
   }, [residualData])
 
   const propertyEstimate = useMemo(() => {
-    const base = 240
-      + (property.area - 90) * 2.1
-      + (property.rooms - 3) * 14
-      - (property.age - 10) * 1.1
-      - (property.distance - 15) * 2.1
-      + (property.income - 80) * 1.25
-      + (property.finish - 5) * 7
-      + (property.area - 90) * (property.income - 80) * 0.015
-    const modelAdjustment: Record<string, number> = {
-      'Linear Regression': 8,
-      Ridge: 5,
-      Lasso: 6,
-      'Random Forest': 2,
-      'Gradient Boosting': 0.8,
-      XGBoost: 0,
+    if (!housing || !currentRegModel) return null
+    if (Object.keys(propertyInputs).length === 0) return null
+
+    const raw = predictHousing(propertyInputs, housing.calculator)   // в $100k
+    const uncertainty = Math.max(0.05, currentRegModel.metrics.rmse)
+
+    const drivers = housing.meta.features
+      .map(f => {
+        const median = housing.data.feature_stats[f].median
+        return {
+          label: HOUSING_LABELS[f] ?? f,
+          value: housing.calculator.coefficients[f] * (propertyInputs[f] - median),
+        }
+      })
+      .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+
+    return {
+      estimated: raw,
+      low:  Math.max(0, raw - uncertainty),
+      high: raw + uncertainty,
+      drivers,
     }
-    const estimated = Math.max(35, base + (modelAdjustment[currentRegModel.name] ?? 0))
-    const uncertainty = Math.max(4, currentRegModel.metrics.rmse * 0.52)
-    const drivers = [
-      { label: 'Площадь', value: (property.area - 90) * 2.1 },
-      { label: 'Доход района', value: (property.income - 80) * 1.25 },
-      { label: 'Расположение', value: -(property.distance - 15) * 2.1 },
-      { label: 'Отделка', value: (property.finish - 5) * 7 },
-      { label: 'Возраст', value: -(property.age - 10) * 1.1 },
-      { label: 'Комнаты', value: (property.rooms - 3) * 14 },
-    ].sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
-    return { estimated, low: Math.max(35, estimated - uncertainty), high: estimated + uncertainty, drivers }
-  }, [property, currentRegModel])
+  }, [housing, propertyInputs, currentRegModel])
 
   const diamondModelComparison = useMemo(() => diamondsDemo.models.map((model) => ({
     name: model.name,
@@ -304,12 +322,14 @@ function RegressionConsole() {
     }
   })
 
-  const regressionBest = regressionDemo.models.reduce((best, model) => model.metrics.rmse < best.metrics.rmse ? model : best, regressionDemo.models[0])
+  const regressionBest = housingModels.length
+    ? housingModels.reduce((best, model) => model.metrics.rmse < best.metrics.rmse ? model : best, housingModels[0])
+    : null
   const walmartBest = store.models.reduce((best, model) => model.metrics.mape < best.metrics.mape ? model : best, store.models[0])
 
   const downloadReport = () => {
     const payload = activeModule === 'property'
-      ? { source: 'synthetic demo data', section: 'regression-property', selectedModel: currentRegModel.name, metrics: currentRegModel.metrics, propertyInputs: property, estimate: propertyEstimate }
+      ? { source: 'artifact:regression/housing/report.json', section: 'regression-property', selectedModel: currentRegModel?.name, metrics: currentRegModel?.metrics, propertyInputs: propertyInputs, estimate: propertyEstimate }
       : activeModule === 'diamonds'
         ? { source: 'synthetic demo data', section: 'regression-diamonds', selectedModel: currentDiamondModel.name, metrics: currentDiamondModel.metrics, diamondInputs: diamond, estimate: diamondEstimate, sampleSize: diamondsDemo.samples.length }
         : { source: 'synthetic demo data', section: 'walmart-sales', store: store.name, model: currentWalmartModel.name, horizonWeeks: horizon, dateRange: { start: rangeStart, end: rangeEnd }, metrics: currentWalmartModel.metrics, forecast: weeklyForecastRows }
@@ -321,7 +341,8 @@ function RegressionConsole() {
     URL.revokeObjectURL(url)
   }
 
-  const updateProperty = (key: keyof PropertyInputs, value: number) => setProperty((current) => ({ ...current, [key]: value }))
+  const updateProperty = (key: string, value: number) =>
+    setPropertyInputs(prev => ({ ...prev, [key]: value }))
   const updateDiamond = (key: keyof DiamondInputs, value: number | string) => setDiamond((current) => {
     if (key === 'carat') {
       const nextCarat = Number(value)
@@ -335,6 +356,27 @@ function RegressionConsole() {
     if (autoEnd) setRangeEnd(walmartDemo.dates[Math.min(walmartDemo.dates.length - 1, walmartDemo.historicalCount + value - 1)])
   }
 
+    const housingFailed = !!housingError || (!housingLoading && !housing)
+
+    if (activeModule === 'property' && housingLoading) {
+      return (
+        <div className="mlr-root app-shell" data-theme={theme}>
+          <div className="page-content" style={{ padding: 40, textAlign: 'center' }}>
+            Загрузка отчёта housing…
+          </div>
+        </div>
+      )
+    }
+    if (activeModule === 'property' && housingFailed) {
+      return (
+        <div className="mlr-root app-shell" data-theme={theme}>
+          <div className="page-content" style={{ padding: 40, textAlign: 'center', color: '#fb7185' }}>
+            Не удалось загрузить report.json: {housingError ?? 'нет данных'}
+          </div>
+        </div>
+      )
+    }
+
   return (
     <div className="mlr-root app-shell" data-theme={theme}>
       <aside className="sidebar">
@@ -342,8 +384,8 @@ function RegressionConsole() {
         <div className="nav-caption">РАБОЧЕЕ ПРОСТРАНСТВО</div>
         <button className="nav-item selected" type="button"><BarChart3 size={18} /><span>Регрессия</span><span className="nav-pip" /></button>
         <div className="sidebar-bottom">
-          <div className="source-card"><span className="source-dot" /><div><b>Demo data</b><span>Синтетический набор</span></div></div>
-          <div className="sidebar-note">Один раздел для моделей, бизнес-оценки и прогноза продаж.</div>
+          <div className="source-card"><span className="source-dot" /><div><b>Mixed sources</b><span>Housing — artifact, остальное — demo</span></div></div>
+          <div className="sidebar-note">Недвижимость — реальные артефакты, алмазы и Walmart — синтетика.</div>
         </div>
       </aside>
 
@@ -351,7 +393,7 @@ function RegressionConsole() {
         <header className="topbar">
           <div className="breadcrumbs"><span>ML Hub</span><span className="crumb-slash">/</span><b>Регрессия</b></div>
           <div className="top-actions">
-            <span className="data-badge"><span className="status-dot" /> DEMO DATA</span>
+            <span className="data-badge"><span className="status-dot" /> {activeModule === 'property' ? 'ARTIFACT' : 'DEMO DATA'}</span>
             <button type="button" className="icon-button" onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} aria-label="Переключить тему" title="Переключить тему">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
             <button type="button" className="button button-quiet" onClick={downloadReport}><Download size={15} /> Экспорт JSON</button>
           </div>
@@ -360,7 +402,7 @@ function RegressionConsole() {
         <div className="page-content">
           <section className="page-title-row">
             <div><div className="eyebrow">MODEL PERFORMANCE CONSOLE</div><h1>Регрессия</h1><p>Метрики моделей, оценка недвижимости и бриллиантов, а также прогноз продаж Walmart — в одном пространстве.</p></div>
-            <div className="last-run"><span className="last-run-icon"><Check size={14} /></span><span><b>Рабочая среда готова</b><small>Локальные демо-данные · без API</small></span></div>
+            <div className="last-run"><span className="last-run-icon"><Check size={14} /></span><span><b>Рабочая среда готова</b><small>Housing — artifact · Diamonds/Walmart — demo</small></span></div>
           </section>
 
           <section className="module-tabs" aria-label="Раздел регрессии">
@@ -441,45 +483,59 @@ function RegressionConsole() {
                 <div className="table-note"><Info size={13} /> Демо-набор: {diamondsDemo.samples.length} синтетических наблюдений. Метрики показывают поведение интерфейса, не результаты обучения на официальном датасете Diamonds.</div>
               </Card>
             </div>
-          ) : activeModule === 'property' ? (
+          ) : activeModule === 'property' && housing ? (
             <div className="content-stack">
               <section className="control-strip">
                 <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Параметры модели</b><span>Выберите алгоритм для всех графиков и оценки объекта</span></div></div>
-                <label className="select-field"><span>Модель регрессии</span><select value={selectedRegModel} onChange={(event) => setSelectedRegModel(event.target.value)}>{regressionDemo.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
-                <div className="model-context"><span className="mini-status" />{selectedRegModel === regressionBest.name ? 'Лучшая по RMSE' : `RMSE ${formatNumber(currentRegModel.metrics.rmse, 2)}`}</div>
+                <label className="select-field"><span>Модель регрессии</span><select value={selectedRegModel} onChange={(event) => setSelectedRegModel(event.target.value)}>{housingModels.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
+                <div className="model-context"><span className="mini-status" />{regressionBest && selectedRegModel === regressionBest.name ? 'Лучшая по RMSE' : `RMSE ${formatNumber(currentRegModel?.metrics.rmse ?? 0, 2)}`}</div>
               </section>
 
               <section className="metrics-grid">
-                <MetricCard label="R² · качество" value={formatNumber(currentRegModel.metrics.r2, 3)} note="Доля объяснённой дисперсии" tone="cyan" icon={<TrendingUp size={17} />} />
-                <MetricCard label="RMSE" value={formatNumber(currentRegModel.metrics.rmse, 2)} note="Штрафует большие ошибки" tone="green" icon={<Activity size={17} />} />
-                <MetricCard label="MAE" value={formatNumber(currentRegModel.metrics.mae, 2)} note="Средняя абсолютная ошибка" tone="amber" icon={<TargetIcon />} />
-                <MetricCard label="MAPE" value={`${formatNumber(currentRegModel.metrics.mape, 2)}%`} note="Средняя относительная ошибка" tone="purple" icon={<BarChart3 size={17} />} />
+                <MetricCard label="R² · качество" value={formatNumber(currentRegModel?.metrics.r2 ?? 0, 3)} note="Доля объяснённой дисперсии" tone="cyan" icon={<TrendingUp size={17} />} />
+                <MetricCard label="RMSE" value={formatNumber(currentRegModel?.metrics.rmse ?? 0, 2)} note="Штрафует большие ошибки" tone="green" icon={<Activity size={17} />} />
+                <MetricCard label="MAE" value={formatNumber(currentRegModel?.metrics.mae ?? 0, 2)} note="Средняя абсолютная ошибка" tone="amber" icon={<TargetIcon />} />
+                <MetricCard label="MAPE" value={`${formatNumber(currentRegModel?.metrics.mape ?? 0, 2)}%`} note="Средняя относительная ошибка" tone="purple" icon={<BarChart3 size={17} />} />
               </section>
 
               <section className="two-column property-main-grid">
-                <Card title="Калькулятор недвижимости" subtitle="Поиграйте с характеристиками — оценка обновляется сразу." className="calculator-panel" right={<span className="small-tag"><Sparkles size={12} /> DEMO ESTIMATOR</span>}>
+                <Card title="Калькулятор недвижимости" subtitle="Ridge-модель из артефакта — реальные коэффициенты." className="calculator-panel" right={<span className="small-tag"><Sparkles size={12} /> RIDGE · REAL ARTIFACT</span>}>
                   <div className="estimate-block">
-                    <div><span className="estimate-label">Расчётная стоимость</span><div className="estimate-value">{formatMoneyK(propertyEstimate.estimated)}</div></div>
-                    <div className="estimate-range"><span>Оценочный коридор</span><b>{formatMoneyK(propertyEstimate.low)} — {formatMoneyK(propertyEstimate.high)}</b></div>
+                    <div><span className="estimate-label">Расчётная стоимость</span><div className="estimate-value">{propertyEstimate ? formatMoneyK(propertyEstimate.estimated) : '—'}</div></div>
+                    <div className="estimate-range"><span>Оценочный коридор</span><b>{propertyEstimate ? `${formatMoneyK(propertyEstimate.low)} — ${formatMoneyK(propertyEstimate.high)}` : '—'}</b></div>
                   </div>
                   <div className="slider-grid">
-                    <SliderField label="Площадь" value={property.area} min={25} max={250} suffix=" м²" onChange={(value) => updateProperty('area', value)} />
-                    <SliderField label="Комнаты" value={property.rooms} min={1} max={6} onChange={(value) => updateProperty('rooms', value)} />
-                    <SliderField label="Возраст объекта" value={property.age} min={0} max={50} suffix=" лет" onChange={(value) => updateProperty('age', value)} />
-                    <SliderField label="До центра" value={property.distance} min={1} max={40} suffix=" км" onChange={(value) => updateProperty('distance', value)} />
-                    <SliderField label="Доход района" value={property.income} min={25} max={180} suffix=" тыс.$" onChange={(value) => updateProperty('income', value)} />
-                    <SliderField label="Качество отделки" value={property.finish} min={1} max={10} onChange={(value) => updateProperty('finish', value)} />
+                    {housing.meta.features.map((f) => {
+                      const st = housing.data.feature_stats[f]
+                      const range = st.max - st.min
+                      const step = range > 100 ? 1 : range > 5 ? 0.1 : 0.01
+                      return (
+                        <SliderField
+                          key={f}
+                          label={HOUSING_LABELS[f] ?? f}
+                          value={propertyInputs[f] ?? st.median}
+                          min={+st.min.toFixed(2)}
+                          max={+st.max.toFixed(2)}
+                          step={step}
+                          onChange={(value) => updateProperty(f, value)}
+                        />
+                      )
+                    })}
                   </div>
-                  <div className="calculator-footer"><Info size={14} /><span>Демо-оценка на синтетических данных. Не является рыночной или банковской оценкой.</span><button type="button" className="text-button" onClick={() => setProperty(initialProperty)}><RefreshCw size={13} /> Сбросить</button></div>
+                  <div className="calculator-footer"><Info size={14} /><span>Ridge-модель из артефакта. Значения в единицах $100k. Не является рыночной оценкой.</span><button type="button" className="text-button" onClick={() => {
+                    const defaults: Record<string, number> = {}
+                    for (const f of housing.meta.features) defaults[f] = housing.data.feature_stats[f].median
+                    setPropertyInputs(defaults)
+                  }}><RefreshCw size={13} /> Сбросить</button></div>
                 </Card>
 
-                <Card title="Actual vs Predicted" subtitle={`Сопоставление фактической цены и предсказания · ${regressionDemo.y.length} объектов`} right={<span className="legend-pill"><i className="legend-dot cyan" /> Выбранная модель</span>}>
+                <Card title="Actual vs Predicted" subtitle={`Сопоставление фактической цены и предсказания · ${yActual.length} объектов`} right={<span className="legend-pill"><i className="legend-dot cyan" /> {currentRegModel?.name ?? '—'}</span>}>
                   <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 18, bottom: 16, left: 8 }}>
                     <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" />
                     <XAxis type="number" dataKey="actual" name="Факт" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · $ тыс.', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
                     <YAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<RegressionScatterTooltip />} />
-                    <Scatter name={currentRegModel.name} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                    <Scatter name={currentRegModel?.name ?? ''} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
                   </ScatterChart></ResponsiveContainer></div>
                   <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — один объект</span><span>Чем ближе к диагонали, тем точнее прогноз</span></div>
                 </Card>
@@ -490,16 +546,18 @@ function RegressionConsole() {
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 10, bottom: 12, left: -6 }}>
                     <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis type="number" dataKey="residual" name="Остаток" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={40} /><ReferenceLine y={0} stroke={chartPalette.rose} strokeDasharray="5 4" /><Tooltip content={<ResidualTooltip />} /><Scatter data={residualData} fill={chartPalette.purple} fillOpacity={0.65} />
                   </ScatterChart></ResponsiveContainer></div>
-                  <div className="chart-footnote"><span>Остаток = прогноз − факт</span><span className={currentRegModel.metrics.bias >= 0 ? 'positive-text' : 'negative-text'}>Bias {currentRegModel.metrics.bias > 0 ? '+' : ''}{formatNumber(currentRegModel.metrics.bias, 2)}</span></div>
+                  <div className="chart-footnote"><span>Остаток = прогноз − факт</span><span className={(currentRegModel?.metrics.bias ?? 0) >= 0 ? 'positive-text' : 'negative-text'}>Bias {(currentRegModel?.metrics.bias ?? 0) > 0 ? '+' : ''}{formatNumber(currentRegModel?.metrics.bias ?? 0, 3)}</span></div>
                 </Card>
                 <Card title="Сравнение моделей" subtitle="RMSE на одной тестовой выборке · меньше лучше">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={modelComparison} layout="vertical" margin={{ top: 4, right: 22, bottom: 4, left: 12 }}>
                     <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => formatNumber(value, 2)} />} /><Bar dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{modelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedRegModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
-                  <button type="button" className="inline-link" onClick={() => setSelectedRegModel(regressionBest.name)}>Выбрать лучшую: {regressionBest.name} <ArrowUpRight size={14} /></button>
+                  {regressionBest && (
+                    <button type="button" className="inline-link" onClick={() => setSelectedRegModel(regressionBest.name)}>Выбрать лучшую: {regressionBest.name} <ArrowUpRight size={14} /></button>
+                  )}
                 </Card>
-                <Card title="Важность факторов" subtitle="Относительный вклад в цену объекта">
-                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={regressionDemo.importance} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
+                <Card title="Важность факторов" subtitle="RandomForest importance из артефакта">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={housing.feature_importance.RandomForest ?? []} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
                     <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.4]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={120} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 0)}%`} />} /><Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={14} />
                   </BarChart></ResponsiveContainer></div>
                 </Card>
@@ -508,16 +566,16 @@ function RegressionConsole() {
               <section className="two-column lower-grid">
                 <Card title="Распределение остатков" subtitle="Центр распределения должен быть около нуля.">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={residualDistribution} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
-                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="range" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${value} объектов`} />} /><Bar dataKey="count" name="Объекты" radius={[4, 4, 0, 0]}>{residualDistribution.map((bin, index) => <Cell key={`${bin.range}-${index}`} fill={Math.abs(bin.center) < currentRegModel.metrics.rmse * 0.45 ? chartPalette.green : chartPalette.indigo} />)}</Bar>
+                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="range" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${value} объектов`} />} /><Bar dataKey="count" name="Объекты" radius={[4, 4, 0, 0]}>{residualDistribution.map((bin, index) => <Cell key={`${bin.range}-${index}`} fill={Math.abs(bin.center) < (currentRegModel?.metrics.rmse ?? 1) * 0.45 ? chartPalette.green : chartPalette.indigo} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
                 </Card>
-                <Card title="Таблица метрик" subtitle="Нажмите на строку, чтобы переключить модель." right={<span className="small-tag">{regressionDemo.models.length} МОДЕЛЕЙ</span>}>
-                  <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{modelComparison.map((model) => <tr key={model.name} className={model.name === selectedRegModel ? 'row-selected' : ''} onClick={() => setSelectedRegModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedRegModel(model.name) }}><td><span className="model-cell">{model.name}{model.name === regressionBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatNumber(model.rmse, 2)}</td><td>{formatNumber(model.mae, 2)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatNumber(model.maxError, 1)}</td></tr>)}</tbody></table></div>
-                  <div className="table-note"><Info size={13} /> Метрики вычисляются по одному и тому же набору демо-наблюдений.</div>
+                <Card title="Таблица метрик" subtitle="Нажмите на строку, чтобы переключить модель." right={<span className="small-tag">{housingModels.length} МОДЕЛЕЙ</span>}>
+                  <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{modelComparison.map((model) => <tr key={model.name} className={model.name === selectedRegModel ? 'row-selected' : ''} onClick={() => setSelectedRegModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedRegModel(model.name) }}><td><span className="model-cell">{model.name}{regressionBest && model.name === regressionBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatNumber(model.rmse, 2)}</td><td>{formatNumber(model.mae, 2)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatNumber(model.maxError, 1)}</td></tr>)}</tbody></table></div>
+                  <div className="table-note"><Info size={13} /> Метрики на одной тестовой выборке ({housing.meta.n_test} объектов). Источник — artifacts/regression/housing/report.json.</div>
                 </Card>
               </section>
             </div>
-          ) : (
+          ) : activeModule === 'property' ? null : (
             <div className="content-stack">
               <section className="store-picker-panel">
                 <div className="store-picker-heading"><div><div className="eyebrow">RETAIL TIME SERIES</div><h2>Выберите магазин</h2></div><span className="store-picker-caption">Все магазины · недельные данные</span></div>
@@ -589,7 +647,7 @@ function RegressionConsole() {
             </div>
           )}
 
-          <footer className="page-footer"><span>ML Hub <span className="footer-separator">/</span> Regression Console</span><span>Демо-данные · интерактивный прототип</span></footer>
+          <footer className="page-footer"><span>ML Hub <span className="footer-separator">/</span> Regression Console</span><span>Housing — artifacts · Diamonds/Walmart — demo</span></footer>
         </div>
       </main>
     </div>
