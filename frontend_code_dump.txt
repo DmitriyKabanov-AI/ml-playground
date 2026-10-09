@@ -1,12 +1,15 @@
+# ============================================================
 # FRONTEND CODE DUMP
-# Root: C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
-# Files: 59
+# Root   : C:\Users\Anastasia\Desktop\GitHub\ml-playground\frontend
+# Created: 2026-10-09 13:05:32
+# Files  : 60
+# ============================================================
 
 
-══════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fn\page.tsx
-### SIZE: 649 B  MODIFIED: 2026-10-08 13:20:12
-══════════════════════════════════════════════════════════════════════
+### SIZE: 649 B   MODIFIED: 2026-10-08 13:20:12
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { BCPage } from "@/components/bc/BCPage";
@@ -27,10 +30,11 @@ export default function BreastCancerFNPage() {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\breast-cancer-fp\page.tsx
-### SIZE: 645 B  MODIFIED: 2026-10-08 13:19:32
-══════════════════════════════════════════════════════════════════════
+### SIZE: 645 B   MODIFIED: 2026-10-08 13:19:32
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { BCPage } from "@/components/bc/BCPage";
@@ -51,10 +55,72 @@ export default function BreastCancerFPPage() {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
+### FILE: app\classification\page.tsx
+### SIZE: 1692 B   MODIFIED: 2026-10-09 12:45:18
+════════════════════════════════════════════════════════════════════════
+
+"use client";
+import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import {
+  Flower2,
+  Ribbon,
+  Stethoscope,
+  ShieldAlert,
+  Grid3x3,
+} from "lucide-react";
+import { TASKS } from "@/lib/data/tasks";
+
+const ICONS: Record<string, any> = {
+  flower: Flower2,
+  ribbon: Ribbon,
+  stethoscope: Stethoscope,
+  shield: ShieldAlert,
+  grid: Grid3x3,
+};
+
+export default function ClassificationPage() {
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-black">Классификация</h1>
+        <p className="text-slate-500 mt-2">
+          Задачи бинарной и многоклассовой классификации из{" "}
+          <code className="px-1.5 py-0.5 rounded bg-slate-500/10">
+            artifacts/classification/
+          </code>
+        </p>
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {TASKS.map((t) => {
+          const Icon = ICONS[t.icon];
+          return (
+            <Link key={t.href} href={t.href}>
+              <Card className="h-full group cursor-pointer">
+                <div
+                  className={`h-11 w-11 rounded-xl bg-gradient-to-br ${t.accent} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                >
+                  {Icon && <Icon className="text-white" size={20} />}
+                </div>
+                <h3 className="font-bold text-lg">{t.title}</h3>
+                <p className="text-sm text-slate-500 mt-1">{t.subtitle}</p>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\credit-fraud\page.tsx
-### SIZE: 154 B  MODIFIED: 2026-10-08 13:10:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 154 B   MODIFIED: 2026-10-08 13:10:16
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { CreditFraudPage } from "@/components/fraud/CreditFraudPage";
@@ -63,10 +129,11 @@ export default function Page() {
   return <CreditFraudPage />;
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\digits\page.tsx
-### SIZE: 140 B  MODIFIED: 2026-10-08 13:10:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 140 B   MODIFIED: 2026-10-08 13:10:16
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { DigitsPage } from "@/components/digits/DigitsPage";
@@ -75,19 +142,21 @@ export default function Page() {
   return <DigitsPage />;
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\fraud\page.tsx
-### SIZE: 111 B  MODIFIED: 2026-10-08 13:10:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 111 B   MODIFIED: 2026-10-08 13:10:16
+════════════════════════════════════════════════════════════════════════
 
 import { redirect } from "next/navigation";
 export default function Page() { redirect("/credit-fraud"); }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\globals.css
-### SIZE: 1071 B  MODIFIED: 2026-10-08 13:10:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1071 B   MODIFIED: 2026-10-08 13:10:16
+════════════════════════════════════════════════════════════════════════
 
 @tailwind base;
 @tailwind components;
@@ -129,10 +198,11 @@ body {
 ::selection { background: rgba(99,102,241,0.35); }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\iris\page.tsx
-### SIZE: 3146 B  MODIFIED: 2026-10-08 13:26:05
-══════════════════════════════════════════════════════════════════════
+### SIZE: 3146 B   MODIFIED: 2026-10-08 13:26:05
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo } from "react";
@@ -216,10 +286,11 @@ export default function IrisPage() {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\layout.tsx
-### SIZE: 796 B  MODIFIED: 2026-10-08 13:10:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 796 B   MODIFIED: 2026-10-08 13:10:16
+════════════════════════════════════════════════════════════════════════
 
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -245,10 +316,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: app\page.tsx
-### SIZE: 2298 B  MODIFIED: 2026-10-08 13:10:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 2298 B   MODIFIED: 2026-10-08 13:10:16
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import Link from "next/link";
@@ -292,10 +364,11 @@ export default function HomePage() {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\BCPage.tsx
-### SIZE: 18398 B  MODIFIED: 2026-10-08 17:10:51
-══════════════════════════════════════════════════════════════════════
+### SIZE: 18398 B   MODIFIED: 2026-10-08 17:10:51
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
@@ -851,10 +924,11 @@ export function BCPage({ config }: { config: Config }) {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\CostPanel.tsx
-### SIZE: 9764 B  MODIFIED: 2026-10-08 17:10:05
-══════════════════════════════════════════════════════════════════════
+### SIZE: 9764 B   MODIFIED: 2026-10-08 17:10:05
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo, useState } from "react";
@@ -1137,10 +1211,11 @@ export function CostPanel({
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\RiskMap.tsx
-### SIZE: 6060 B  MODIFIED: 2026-10-08 13:10:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 6060 B   MODIFIED: 2026-10-08 13:10:16
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useState } from "react";
@@ -1290,10 +1365,11 @@ export function RiskMap({ samples, threshold }: { samples: BCSample[]; threshold
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\bc\ThresholdChart.tsx
-### SIZE: 4310 B  MODIFIED: 2026-10-08 13:21:02
-══════════════════════════════════════════════════════════════════════
+### SIZE: 4310 B   MODIFIED: 2026-10-08 13:21:02
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import {
@@ -1430,10 +1506,11 @@ export function ThresholdChart({
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\digits\DigitsPage.tsx
-### SIZE: 13225 B  MODIFIED: 2026-10-08 13:29:12
-══════════════════════════════════════════════════════════════════════
+### SIZE: 11038 B   MODIFIED: 2026-10-08 17:58:26
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
@@ -1453,67 +1530,24 @@ const fmtPct = (v?: number | null) =>
 const fmtNum = (v?: number | null, digits = 4) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({ report, best }: { report: DigitsReport; best: DigitsModel }) {
+function HeroCard({ report, model }: { report: DigitsReport; model: DigitsModel }) {
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-500/20 blur-3xl" />
       <p className="text-xs uppercase tracking-widest text-slate-500">
         {report.meta.title}
       </p>
-      <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
+      <div className="flex items-center gap-3 mt-1 flex-wrap">
+        <h1 className="text-2xl font-bold">{model.name}</h1>
+        {model.is_best && <Badge tone="success">best</Badge>}
+      </div>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-          {/* FIX: безопасный формат, а не .toFixed() на возможном null */}
-          {fmtNum(best.metrics.f1_macro)}
+          {fmtNum(model.metrics.f1_macro)}
         </span>
         <Badge tone="info">macro-F1</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
-    </Card>
-  );
-}
-
-function WeightedVsMacroTrap({ report, best }: { report: DigitsReport; best: DigitsModel }) {
-  const gap = report.headline?.diagnostic_verdict?.weighted_minus_macro_gap;
-  return (
-    <Card className="border border-amber-500/40 bg-amber-500/5">
-      <p className="text-sm">
-        <b>⚠️ Weighted-F1 маскирует проблему:</b> у модели{" "}
-        <span className="font-mono">{best.name}</span>:
-      </p>
-      <div className="grid grid-cols-3 gap-3 mt-3">
-        <div>
-          <p className="text-[11px] text-slate-500 uppercase">macro-F1</p>
-          <p className="text-2xl font-bold text-violet-500">
-            {fmtNum(best.metrics.f1_macro)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[11px] text-slate-500 uppercase">weighted-F1</p>
-          <p className="text-2xl font-bold text-slate-400">
-            {fmtNum(best.metrics.f1_weighted)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[11px] text-slate-500 uppercase">разрыв</p>
-          <p className="text-2xl font-bold text-amber-500">
-            {/* FIX: защита от undefined/NaN */}
-            {Number.isFinite(gap) ? `+${(gap as number).toFixed(4)}` : "—"}
-          </p>
-        </div>
-      </div>
-      <p className="text-xs text-slate-500 mt-3">
-        При imbalance{" "}
-        {Number.isFinite(report.meta.target_stats.imbalance_ratio)
-          ? report.meta.target_stats.imbalance_ratio.toFixed(2)
-          : "—"}
-        :1 редкий класс физически весит только{" "}
-        {Number.isFinite(report.meta.target_stats.rare_class_ratio)
-          ? (report.meta.target_stats.rare_class_ratio * 100).toFixed(2)
-          : "—"}
-        % — он не может сильно сдвинуть weighted-F1. Настоящая цена дисбаланса
-        видна только в <b>per-class recall</b>.
-      </p>
     </Card>
   );
 }
@@ -1539,7 +1573,6 @@ function PerClassRecallChart({
   data: { class: string; recall: number; support: number; is_rare: boolean }[];
   rareClass: string;
 }) {
-  // FIX: защита от пустого массива
   if (!Array.isArray(data) || !data.length) {
     return (
       <Card>
@@ -1583,7 +1616,6 @@ function PerClassRecallChart({
 function Confusion10x10({
   labels, matrix, rareClass,
 }: { labels: string[]; matrix: number[][]; rareClass: string }) {
-  // FIX: защита от пустой/отсутствующей матрицы
   if (!Array.isArray(matrix) || !matrix.length) {
     return (
       <Card>
@@ -1729,8 +1761,7 @@ export function DigitsPage() {
 
   return (
     <div className="space-y-6">
-      <HeroCard report={report} best={best} />
-      <WeightedVsMacroTrap report={report} best={best} />
+      <HeroCard report={report} model={selected} />
 
       <div className="flex flex-wrap gap-2">
         {report.models.map((m, i) => (
@@ -1773,10 +1804,11 @@ export function DigitsPage() {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\fraud\CreditFraudPage.tsx
-### SIZE: 14932 B  MODIFIED: 2026-10-08 13:29:49
-══════════════════════════════════════════════════════════════════════
+### SIZE: 15274 B   MODIFIED: 2026-10-08 17:55:12
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
@@ -1796,27 +1828,37 @@ const fmtPct = (v?: number | null) =>
 const fmtNum = (v?: number | null, digits = 3) =>
   v === undefined || v === null || Number.isNaN(v) ? "—" : v.toFixed(digits);
 
-function HeroCard({ report, best }: { report: CFReport; best: CFModel }) {
+function HeroCard({ report, model }: { report: CFReport; model: CFModel }) {
+  const tone = model.is_naive ? "danger" : "info";
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
       <p className="text-xs uppercase tracking-widest text-slate-500">
         {report.meta.title}
       </p>
-      <h1 className="text-2xl font-bold mt-1">{report.headline.best_model}</h1>
+      <div className="flex items-center gap-3 mt-1 flex-wrap">
+        <h1 className="text-2xl font-bold">{model.name}</h1>
+        {model.is_best && <Badge tone="success">best</Badge>}
+        {model.is_naive && <Badge tone="danger">baseline</Badge>}
+      </div>
       <div className="flex items-end gap-3 mt-4">
         <span className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-          {/* FIX: безопасный формат вместо .toFixed() */}
-          {fmtNum(best.metrics.mcc, 4)}
+          {fmtNum(model.metrics.mcc, 4)}
         </span>
-        <Badge tone="info">MCC</Badge>
+        <Badge tone={tone as "info" | "danger"}>MCC</Badge>
       </div>
       <p className="text-sm text-slate-500 mt-3">{report.meta.subtitle}</p>
     </Card>
   );
 }
 
-function ModelComparison({ report }: { report: CFReport }) {
+function ModelComparison({
+  report,
+  selectedName,
+}: {
+  report: CFReport;
+  selectedName: string;
+}) {
   const rows = report.models ?? [];
   if (!rows.length) return null;
   const sorted = [...rows].sort(
@@ -1844,17 +1886,23 @@ function ModelComparison({ report }: { report: CFReport }) {
             {sorted.map((m) => {
               const isNaive = m.is_naive;
               const isBest = m.is_best;
+              const isSelected = m.name === selectedName;
               return (
                 <tr
                   key={m.name}
-                  className={`border-b border-border/50 ${isNaive ? "opacity-60" : ""} ${
-                    isBest ? "bg-emerald-500/5" : ""
+                  className={`border-b border-border/50 ${
+                    isNaive ? "opacity-60" : ""
+                  } ${isBest ? "bg-emerald-500/5" : ""} ${
+                    isSelected ? "bg-indigo-500/10" : ""
                   }`}
                 >
                   <td className="py-2">
                     {m.name}{" "}
                     {isBest && <Badge tone="success" className="ml-2">best</Badge>}
                     {isNaive && <Badge tone="danger" className="ml-2">baseline</Badge>}
+                    {isSelected && !isBest && (
+                      <Badge tone="info" className="ml-2">selected</Badge>
+                    )}
                   </td>
                   <td className={`text-right font-mono ${isBest ? "font-bold text-emerald-500" : ""}`}>
                     {fmtNum(m.metrics.mcc, 4)}
@@ -1928,7 +1976,6 @@ function ConfusionGrid({
 function FeatureImportanceChart({
   data,
 }: { data: { name: string; value: number }[] }) {
-  // FIX: защита от пустого массива
   if (!Array.isArray(data) || !data.length) {
     return (
       <Card>
@@ -1970,7 +2017,6 @@ function FeatureImportanceChart({
 function SampleScatter({
   samples, xKey, yKey,
 }: { samples: CFSample[]; xKey: string; yKey: string }) {
-  // FIX: защита от отсутствующего массива
   if (!Array.isArray(samples) || !samples.length) {
     return (
       <Card>
@@ -1985,7 +2031,6 @@ function SampleScatter({
   }
   const data = samples.map((s, i) => ({
     id: i,
-    // FIX: безопасное чтение features через optional chaining
     x: s.features?.[xKey] ?? 0,
     y: s.features?.[yKey] ?? 0,
     sample: s,
@@ -2092,7 +2137,7 @@ export function CreditFraudPage() {
 
   return (
     <div className="space-y-6">
-      <HeroCard report={report} best={best} />
+      <HeroCard report={report} model={selected} />
 
       <div className="flex flex-wrap gap-2">
         {report.models.map((m, i) => (
@@ -2175,15 +2220,16 @@ export function CreditFraudPage() {
         yKey="V17"
       />
 
-      <ModelComparison report={report} />
+      <ModelComparison report={report} selectedName={selected.name} />
     </div>
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisLiveSimulator.tsx
-### SIZE: 3718 B  MODIFIED: 2026-10-08 13:24:27
-══════════════════════════════════════════════════════════════════════
+### SIZE: 3718 B   MODIFIED: 2026-10-08 13:24:27
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2278,10 +2324,11 @@ export function IrisLiveSimulator({ data }: { data: IrisPoint[] }) {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\IrisScatterMap.tsx
-### SIZE: 5047 B  MODIFIED: 2026-10-08 13:25:02
-══════════════════════════════════════════════════════════════════════
+### SIZE: 5047 B   MODIFIED: 2026-10-08 13:25:02
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2421,10 +2468,11 @@ export function IrisScatterMap({
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\iris\ProbabilityRadar.tsx
-### SIZE: 926 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 926 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2448,25 +2496,55 @@ export function ProbabilityRadar({ probs }: { probs: Record<string, number> }) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\Sidebar.tsx
-### SIZE: 1929 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 3112 B   MODIFIED: 2026-10-09 12:44:13
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flower2, Ribbon, Stethoscope, ShieldAlert, Grid3x3, Activity } from "lucide-react";
+import {
+  Flower2,
+  Ribbon,
+  Stethoscope,
+  ShieldAlert,
+  Grid3x3,
+  Activity,
+  Layers,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TASKS } from "@/lib/data/tasks";
 
 const ICONS: Record<string, any> = {
-  flower: Flower2, ribbon: Ribbon, stethoscope: Stethoscope, shield: ShieldAlert, grid: Grid3x3,
+  flower: Flower2,
+  ribbon: Ribbon,
+  stethoscope: Stethoscope,
+  shield: ShieldAlert,
+  grid: Grid3x3,
 };
 
-const NAV = [
-  { href: "/", label: "Обзор", icon: Activity },
-  ...TASKS.map((t) => ({ href: t.href, label: t.title, icon: ICONS[t.icon] })),
+type NavItem = { href: string; label: string; icon: any };
+type NavGroup = { label: string | null; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: null,
+    items: [{ href: "/", label: "Обзор", icon: Activity }],
+  },
+  {
+    label: "Классификация",
+    items: [
+      // опциональный лендинг раздела — если файл app/classification/page.tsx есть, ссылка рабочая
+      { href: "/classification", label: "Все задачи", icon: Layers },
+      ...TASKS.map((t) => ({
+        href: t.href,
+        label: t.title,
+        icon: ICONS[t.icon],
+      })),
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -2480,30 +2558,49 @@ export function Sidebar() {
           <p className="text-xs text-slate-500">Real-artifacts edition</p>
         </div>
       </div>
+
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto scrollbar-thin">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
-          return (
-            <Link key={href} href={href}
-              className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                active ? "bg-primary-500/15 text-primary-500 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.35)]"
-                       : "text-slate-500 hover:bg-slate-500/10 hover:text-slate-900 dark:hover:text-white")}>
-              <Icon size={18} />
-              <span className="truncate">{label}</span>
-            </Link>
-          );
-        })}
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? "pt-4" : ""}>
+            {group.label && (
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-1">
+              {group.items.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                      active
+                        ? "bg-primary-500/15 text-primary-500 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.35)]"
+                        : "text-slate-500 hover:bg-slate-500/10 hover:text-slate-900 dark:hover:text-white"
+                    )}
+                  >
+                    <Icon size={18} />
+                    <span className="truncate">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
+
       <div className="p-4 text-xs text-slate-500">v2.1 · real artifacts</div>
     </aside>
   );
 }
 
 
-══════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\ThemeToggle.tsx
-### SIZE: 735 B  MODIFIED: 2026-10-08 13:27:24
-══════════════════════════════════════════════════════════════════════
+### SIZE: 735 B   MODIFIED: 2026-10-08 13:27:24
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Moon, Sun } from "lucide-react";
@@ -2527,10 +2624,11 @@ export function ThemeToggle() {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\layout\TopBar.tsx
-### SIZE: 1061 B  MODIFIED: 2026-10-08 13:27:43
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1061 B   MODIFIED: 2026-10-08 13:27:43
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { ThemeToggle } from "./ThemeToggle";
@@ -2561,10 +2659,11 @@ export function TopBar() {
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ChartGrid.tsx
-### SIZE: 1555 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1555 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2609,10 +2708,11 @@ export function ChartGrid({ charts, baseUrl }: { charts: Record<string, string>;
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ConfusionMatrix.tsx
-### SIZE: 2228 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 2228 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2663,10 +2763,11 @@ export function ConfusionMatrix({ labels, matrix }: { labels: string[]; matrix: 
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\CostCalculator.tsx
-### SIZE: 2028 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 2028 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2712,10 +2813,11 @@ export function CostCalculator({ sweep }: { sweep: ThresholdPoint[] }) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\FeatureImportance.tsx
-### SIZE: 1233 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1233 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2744,10 +2846,11 @@ export function FeatureImportance({ data }: { data: { feature: string; importanc
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\HeroMetric.tsx
-### SIZE: 1253 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1253 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { motion } from "framer-motion";
@@ -2777,10 +2880,11 @@ export function HeroMetric({ title, model, metricLabel, metricValue, tone = "inf
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\MetaStats.tsx
-### SIZE: 764 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 764 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card } from "@/components/ui/Card";
@@ -2808,10 +2912,11 @@ export function MetaStats({ meta }: { meta: any }) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\MetricsGrid.tsx
-### SIZE: 1655 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1655 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card } from "@/components/ui/Card";
@@ -2858,10 +2963,11 @@ export function MetricsGrid({ metrics }: { metrics: Record<string, number | unde
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ModelSelector.tsx
-### SIZE: 744 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 744 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { cn } from "@/lib/utils";
@@ -2885,10 +2991,11 @@ export function ModelSelector({ models, selected, onSelect }: {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\Narrative.tsx
-### SIZE: 965 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 965 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2917,10 +3024,11 @@ export function Narrative({ meta, headline }: { meta: any; headline: any }) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\PerClassTable.tsx
-### SIZE: 1774 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1774 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -2966,10 +3074,11 @@ export function PerClassTable({ perClass, rareClass }: { perClass: Record<string
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\SamplePredictions.tsx
-### SIZE: 2152 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 2152 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -3023,10 +3132,11 @@ export function SamplePredictions({ samples }: { samples: any[] }) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\TaskPage.tsx
-### SIZE: 4940 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 4940 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useMemo } from "react";
@@ -3161,10 +3271,11 @@ export function TaskPage({ task }: { task: TaskMeta }) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\shared\ThresholdSlider.tsx
-### SIZE: 2090 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 2090 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -3211,10 +3322,11 @@ export function ThresholdSlider({ sweep, threshold, onChange, costFP, costFN }:{
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Badge.tsx
-### SIZE: 656 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 656 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
 type Tone = "default" | "success" | "danger" | "warning" | "info";
@@ -3230,10 +3342,11 @@ export function Badge({ children, tone = "default", className }: { children: Rea
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Button.tsx
-### SIZE: 599 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 599 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
 import { ButtonHTMLAttributes } from "react";
@@ -3248,10 +3361,11 @@ export function Button({ className, variant = "default", ...props }: ButtonHTMLA
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Card.tsx
-### SIZE: 858 B  MODIFIED: 2026-10-08 13:26:57
-══════════════════════════════════════════════════════════════════════
+### SIZE: 858 B   MODIFIED: 2026-10-08 13:26:57
+════════════════════════════════════════════════════════════════════════
 
 import { cn } from "@/lib/utils";
 import { HTMLAttributes } from "react";
@@ -3282,20 +3396,22 @@ export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingEle
   );
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Skeleton.tsx
-### SIZE: 141 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 141 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 export function Skeleton({ className = "h-24 w-full" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Tabs.tsx
-### SIZE: 672 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 672 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { cn } from "@/lib/utils";
@@ -3315,10 +3431,11 @@ export function Tabs({ tabs, value, onValueChange }: { tabs: { id: string; label
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: components\ui\Tooltip.tsx
-### SIZE: 656 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 656 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
@@ -3338,10 +3455,11 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: index.html
-### SIZE: 856 B  MODIFIED: 2026-10-07 13:09:31
-══════════════════════════════════════════════════════════════════════
+### SIZE: 856 B   MODIFIED: 2026-10-07 13:09:31
+════════════════════════════════════════════════════════════════════════
 
 <!doctype html>
 <html lang="ru">
@@ -3367,10 +3485,11 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
 </body>
 </html>
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\breastCancer.ts
-### SIZE: 6413 B  MODIFIED: 2026-10-08 17:09:16
-══════════════════════════════════════════════════════════════════════
+### SIZE: 6413 B   MODIFIED: 2026-10-08 17:09:16
+════════════════════════════════════════════════════════════════════════
 
 // Загрузка реальных артефактов из public/artifacts/classification/{task}/report.json
 // Никакого мока: всё, что видит фронт, приходит из артефактов ноутбука.
@@ -3588,10 +3707,11 @@ export function countsFromSweep(
   };
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\creditFraud.ts
-### SIZE: 3264 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 3264 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 // Загрузка реального артефакта credit_fraud/report.json
 
@@ -3704,16 +3824,19 @@ export function findBestCFModel(report: CFReport): CFModel {
   return report.models.find((m) => m.is_best) ?? report.models[0];
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\digits.ts
-### SIZE: 3705 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 3988 B   MODIFIED: 2026-10-08 17:34:11
+════════════════════════════════════════════════════════════════════════
 
 // Загрузка реального артефакта digits_imbalanced/report.json
 
 export interface DigitsModel {
   name: string;
   is_best: boolean;
+  /** baseline-модель (DummyClassifier) — на фронте рисуем бейдж «baseline». */
+  is_naive?: boolean;
   metrics: Record<string, number>;
   per_class: Record<string, {
     precision: number;
@@ -3726,6 +3849,8 @@ export interface DigitsModel {
   confusion_matrix: number[][];
   rare_class_recall: number;
   weighted_minus_macro_gap: number;
+  /** top-15 feature importance для деревьев и LogReg; у baseline нет. */
+  feature_importance?: { name: string; value: number }[];
 }
 
 export interface DigitsSample {
@@ -3830,10 +3955,11 @@ export function pixelsFromSample(features: Record<string, number>): number[][] {
   return grid;
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\iris.ts
-### SIZE: 3290 B  MODIFIED: 2026-10-08 13:25:37
-══════════════════════════════════════════════════════════════════════
+### SIZE: 3290 B   MODIFIED: 2026-10-08 13:25:37
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useJson } from "./loader";
@@ -3939,10 +4065,11 @@ export function predictIris(
   return { probs, predicted };
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\loader.ts
-### SIZE: 3256 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 3256 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { useEffect, useState } from "react";
@@ -4041,10 +4168,11 @@ export function useCsv(path: string | null) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\normalize.ts
-### SIZE: 2151 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 2151 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 import { MetricsSet, ThresholdPoint } from "../types";
 
@@ -4110,10 +4238,11 @@ export function normalizeSweep(rows: Record<string, string>[]): ThresholdPoint[]
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\data\tasks.ts
-### SIZE: 2266 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 2266 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 import { TaskId } from "../types";
 
@@ -4172,10 +4301,11 @@ export const TASKS: TaskMeta[] = [
 export const getTask = (id: TaskId) => TASKS.find((t) => t.id === id)!;
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\store.ts
-### SIZE: 815 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 815 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 "use client";
 import { create } from "zustand";
@@ -4202,10 +4332,11 @@ export const useAppStore = create<AppState>((set) => ({
 }));
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\types.ts
-### SIZE: 1002 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1002 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 export type TaskId = "iris" | "bc-fp" | "bc-fn" | "fraud" | "digits";
 export type TaskKind = "classification" | "regression" | "forecasting";
@@ -4254,10 +4385,11 @@ export interface ThresholdPoint {
 export interface FeatureImportanceItem { feature: string; importance: number; }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: lib\utils.ts
-### SIZE: 475 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 475 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -4273,10 +4405,11 @@ export function num(v: number | undefined, digits = 3) {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: next.config.js
-### SIZE: 341 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 341 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -4292,10 +4425,11 @@ const nextConfig = {
 module.exports = nextConfig;
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: next-env.d.ts
-### SIZE: 206 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 206 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 /// <reference types="next" />
 /// <reference types="next/image-types/global" />
@@ -4304,10 +4438,11 @@ module.exports = nextConfig;
 // see https://nextjs.org/docs/basic-features/typescript for more information.
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: nginx.conf
-### SIZE: 993 B  MODIFIED: 2026-10-07 13:09:31
-══════════════════════════════════════════════════════════════════════
+### SIZE: 993 B   MODIFIED: 2026-10-07 13:09:31
+════════════════════════════════════════════════════════════════════════
 
 server {
     listen 80;
@@ -4341,10 +4476,11 @@ server {
     gzip_min_length 1024;
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: package.json
-### SIZE: 856 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 856 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 {
   "name": "ml-explorer-frontend",
@@ -4381,10 +4517,11 @@ server {
   }
 }
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: package-lock.json
-### SIZE: 98515 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 98515 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 {
   "name": "ml-explorer-frontend",
@@ -7128,20 +7265,22 @@ server {
 }
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: postcss.config.js
-### SIZE: 74 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 74 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 module.exports = {
   plugins: { tailwindcss: {}, autoprefixer: {} }
 };
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: tailwind.config.ts
-### SIZE: 1239 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 1239 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 import type { Config } from "tailwindcss";
 
@@ -7182,10 +7321,11 @@ const config: Config = {
 export default config;
 
 
-══════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════
 ### FILE: tsconfig.json
-### SIZE: 591 B  MODIFIED: 2026-10-08 13:10:17
-══════════════════════════════════════════════════════════════════════
+### SIZE: 591 B   MODIFIED: 2026-10-08 13:10:17
+════════════════════════════════════════════════════════════════════════
 
 {
   "compilerOptions": {
@@ -7208,3 +7348,4 @@ export default config;
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", "public"]
 }
+

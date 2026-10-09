@@ -1,0 +1,623 @@
+"use client";
+
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  Activity,
+  ArrowDownRight,
+  ArrowUpRight,
+  Building2,
+  CalendarDays,
+  BarChart3,
+  Check,
+  Download,
+  Gem,
+  Info,
+  Moon,
+  RefreshCw,
+  ShoppingCart,
+  SlidersHorizontal,
+  Sparkles,
+  Sun,
+  TrendingUp,
+} from 'lucide-react'
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Line,
+  ReferenceLine,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {
+  calculateDiamondPrice,
+  diamondsDemo,
+  meanValue,
+  regressionDemo,
+  walmartDemo,
+  type DiamondInputs,
+  type MetricSummary,
+  type WalmartModel,
+  type WalmartStore,
+} from './demoData'
+
+type Theme = 'dark' | 'light'
+type Module = 'property' | 'diamonds' | 'walmart'
+type PropertyInputs = {
+  area: number
+  rooms: number
+  age: number
+  distance: number
+  income: number
+  finish: number
+}
+
+const formatNumber = (value: number, digits = 1) => value.toLocaleString('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: 0 })
+const formatPercent = (value: number, digits = 1) => `${value >= 0 ? '+' : ''}${formatNumber(value * 100, digits)}%`
+const formatMoneyK = (value: number) => `$${formatNumber(value, 1)}k`
+const formatUsd = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
+const formatSales = (value: number) => `$${(value / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`
+const formatAxisDate = (value: string) => value ? `${value.slice(5, 7)}/${value.slice(2, 4)}` : ''
+const sumValues = (values: number[]) => values.reduce((total, value) => total + value, 0)
+const mean = (values: number[]) => values.length ? meanValue(values) : 0
+const chartPalette = {
+  cyan: '#22d3ee',
+  indigo: '#818cf8',
+  green: '#34d399',
+  amber: '#fbbf24',
+  rose: '#fb7185',
+  purple: '#c4b5fd',
+}
+
+const initialProperty: PropertyInputs = {
+  area: 90,
+  rooms: 3,
+  age: 10,
+  distance: 15,
+  income: 80,
+  finish: 5,
+}
+
+const initialDiamond: DiamondInputs = {
+  carat: 1, cut: 'Ideal', color: 'G', clarity: 'VS1', depth: 61.5, table: 57, x: 6.5, y: 6.5, z: 3.9,
+}
+
+function MetricCard({ label, value, note, tone = 'cyan', icon }: { label: string; value: string; note: string; tone?: string; icon?: ReactNode }) {
+  return (
+    <article className={`metric-card tone-${tone}`}>
+      <div className="metric-top"><span>{label}</span>{icon && <span className="metric-icon">{icon}</span>}</div>
+      <div className="metric-value">{value}</div>
+      <div className="metric-note">{note}</div>
+    </article>
+  )
+}
+
+function Card({ title, subtitle, children, className = '', right }: { title: string; subtitle?: string; children: ReactNode; className?: string; right?: ReactNode }) {
+  return (
+    <section className={`panel ${className}`}>
+      <div className="panel-heading">
+        <div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>
+        {right && <div className="panel-heading-right">{right}</div>}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function SliderField({ label, value, min, max, step = 1, suffix = '', onChange }: { label: string; value: number; min: number; max: number; step?: number; suffix?: string; onChange: (value: number) => void }) {
+  return (
+    <div className="slider-field">
+      <label><span>{label}</span><b>{formatNumber(value, step < 0.1 ? 2 : step < 1 ? 1 : 0)}{suffix}</b></label>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <div className="slider-limits"><span>{min}{suffix}</span><span>{max}{suffix}</span></div>
+    </div>
+  )
+}
+
+function RegressionConsole() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    try { return (localStorage.getItem('ml-hub-theme') as Theme | null) ?? 'dark' } catch { return 'dark' }
+  })
+  const [activeModule, setActiveModule] = useState<Module>('property')
+  const [selectedRegModel, setSelectedRegModel] = useState('XGBoost')
+  const [selectedDiamondModel, setSelectedDiamondModel] = useState('XGBoost')
+  const [diamond, setDiamond] = useState<DiamondInputs>(initialDiamond)
+  const [property, setProperty] = useState<PropertyInputs>(initialProperty)
+  const [storeIndex, setStoreIndex] = useState(0)
+  const [selectedWalmartModel, setSelectedWalmartModel] = useState('LightGBM')
+  const [horizon, setHorizon] = useState<4 | 8 | 13>(13)
+  const [showConfidence, setShowConfidence] = useState(true)
+  const [showHolidays, setShowHolidays] = useState(true)
+  const [rangeStart, setRangeStart] = useState(walmartDemo.dates[Math.max(0, walmartDemo.historicalCount - 52)])
+  const [rangeEnd, setRangeEnd] = useState(walmartDemo.dates[walmartDemo.dates.length - 1])
+  const [autoEnd, setAutoEnd] = useState(true)
+
+  useEffect(() => {
+    // theme applied via data-theme on .mlr-root
+    try { localStorage.setItem('ml-hub-theme', theme) } catch { /* storage may be unavailable */ }
+  }, [theme])
+
+  const currentRegModel = regressionDemo.models.find((model) => model.name === selectedRegModel) ?? regressionDemo.models[regressionDemo.models.length - 1]
+  const currentDiamondModel = diamondsDemo.models.find((model) => model.name === selectedDiamondModel) ?? diamondsDemo.models[diamondsDemo.models.length - 1]
+  const store: WalmartStore = walmartDemo.stores[storeIndex] ?? walmartDemo.stores[0]
+  const currentWalmartModel: WalmartModel = store.models.find((model) => model.name === selectedWalmartModel) ?? store.models[store.models.length - 1]
+
+  const modelComparison = useMemo(() => regressionDemo.models.map((model) => ({
+    name: model.name,
+    rmse: Number(model.metrics.rmse.toFixed(2)),
+    r2: Number(model.metrics.r2.toFixed(3)),
+    mae: Number(model.metrics.mae.toFixed(2)),
+    mape: Number(model.metrics.mape.toFixed(2)),
+    maxError: Number(model.metrics.maxError.toFixed(2)),
+  })), [])
+
+  const scatterData = useMemo(() => regressionDemo.y.map((actual, index) => ({ actual, predicted: currentRegModel.pred[index] })), [currentRegModel])
+  const residualData = useMemo(() => regressionDemo.y.map((actual, index) => ({ predicted: currentRegModel.pred[index], residual: +(currentRegModel.pred[index] - actual).toFixed(2) })), [currentRegModel])
+  const residualDistribution = useMemo(() => {
+    const residuals = residualData.map((item) => item.residual)
+    const min = Math.min(...residuals)
+    const max = Math.max(...residuals)
+    const binCount = 16
+    const width = (max - min) / binCount || 1
+    const bins = Array.from({ length: binCount }, (_, index) => ({ range: `${Math.round(min + width * index)}`, count: 0, center: min + width * (index + 0.5) }))
+    residuals.forEach((value) => {
+      const index = Math.min(binCount - 1, Math.max(0, Math.floor((value - min) / width)))
+      bins[index].count += 1
+    })
+    return bins
+  }, [residualData])
+
+  const propertyEstimate = useMemo(() => {
+    const base = 240
+      + (property.area - 90) * 2.1
+      + (property.rooms - 3) * 14
+      - (property.age - 10) * 1.1
+      - (property.distance - 15) * 2.1
+      + (property.income - 80) * 1.25
+      + (property.finish - 5) * 7
+      + (property.area - 90) * (property.income - 80) * 0.015
+    const modelAdjustment: Record<string, number> = {
+      'Linear Regression': 8,
+      Ridge: 5,
+      Lasso: 6,
+      'Random Forest': 2,
+      'Gradient Boosting': 0.8,
+      XGBoost: 0,
+    }
+    const estimated = Math.max(35, base + (modelAdjustment[currentRegModel.name] ?? 0))
+    const uncertainty = Math.max(4, currentRegModel.metrics.rmse * 0.52)
+    const drivers = [
+      { label: 'Площадь', value: (property.area - 90) * 2.1 },
+      { label: 'Доход района', value: (property.income - 80) * 1.25 },
+      { label: 'Расположение', value: -(property.distance - 15) * 2.1 },
+      { label: 'Отделка', value: (property.finish - 5) * 7 },
+      { label: 'Возраст', value: -(property.age - 10) * 1.1 },
+      { label: 'Комнаты', value: (property.rooms - 3) * 14 },
+    ].sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+    return { estimated, low: Math.max(35, estimated - uncertainty), high: estimated + uncertainty, drivers }
+  }, [property, currentRegModel])
+
+  const diamondModelComparison = useMemo(() => diamondsDemo.models.map((model) => ({
+    name: model.name,
+    rmse: Number(model.metrics.rmse.toFixed(0)),
+    r2: Number(model.metrics.r2.toFixed(3)),
+    mae: Number(model.metrics.mae.toFixed(0)),
+    mape: Number(model.metrics.mape.toFixed(2)),
+    maxError: Number(model.metrics.maxError.toFixed(0)),
+  })), [])
+  const diamondScatterData = useMemo(() => diamondsDemo.y.map((actual, index) => ({ actual, predicted: currentDiamondModel.pred[index] })), [currentDiamondModel])
+  const diamondBest = diamondsDemo.models.reduce((best, model) => model.metrics.rmse < best.metrics.rmse ? model : best, diamondsDemo.models[0])
+  const diamondEstimate = useMemo(() => {
+    const raw = calculateDiamondPrice(diamond)
+    const estimated = Math.max(100, raw + currentDiamondModel.metrics.bias)
+    const uncertainty = Math.max(estimated * 0.055, currentDiamondModel.metrics.rmse * 0.55)
+    const dimensionsAtCarat = {
+      ...diamond,
+      x: Number((6.5 * Math.cbrt(diamond.carat)).toFixed(2)),
+      y: Number((6.5 * Math.cbrt(diamond.carat)).toFixed(2)),
+      z: Number((3.9 * Math.cbrt(diamond.carat)).toFixed(2)),
+    }
+    const atOneCarat: DiamondInputs = { ...diamond, carat: 1, x: 6.5, y: 6.5, z: 3.9 }
+    const drivers = [
+      { label: 'Каратность', value: raw - calculateDiamondPrice(atOneCarat) },
+      { label: 'Чистота', value: raw - calculateDiamondPrice({ ...diamond, clarity: 'VS2' }) },
+      { label: 'Цвет', value: raw - calculateDiamondPrice({ ...diamond, color: 'G' }) },
+      { label: 'Огранка', value: raw - calculateDiamondPrice({ ...diamond, cut: 'Very Good' }) },
+      { label: 'Пропорции размеров', value: raw - calculateDiamondPrice(dimensionsAtCarat) },
+      { label: 'Глубина', value: raw - calculateDiamondPrice({ ...diamond, depth: 61.5 }) },
+      { label: 'Table', value: raw - calculateDiamondPrice({ ...diamond, table: 57 }) },
+    ].sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+    return { raw, estimated, low: Math.max(100, estimated - uncertainty), high: estimated + uncertainty, drivers }
+  }, [diamond, currentDiamondModel])
+
+  const walmartForecast = useMemo(() => {
+    const start = walmartDemo.historicalCount
+    const futureIndices = Array.from({ length: horizon }, (_, index) => start + index)
+    const forecast = futureIndices.map((index) => currentWalmartModel.forecast[index] ?? 0)
+    const lastYear = futureIndices.map((index) => Number(store.actual[index - 52] ?? 0))
+    const forecastTotal = sumValues(forecast)
+    const lastYearTotal = sumValues(lastYear)
+    const recent = store.actual.slice(Math.max(0, store.actual.length - 13)).filter((value): value is number => value != null)
+    const forecastVsRecent = mean(forecast) / (mean(recent) || 1) - 1
+    const holidayRows = futureIndices.map((index) => ({ index, date: store.dates[index], holiday: walmartDemo.holidays.find((holiday) => holiday.date === store.dates[index]) })).filter((item) => item.holiday)
+    return {
+      futureIndices,
+      forecast,
+      forecastTotal,
+      yoy: lastYearTotal ? forecastTotal / lastYearTotal - 1 : 0,
+      lastYearTotal,
+      forecastVsRecent,
+      holidayRows,
+    }
+  }, [currentWalmartModel, horizon, store])
+
+  const walmartChartData = useMemo(() => store.dates.map((date, index) => {
+    const forecastAllowed = index < walmartDemo.historicalCount + horizon
+    return {
+      date,
+      axisDate: formatAxisDate(date),
+      actual: store.actual[index] ?? null,
+      forecast: forecastAllowed ? currentWalmartModel.forecast[index] : null,
+      low: showConfidence && forecastAllowed ? currentWalmartModel.lo[index] : null,
+      high: showConfidence && forecastAllowed ? currentWalmartModel.hi[index] : null,
+      holiday: walmartDemo.holidays.find((item) => item.date === date),
+      index,
+    }
+  }).filter((item) => item.date >= rangeStart && item.date <= rangeEnd), [store, currentWalmartModel, horizon, rangeStart, rangeEnd, showConfidence])
+
+  const seasonality = useMemo(() => {
+    const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+    const buckets = months.map((month) => ({ month, values: [] as number[] }))
+    store.actual.forEach((value, index) => {
+      if (value == null) return
+      const month = Number(store.dates[index].slice(5, 7)) - 1
+      buckets[month].values.push(value)
+    })
+    return buckets.map((bucket) => ({ month: bucket.month, sales: Math.round(mean(bucket.values)) }))
+  }, [store])
+
+  const weeklyForecastRows = walmartForecast.futureIndices.map((index) => {
+    const forecast = Number(currentWalmartModel.forecast[index] ?? 0)
+    const lastYear = Number(store.actual[index - 52] ?? 0)
+    return {
+      date: store.dates[index],
+      forecast,
+      yoy: lastYear ? forecast / lastYear - 1 : 0,
+      holiday: walmartDemo.holidays.find((item) => item.date === store.dates[index]),
+    }
+  })
+
+  const regressionBest = regressionDemo.models.reduce((best, model) => model.metrics.rmse < best.metrics.rmse ? model : best, regressionDemo.models[0])
+  const walmartBest = store.models.reduce((best, model) => model.metrics.mape < best.metrics.mape ? model : best, store.models[0])
+
+  const downloadReport = () => {
+    const payload = activeModule === 'property'
+      ? { source: 'synthetic demo data', section: 'regression-property', selectedModel: currentRegModel.name, metrics: currentRegModel.metrics, propertyInputs: property, estimate: propertyEstimate }
+      : activeModule === 'diamonds'
+        ? { source: 'synthetic demo data', section: 'regression-diamonds', selectedModel: currentDiamondModel.name, metrics: currentDiamondModel.metrics, diamondInputs: diamond, estimate: diamondEstimate, sampleSize: diamondsDemo.samples.length }
+        : { source: 'synthetic demo data', section: 'walmart-sales', store: store.name, model: currentWalmartModel.name, horizonWeeks: horizon, dateRange: { start: rangeStart, end: rangeEnd }, metrics: currentWalmartModel.metrics, forecast: weeklyForecastRows }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = activeModule === 'property' ? 'regression-report.json' : activeModule === 'diamonds' ? 'diamonds-regression-report.json' : 'walmart-forecast.json'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const updateProperty = (key: keyof PropertyInputs, value: number) => setProperty((current) => ({ ...current, [key]: value }))
+  const updateDiamond = (key: keyof DiamondInputs, value: number | string) => setDiamond((current) => {
+    if (key === 'carat') {
+      const nextCarat = Number(value)
+      const scale = Math.cbrt(nextCarat / Math.max(0.1, current.carat))
+      return { ...current, carat: nextCarat, x: Number((current.x * scale).toFixed(2)), y: Number((current.y * scale).toFixed(2)), z: Number((current.z * scale).toFixed(2)) }
+    }
+    return { ...current, [key]: value } as DiamondInputs
+  })
+  const setHorizonValue = (value: 4 | 8 | 13) => {
+    setHorizon(value)
+    if (autoEnd) setRangeEnd(walmartDemo.dates[Math.min(walmartDemo.dates.length - 1, walmartDemo.historicalCount + value - 1)])
+  }
+
+  return (
+    <div className="mlr-root app-shell" data-theme={theme}>
+      <aside className="sidebar">
+        <div className="brand"><div className="brand-mark"><Activity size={19} strokeWidth={2.3} /></div><div className="brand-text">ML Hub<span>Model Performance</span></div></div>
+        <div className="nav-caption">РАБОЧЕЕ ПРОСТРАНСТВО</div>
+        <button className="nav-item selected" type="button"><BarChart3 size={18} /><span>Регрессия</span><span className="nav-pip" /></button>
+        <div className="sidebar-bottom">
+          <div className="source-card"><span className="source-dot" /><div><b>Demo data</b><span>Синтетический набор</span></div></div>
+          <div className="sidebar-note">Один раздел для моделей, бизнес-оценки и прогноза продаж.</div>
+        </div>
+      </aside>
+
+      <main className="main-area">
+        <header className="topbar">
+          <div className="breadcrumbs"><span>ML Hub</span><span className="crumb-slash">/</span><b>Регрессия</b></div>
+          <div className="top-actions">
+            <span className="data-badge"><span className="status-dot" /> DEMO DATA</span>
+            <button type="button" className="icon-button" onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} aria-label="Переключить тему" title="Переключить тему">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
+            <button type="button" className="button button-quiet" onClick={downloadReport}><Download size={15} /> Экспорт JSON</button>
+          </div>
+        </header>
+
+        <div className="page-content">
+          <section className="page-title-row">
+            <div><div className="eyebrow">MODEL PERFORMANCE CONSOLE</div><h1>Регрессия</h1><p>Метрики моделей, оценка недвижимости и бриллиантов, а также прогноз продаж Walmart — в одном пространстве.</p></div>
+            <div className="last-run"><span className="last-run-icon"><Check size={14} /></span><span><b>Рабочая среда готова</b><small>Локальные демо-данные · без API</small></span></div>
+          </section>
+
+          <section className="module-tabs" aria-label="Раздел регрессии">
+            <button type="button" className={activeModule === 'property' ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule('property')}><Building2 size={17} /><span>Недвижимость</span><small>Модель + калькулятор</small></button>
+            <button type="button" className={activeModule === 'diamonds' ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule('diamonds')}><Gem size={17} /><span>Алмазы</span><small>Diamonds · цена и метрики</small></button>
+            <button type="button" className={activeModule === 'walmart' ? 'module-tab active' : 'module-tab'} onClick={() => setActiveModule('walmart')}><ShoppingCart size={17} /><span>Walmart Sales</span><small>Магазины + прогноз</small></button>
+          </section>
+
+          {activeModule === 'diamonds' ? (
+            <div className="content-stack">
+              <section className="control-strip">
+                <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Модель оценки бриллиантов</b><span>Одна и та же выборка для сравнения 6 алгоритмов</span></div></div>
+                <label className="select-field"><span>Модель регрессии</span><select value={selectedDiamondModel} onChange={(event) => setSelectedDiamondModel(event.target.value)}>{diamondsDemo.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
+                <div className="model-context"><span className="mini-status" />{selectedDiamondModel === diamondBest.name ? 'Лучшая по RMSE' : `RMSE ${formatUsd(currentDiamondModel.metrics.rmse)}`}</div>
+              </section>
+
+              <section className="metrics-grid">
+                <MetricCard label="R² · качество" value={formatNumber(currentDiamondModel.metrics.r2, 3)} note="Доля объяснённой дисперсии" tone="cyan" icon={<TrendingUp size={17} />} />
+                <MetricCard label="RMSE" value={formatUsd(currentDiamondModel.metrics.rmse)} note="Сильнее штрафует крупные ошибки" tone="green" icon={<Activity size={17} />} />
+                <MetricCard label="MAE" value={formatUsd(currentDiamondModel.metrics.mae)} note="Средняя абсолютная ошибка" tone="amber" icon={<TargetIcon />} />
+                <MetricCard label="MAPE" value={`${formatNumber(currentDiamondModel.metrics.mape, 2)}%`} note="Средняя относительная ошибка" tone="purple" icon={<BarChart3 size={17} />} />
+              </section>
+
+              <section className="two-column property-main-grid">
+                <Card title="Калькулятор цены бриллианта" subtitle="Изменяйте характеристики камня — оценка и диапазон пересчитываются сразу." className="calculator-panel" right={<span className="small-tag"><Gem size={12} /> DIAMONDS DATASET</span>}>
+                  <div className="estimate-block">
+                    <div><span className="estimate-label">Расчётная стоимость</span><div className="estimate-value">{formatUsd(diamondEstimate.estimated)}</div></div>
+                    <div className="estimate-range"><span>Оценочный коридор</span><b>{formatUsd(diamondEstimate.low)} — {formatUsd(diamondEstimate.high)}</b></div>
+                  </div>
+                  <div className="diamond-select-grid">
+                    <label className="select-field diamond-select-field"><span>Огранка · cut</span><select value={diamond.cut} onChange={(event) => updateDiamond('cut', event.target.value)}><option value="Fair">Fair</option><option value="Good">Good</option><option value="Very Good">Very Good</option><option value="Premium">Premium</option><option value="Ideal">Ideal</option></select></label>
+                    <label className="select-field diamond-select-field"><span>Цвет · color</span><select value={diamond.color} onChange={(event) => updateDiamond('color', event.target.value)}>{(['D', 'E', 'F', 'G', 'H', 'I', 'J'] as const).map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+                    <label className="select-field diamond-select-field"><span>Чистота · clarity</span><select value={diamond.clarity} onChange={(event) => updateDiamond('clarity', event.target.value)}>{(['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2', 'I1'] as const).map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+                  </div>
+                  <div className="slider-grid diamond-slider-grid">
+                    <SliderField label="Каратность" value={diamond.carat} min={0.2} max={3} step={0.01} suffix=" ct" onChange={(value) => updateDiamond('carat', value)} />
+                    <SliderField label="Глубина" value={diamond.depth} min={55} max={67} step={0.1} suffix="%" onChange={(value) => updateDiamond('depth', value)} />
+                    <SliderField label="Table" value={diamond.table} min={52} max={64} step={0.1} suffix="%" onChange={(value) => updateDiamond('table', value)} />
+                    <SliderField label="Длина X" value={diamond.x} min={2.5} max={10} step={0.01} suffix=" мм" onChange={(value) => updateDiamond('x', value)} />
+                    <SliderField label="Ширина Y" value={diamond.y} min={2.5} max={10} step={0.01} suffix=" мм" onChange={(value) => updateDiamond('y', value)} />
+                    <SliderField label="Высота Z" value={diamond.z} min={1.5} max={7} step={0.01} suffix=" мм" onChange={(value) => updateDiamond('z', value)} />
+                  </div>
+                  <div className="calculator-footer"><Info size={14} /><span>Демо-оценка на синтетических наблюдениях, не рыночная котировка и не экспертная оценка драгоценного камня.</span><button type="button" className="text-button" onClick={() => setDiamond(initialDiamond)}><RefreshCw size={13} /> Сбросить</button></div>
+                </Card>
+
+                <Card title="Actual vs Predicted" subtitle={`Фактическая цена и прогноз · ${diamondsDemo.samples.length} объектов`} right={<span className="legend-pill"><i className="legend-dot cyan" /> {currentDiamondModel.name}</span>}>
+                  <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 18, bottom: 16, left: 8 }}>
+                    <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" />
+                    <XAxis type="number" dataKey="actual" name="Факт" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · USD', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
+                    <YAxis type="number" dataKey="predicted" name="Прогноз" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={54} />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<DiamondScatterTooltip />} />
+                    <Scatter name={currentDiamondModel.name} data={diamondScatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                  </ScatterChart></ResponsiveContainer></div>
+                  <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — бриллиант</span><span>Близость к диагонали = более точный прогноз</span></div>
+                </Card>
+              </section>
+
+              <section className="three-column charts-row diamond-charts-row">
+                <Card title="Сравнение моделей" subtitle="RMSE на общей выборке · меньше лучше">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={diamondModelComparison} layout="vertical" margin={{ top: 4, right: 18, bottom: 4, left: 8 }}>
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={formatUsd} />} /><Bar dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{diamondModelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedDiamondModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
+                  </BarChart></ResponsiveContainer></div>
+                  <button type="button" className="inline-link" onClick={() => setSelectedDiamondModel(diamondBest.name)}>Лучшая модель: {diamondBest.name} <ArrowUpRight size={14} /></button>
+                </Card>
+                <Card title="Важность факторов" subtitle="Ориентировочный вклад в прогноз цены">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={diamondsDemo.importance} layout="vertical" margin={{ top: 4, right: 10, bottom: 4, left: 3 }}>
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.45]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={105} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 1)}%`} />} /><Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={13} />
+                  </BarChart></ResponsiveContainer></div>
+                </Card>
+                <Card title="Что влияет на цену?" subtitle="Изменение относительно контрольного варианта">
+                  <div className="diamond-driver-list">{diamondEstimate.drivers.slice(0, 5).map((driver) => <div className="diamond-driver" key={driver.label}><span>{driver.label}</span><b className={driver.value >= 0 ? 'positive-text' : 'negative-text'}>{driver.value > 0 ? '+' : driver.value < 0 ? '−' : ''}{formatUsd(Math.abs(driver.value))}</b></div>)}</div>
+                  <div className="insight-footnote"><Info size={13} /> Каратность обычно даёт самый большой вклад. Категориальные факторы и размеры отражают демо-модель, а не оценку геммолога.</div>
+                </Card>
+              </section>
+
+              <Card title="Таблица метрик по моделям" subtitle="Нажмите на строку, чтобы переключить калькулятор и график на выбранный алгоритм." right={<span className="small-tag">{diamondsDemo.models.length} МОДЕЛЕЙ</span>}>
+                <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{diamondModelComparison.map((model) => <tr key={model.name} className={model.name === selectedDiamondModel ? 'row-selected' : ''} onClick={() => setSelectedDiamondModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedDiamondModel(model.name) }}><td><span className="model-cell">{model.name}{model.name === diamondBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatUsd(model.rmse)}</td><td>{formatUsd(model.mae)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatUsd(model.maxError)}</td></tr>)}</tbody></table></div>
+                <div className="table-note"><Info size={13} /> Демо-набор: {diamondsDemo.samples.length} синтетических наблюдений. Метрики показывают поведение интерфейса, не результаты обучения на официальном датасете Diamonds.</div>
+              </Card>
+            </div>
+          ) : activeModule === 'property' ? (
+            <div className="content-stack">
+              <section className="control-strip">
+                <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Параметры модели</b><span>Выберите алгоритм для всех графиков и оценки объекта</span></div></div>
+                <label className="select-field"><span>Модель регрессии</span><select value={selectedRegModel} onChange={(event) => setSelectedRegModel(event.target.value)}>{regressionDemo.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
+                <div className="model-context"><span className="mini-status" />{selectedRegModel === regressionBest.name ? 'Лучшая по RMSE' : `RMSE ${formatNumber(currentRegModel.metrics.rmse, 2)}`}</div>
+              </section>
+
+              <section className="metrics-grid">
+                <MetricCard label="R² · качество" value={formatNumber(currentRegModel.metrics.r2, 3)} note="Доля объяснённой дисперсии" tone="cyan" icon={<TrendingUp size={17} />} />
+                <MetricCard label="RMSE" value={formatNumber(currentRegModel.metrics.rmse, 2)} note="Штрафует большие ошибки" tone="green" icon={<Activity size={17} />} />
+                <MetricCard label="MAE" value={formatNumber(currentRegModel.metrics.mae, 2)} note="Средняя абсолютная ошибка" tone="amber" icon={<TargetIcon />} />
+                <MetricCard label="MAPE" value={`${formatNumber(currentRegModel.metrics.mape, 2)}%`} note="Средняя относительная ошибка" tone="purple" icon={<BarChart3 size={17} />} />
+              </section>
+
+              <section className="two-column property-main-grid">
+                <Card title="Калькулятор недвижимости" subtitle="Поиграйте с характеристиками — оценка обновляется сразу." className="calculator-panel" right={<span className="small-tag"><Sparkles size={12} /> DEMO ESTIMATOR</span>}>
+                  <div className="estimate-block">
+                    <div><span className="estimate-label">Расчётная стоимость</span><div className="estimate-value">{formatMoneyK(propertyEstimate.estimated)}</div></div>
+                    <div className="estimate-range"><span>Оценочный коридор</span><b>{formatMoneyK(propertyEstimate.low)} — {formatMoneyK(propertyEstimate.high)}</b></div>
+                  </div>
+                  <div className="slider-grid">
+                    <SliderField label="Площадь" value={property.area} min={25} max={250} suffix=" м²" onChange={(value) => updateProperty('area', value)} />
+                    <SliderField label="Комнаты" value={property.rooms} min={1} max={6} onChange={(value) => updateProperty('rooms', value)} />
+                    <SliderField label="Возраст объекта" value={property.age} min={0} max={50} suffix=" лет" onChange={(value) => updateProperty('age', value)} />
+                    <SliderField label="До центра" value={property.distance} min={1} max={40} suffix=" км" onChange={(value) => updateProperty('distance', value)} />
+                    <SliderField label="Доход района" value={property.income} min={25} max={180} suffix=" тыс.$" onChange={(value) => updateProperty('income', value)} />
+                    <SliderField label="Качество отделки" value={property.finish} min={1} max={10} onChange={(value) => updateProperty('finish', value)} />
+                  </div>
+                  <div className="calculator-footer"><Info size={14} /><span>Демо-оценка на синтетических данных. Не является рыночной или банковской оценкой.</span><button type="button" className="text-button" onClick={() => setProperty(initialProperty)}><RefreshCw size={13} /> Сбросить</button></div>
+                </Card>
+
+                <Card title="Actual vs Predicted" subtitle={`Сопоставление фактической цены и предсказания · ${regressionDemo.y.length} объектов`} right={<span className="legend-pill"><i className="legend-dot cyan" /> Выбранная модель</span>}>
+                  <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 18, bottom: 16, left: 8 }}>
+                    <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" />
+                    <XAxis type="number" dataKey="actual" name="Факт" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · $ тыс.', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
+                    <YAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<RegressionScatterTooltip />} />
+                    <Scatter name={currentRegModel.name} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                  </ScatterChart></ResponsiveContainer></div>
+                  <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — один объект</span><span>Чем ближе к диагонали, тем точнее прогноз</span></div>
+                </Card>
+              </section>
+
+              <section className="three-column charts-row">
+                <Card title="Остатки vs прогноз" subtitle="Нет выраженного паттерна — хорошо.">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 10, bottom: 12, left: -6 }}>
+                    <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis type="number" dataKey="residual" name="Остаток" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={40} /><ReferenceLine y={0} stroke={chartPalette.rose} strokeDasharray="5 4" /><Tooltip content={<ResidualTooltip />} /><Scatter data={residualData} fill={chartPalette.purple} fillOpacity={0.65} />
+                  </ScatterChart></ResponsiveContainer></div>
+                  <div className="chart-footnote"><span>Остаток = прогноз − факт</span><span className={currentRegModel.metrics.bias >= 0 ? 'positive-text' : 'negative-text'}>Bias {currentRegModel.metrics.bias > 0 ? '+' : ''}{formatNumber(currentRegModel.metrics.bias, 2)}</span></div>
+                </Card>
+                <Card title="Сравнение моделей" subtitle="RMSE на одной тестовой выборке · меньше лучше">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={modelComparison} layout="vertical" margin={{ top: 4, right: 22, bottom: 4, left: 12 }}>
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => formatNumber(value, 2)} />} /><Bar dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{modelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedRegModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
+                  </BarChart></ResponsiveContainer></div>
+                  <button type="button" className="inline-link" onClick={() => setSelectedRegModel(regressionBest.name)}>Выбрать лучшую: {regressionBest.name} <ArrowUpRight size={14} /></button>
+                </Card>
+                <Card title="Важность факторов" subtitle="Относительный вклад в цену объекта">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={regressionDemo.importance} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.4]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={120} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 0)}%`} />} /><Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={14} />
+                  </BarChart></ResponsiveContainer></div>
+                </Card>
+              </section>
+
+              <section className="two-column lower-grid">
+                <Card title="Распределение остатков" subtitle="Центр распределения должен быть около нуля.">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={residualDistribution} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
+                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="range" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${value} объектов`} />} /><Bar dataKey="count" name="Объекты" radius={[4, 4, 0, 0]}>{residualDistribution.map((bin, index) => <Cell key={`${bin.range}-${index}`} fill={Math.abs(bin.center) < currentRegModel.metrics.rmse * 0.45 ? chartPalette.green : chartPalette.indigo} />)}</Bar>
+                  </BarChart></ResponsiveContainer></div>
+                </Card>
+                <Card title="Таблица метрик" subtitle="Нажмите на строку, чтобы переключить модель." right={<span className="small-tag">{regressionDemo.models.length} МОДЕЛЕЙ</span>}>
+                  <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{modelComparison.map((model) => <tr key={model.name} className={model.name === selectedRegModel ? 'row-selected' : ''} onClick={() => setSelectedRegModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedRegModel(model.name) }}><td><span className="model-cell">{model.name}{model.name === regressionBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatNumber(model.rmse, 2)}</td><td>{formatNumber(model.mae, 2)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatNumber(model.maxError, 1)}</td></tr>)}</tbody></table></div>
+                  <div className="table-note"><Info size={13} /> Метрики вычисляются по одному и тому же набору демо-наблюдений.</div>
+                </Card>
+              </section>
+            </div>
+          ) : (
+            <div className="content-stack">
+              <section className="store-picker-panel">
+                <div className="store-picker-heading"><div><div className="eyebrow">RETAIL TIME SERIES</div><h2>Выберите магазин</h2></div><span className="store-picker-caption">Все магазины · недельные данные</span></div>
+                <div className="store-picker-grid">{walmartDemo.stores.map((item, index) => {
+                  const average = mean(item.actual.filter((value): value is number => value != null))
+                  return <button type="button" className={`store-option ${storeIndex === index ? 'active' : ''}`} key={item.name} onClick={() => setStoreIndex(index)}><span className="store-option-icon"><ShoppingCart size={17} /></span><span className="store-option-copy"><b>{item.name}</b><small>Средняя неделя · {formatSales(average)}</small></span><span className="store-factor">×{formatNumber(item.factor, 2)}</span>{storeIndex === index && <span className="store-check"><Check size={12} /></span>}</button>
+                })}</div>
+              </section>
+
+              <section className="control-strip walmart-controls">
+                <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Настройки прогноза</b><span>Модель, горизонт и отображаемый интервал</span></div></div>
+                <label className="select-field"><span>Модель прогноза</span><select value={currentWalmartModel.name} onChange={(event) => setSelectedWalmartModel(event.target.value)}>{store.models.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
+                <div className="horizon-control"><span>Горизонт</span><div className="segmented">{([4, 8, 13] as const).map((value) => <button type="button" key={value} className={horizon === value ? 'active' : ''} onClick={() => setHorizonValue(value)}>{value} нед.</button>)}</div></div>
+                <div className="range-control"><span><CalendarDays size={13} /> Период на графике</span><div className="date-range"><input aria-label="Дата начала периода" type="date" value={rangeStart} min={walmartDemo.dates[0]} max={rangeEnd} onChange={(event) => setRangeStart(event.target.value)} /><span>—</span><input aria-label="Дата окончания периода" type="date" value={rangeEnd} min={rangeStart} max={walmartDemo.dates[walmartDemo.dates.length - 1]} onChange={(event) => { setRangeEnd(event.target.value); setAutoEnd(false) }} /></div></div>
+                <div className="toggle-controls"><button type="button" className={`toggle-chip ${showConfidence ? 'active' : ''}`} onClick={() => setShowConfidence((value) => !value)}><span className="toggle-check">{showConfidence && <Check size={11} />}</span> 95% интервал</button><button type="button" className={`toggle-chip ${showHolidays ? 'active' : ''}`} onClick={() => setShowHolidays((value) => !value)}><span className="toggle-check">{showHolidays && <Check size={11} />}</span> Праздники</button></div>
+              </section>
+
+              <section className="metrics-grid">
+                <MetricCard label="WMAE · ошибка" value={formatSales(currentWalmartModel.metrics.wmae)} note="Праздничные недели имеют больший вес" tone="cyan" icon={<Activity size={17} />} />
+                <MetricCard label="MAPE" value={`${formatNumber(currentWalmartModel.metrics.mape, 2)}%`} note="Ошибка на отложенном отрезке" tone="green" icon={<TrendingUp size={17} />} />
+                <MetricCard label={`Прогноз · ${horizon} нед.`} value={formatSales(walmartForecast.forecastTotal)} note="Ожидаемая сумма продаж магазина" tone="amber" icon={<ShoppingCart size={17} />} />
+                <MetricCard label="YoY · к прошлому году" value={formatPercent(walmartForecast.yoy)} note={`Сравнение с теми же неделями · ${formatSales(walmartForecast.lastYearTotal)}`} tone="purple" icon={walmartForecast.yoy >= 0 ? <ArrowUpRight size={17} /> : <ArrowDownRight size={17} />} />
+              </section>
+
+              <Card title="Недельные продажи: факт и прогноз" subtitle={`${store.name} · ${currentWalmartModel.name} · жёлтые маркеры — праздничные недели`} className="sales-chart-panel" right={<div className="chart-legend"><span><i className="legend-line actual-line" /> Факт</span><span><i className="legend-line forecast-line" /> Прогноз</span>{showConfidence && <span><i className="legend-line interval-line" /> 95% интервал</span>}</div>}>
+                <div className="chart-area sales-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={walmartChartData} margin={{ top: 14, right: 18, bottom: 8, left: 6 }}>
+                  <defs><linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={chartPalette.cyan} stopOpacity={0.2} /><stop offset="100%" stopColor={chartPalette.cyan} stopOpacity={0.01} /></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" vertical={false} /><XAxis dataKey="date" tickFormatter={formatAxisDate} minTickGap={24} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => `$${(value / 1_000_000).toFixed(1)}M`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={54} /><Tooltip content={<SalesTooltip />} />
+                  {showConfidence && <><Line dataKey="low" name="Нижняя граница" stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} /><Line dataKey="high" name="Верхняя граница" stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} /></>}
+                  <Area type="monotone" dataKey="actual" name="Факт" stroke={undefined} fill="url(#salesGradient)" fillOpacity={0.15} connectNulls={false} activeDot={false} />
+                  <Line type="monotone" dataKey="actual" name="Факт" stroke="var(--text)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} />
+                  <Line type="monotone" dataKey="forecast" name="Прогноз" stroke={chartPalette.cyan} strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} connectNulls={false} />
+                  {showHolidays && walmartChartData.filter((row) => row.holiday).map((row) => <ReferenceLine key={row.date} x={row.date} stroke={chartPalette.amber} strokeDasharray="3 4" strokeOpacity={0.8} label={{ value: row.holiday?.icon, position: 'insideTop', fill: chartPalette.amber, fontSize: 13 }} />)}
+                  <ReferenceLine x={walmartDemo.dates[walmartDemo.testStart]} stroke="var(--muted)" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'ТЕСТ', fill: 'var(--muted)', fontSize: 10, position: 'insideTopLeft' }} />
+                </ComposedChart></ResponsiveContainer></div>
+                <div className="chart-footnote"><span><i className="legend-line actual-line" /> История до последней фактической недели</span><span><i className="legend-line forecast-line" /> Прогноз выбранной модели до {horizon} недель вперёд</span></div>
+              </Card>
+
+              <section className="two-column walmart-detail-grid">
+                <Card title="Сравнение моделей" subtitle="MAPE на отложенной выборке · меньше лучше" right={<span className="small-tag">BEST: {walmartBest.name}</span>}>
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={store.models.map((model) => ({ name: model.name, mape: Number(model.metrics.mape.toFixed(2)) }))} layout="vertical" margin={{ top: 4, right: 26, bottom: 4, left: 6 }}>
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `${value}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis type="category" dataKey="name" width={108} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value, 2)}%`} />} /><Bar dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={17}>{store.models.map((model) => <Cell key={model.name} fill={model.name === selectedWalmartModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
+                  </BarChart></ResponsiveContainer></div>
+                  <button type="button" className="inline-link" onClick={() => setSelectedWalmartModel(walmartBest.name)}>Выбрать лучшую модель <ArrowUpRight size={14} /></button>
+                </Card>
+
+                <Card title="Почему прогноз такой?" subtitle="Факторы, которые объясняют расчёт на выбранный период." className="insights-card">
+                  <div className="insight-list">
+                    <div className="insight-item"><span className="insight-icon holiday"><CalendarDays size={16} /></span><div><b>{walmartForecast.holidayRows.length ? `Праздничный календарь: ${walmartForecast.holidayRows.length} недели` : 'Праздничный календарь'}</b><p>{walmartForecast.holidayRows.length ? `В горизонт попадают ${walmartForecast.holidayRows.map((row) => `${row.holiday?.icon} ${row.holiday?.label}`).join(' и ')}. В демо-ряду эти периоды связаны с нетипичным уровнем продаж.` : 'В выбранный горизонт не попали праздничные недели из календаря демо-данных.'}</p></div>
+                    </div>
+                    <div className="insight-item"><span className="insight-icon season"><TrendingUp size={16} /></span><div><b>Сезонность и недавний уровень</b><p>{walmartForecast.forecastVsRecent >= 0 ? 'Средний прогноз выше' : 'Средний прогноз ниже'} среднего за последние 13 наблюдаемых недель на <strong>{formatNumber(Math.abs(walmartForecast.forecastVsRecent * 100), 1)}%</strong>. Модель учитывает годовой цикл и небольшой тренд.</p></div></div>
+                    <div className="insight-item"><span className="insight-icon scale"><ShoppingCart size={16} /></span><div><b>Масштаб магазина</b><p>{store.name} имеет базовый уровень примерно в <strong>{formatNumber(store.factor, 2)} раза</strong> относительно Store 1 в демонстрационном наборе. Поэтому абсолютный прогноз отличается даже при схожей сезонности.</p></div></div>
+                    <div className="insight-footnote"><Info size={13} /> Объяснения рассчитаны по синтетическим данным интерфейса, а не по официальному набору Walmart.</div>
+                  </div>
+                </Card>
+              </section>
+
+              <section className="two-column walmart-bottom-grid">
+                <Card title="Сезонность по месяцам" subtitle="Средние продажи за доступную историю магазина.">
+                  <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={seasonality} margin={{ top: 8, right: 8, bottom: 4, left: -8 }}>
+                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="month" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => `$${(value / 1_000_000).toFixed(1)}M`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={formatSales} />} /><Bar dataKey="sales" name="Средние продажи" fill={chartPalette.purple} radius={[5, 5, 0, 0]} barSize={20} />
+                  </BarChart></ResponsiveContainer></div>
+                </Card>
+                <Card title="Прогноз по неделям" subtitle={`Сумма на ${horizon} недель вперёд · YoY — к той же неделе год назад`} right={<span className="small-tag">{store.name}</span>}>
+                  <div className="table-wrap weekly-table-wrap"><table className="data-table"><thead><tr><th>Неделя</th><th>Событие</th><th>Прогноз</th><th>YoY</th></tr></thead><tbody>{weeklyForecastRows.map((row) => <tr key={row.date}><td>{row.date}</td><td>{row.holiday ? <span className="holiday-chip">{row.holiday.icon} {row.holiday.label}</span> : <span className="muted-cell">—</span>}</td><td className="money-cell">{formatSales(row.forecast)}</td><td className={row.yoy >= 0 ? 'positive-text' : 'negative-text'}>{formatPercent(row.yoy)}</td></tr>)}</tbody></table></div>
+                  <div className="table-note"><Info size={13} /> Интервал прогноза можно менять над графиком.</div>
+                </Card>
+              </section>
+            </div>
+          )}
+
+          <footer className="page-footer"><span>ML Hub <span className="footer-separator">/</span> Regression Console</span><span>Демо-данные · интерактивный прототип</span></footer>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function TargetIcon() {
+  return <span className="target-icon">◎</span>
+}
+
+function RegressionScatterTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { actual: number; predicted: number } }> }) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  return <div className="custom-tooltip"><b>Объект</b><span>Факт: {formatMoneyK(point.actual)}</span><span>Прогноз: {formatMoneyK(point.predicted)}</span><span>Ошибка: {formatMoneyK(point.predicted - point.actual)}</span></div>
+}
+
+function ResidualTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { predicted: number; residual: number } }> }) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  return <div className="custom-tooltip"><b>Остаток модели</b><span>Прогноз: {formatMoneyK(point.predicted)}</span><span>Остаток: {formatMoneyK(point.residual)}</span></div>
+}
+
+function SalesTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { date: string; actual: number | null; forecast: number | null; low: number | null; high: number | null; holiday?: { icon: string; label: string } } }> }) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  return <div className="custom-tooltip"><b>{point.date}</b>{point.holiday && <span>{point.holiday.icon} {point.holiday.label}</span>}{point.actual != null && <span>Факт: {formatSales(point.actual)}</span>}{point.forecast != null && <span>Прогноз: {formatSales(point.forecast)}</span>}{point.low != null && point.high != null && <span>95%: {formatSales(point.low)} – {formatSales(point.high)}</span>}</div>
+}
+
+function DiamondScatterTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { actual: number; predicted: number } }> }) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  return <div className="custom-tooltip"><b>Цена бриллианта</b><span>Факт: {formatUsd(point.actual)}</span><span>Прогноз: {formatUsd(point.predicted)}</span><span>Ошибка: {formatUsd(point.predicted - point.actual)}</span></div>
+}
+
+function GenericTooltip({ active, payload, label, valueFormatter = (value: number) => formatNumber(value, 2) }: { active?: boolean; payload?: Array<{ value: number; name: string; color?: string }>; label?: string; valueFormatter?: (value: number) => string }) {
+  if (!active || !payload?.length) return null
+  return <div className="custom-tooltip"><b>{label}</b>{payload.map((entry, index) => <span key={`${entry.name}-${index}`}><i className="tooltip-dot" style={{ background: entry.color ?? chartPalette.cyan }} />{entry.name}: {valueFormatter(entry.value)}</span>)}</div>
+}
+
+export default RegressionConsole
