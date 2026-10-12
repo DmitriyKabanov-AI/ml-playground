@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import {
-  Flower2,
-  Ribbon,
-  Stethoscope,
-  ShieldAlert,
-  Grid3x3,
+  Sprout,
+  ShieldCheck,
+  HeartPulse,
+  CreditCard,
+  Hash,
   Building2,
   Gem,
   ShoppingCart,
@@ -14,11 +14,11 @@ import {
 } from "lucide-react";
 
 const CLASSIFICATION_TASKS = [
-  { href: "/iris", title: "Iris", desc: "Многоклассовая классификация", icon: Flower2, accent: "from-emerald-500 to-teal-500" },
-  { href: "/breast-cancer-fp", title: "Breast Cancer · Скрининг", desc: "Дорогие ложноположительные", icon: Ribbon, accent: "from-sky-500 to-indigo-500" },
-  { href: "/breast-cancer-fn", title: "Breast Cancer · Второе мнение", desc: "Критичны ложноотрицательные", icon: Stethoscope, accent: "from-rose-500 to-pink-500" },
-  { href: "/credit-fraud", title: "Credit Fraud", desc: "Экстремальный дисбаланс", icon: ShieldAlert, accent: "from-amber-500 to-orange-500" },
-  { href: "/digits", title: "Digits Imbalanced", desc: "Редкий класс, macro vs weighted", icon: Grid3x3, accent: "from-violet-500 to-fuchsia-500" },
+  { href: "/iris", title: "Iris", desc: "Многоклассовая классификация", icon: Sprout, accent: "from-emerald-500 to-teal-500" },
+  { href: "/breast-cancer-fp", title: "Breast Cancer · Скрининг", desc: "Дорогие ложноположительные", icon: ShieldCheck, accent: "from-sky-500 to-indigo-500" },
+  { href: "/breast-cancer-fn", title: "Breast Cancer · Второе мнение", desc: "Критичны ложноотрицательные", icon: HeartPulse, accent: "from-rose-500 to-pink-500" },
+  { href: "/credit-fraud", title: "Credit Fraud", desc: "Экстремальный дисбаланс", icon: CreditCard, accent: "from-amber-500 to-orange-500" },
+  { href: "/digits", title: "Digits Imbalanced", desc: "Редкий класс, macro vs weighted", icon: Hash, accent: "from-violet-500 to-fuchsia-500" },
 ];
 
 const REGRESSION_TASKS = [

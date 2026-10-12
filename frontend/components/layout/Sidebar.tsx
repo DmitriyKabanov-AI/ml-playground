@@ -22,7 +22,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Forecasting",
-    items: [{ href: "/weather", label: "Weather Forecasting", icon: CloudSun }],
+    items: [{ href: "/weather", label: "Обзор", icon: CloudSun }],
   },
 ];
 

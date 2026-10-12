@@ -1,12 +1,6 @@
 "use client";
 import { useState } from "react";
-import {
-  Flower2,
-  Ribbon,
-  Stethoscope,
-  ShieldAlert,
-  Grid3x3,
-} from "lucide-react";
+import { Sprout, ShieldCheck, HeartPulse, CreditCard, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import IrisPage from "@/app/iris/page";
@@ -16,11 +10,11 @@ import CreditFraudPage from "@/app/credit-fraud/page";
 import DigitsPage from "@/app/digits/page";
 
 const TABS = [
-  { id: "iris",   label: "Iris",                          sub: "Многоклассовая классификация",   icon: Flower2,     accent: "from-emerald-500 to-teal-500" },
-  { id: "bc-fp",  label: "Breast Cancer · Скрининг",      sub: "Дорогие ложноположительные",     icon: Ribbon,      accent: "from-sky-500 to-indigo-500" },
-  { id: "bc-fn",  label: "Breast Cancer · Второе мнение", sub: "Критичны ложноотрицательные",    icon: Stethoscope, accent: "from-rose-500 to-pink-500" },
-  { id: "fraud",  label: "Credit Fraud",                  sub: "Экстремальный дисбаланс",        icon: ShieldAlert, accent: "from-amber-500 to-orange-500" },
-  { id: "digits", label: "Digits Imbalanced",             sub: "Редкий класс, macro vs weighted", icon: Grid3x3,     accent: "from-violet-500 to-fuchsia-500" },
+  { id: "iris",   label: "Iris",                          sub: "Многоклассовая классификация",   icon: Sprout },
+  { id: "bc-fp",  label: "Breast Cancer · Скрининг",      sub: "Дорогие ложноположительные",     icon: ShieldCheck },
+  { id: "bc-fn",  label: "Breast Cancer · Второе мнение", sub: "Критичны ложноотрицательные",    icon: HeartPulse },
+  { id: "fraud",  label: "Credit Fraud",                  sub: "Экстремальный дисбаланс",        icon: CreditCard },
+  { id: "digits", label: "Digits Imbalanced",             sub: "Редкий класс, macro vs weighted", icon: Hash },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -40,44 +34,50 @@ export function ClassificationTabs() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <section
+        aria-label="Раздел классификации"
+        className="flex flex-wrap gap-2 w-fit max-w-full p-1.5 rounded-2xl border border-border bg-slate-500/5"
+      >
         {TABS.map((t) => {
           const Icon = t.icon;
           const isActive = active === t.id;
           return (
             <button
               key={t.id}
+              type="button"
+              aria-current={isActive ? "page" : undefined}
               onClick={() => setActive(t.id)}
               className={cn(
-                "flex items-center gap-3 p-3 rounded-xl border text-left transition-all",
+                "flex items-center gap-3 px-3.5 py-2.5 rounded-xl border min-w-[205px] text-left transition-all",
                 isActive
-                  ? "border-indigo-500/60 bg-indigo-500/10 shadow-[0_0_0_1px_rgba(99,102,241,0.35)]"
-                  : "border-border hover:border-indigo-500/40"
+                  ? "border-primary-500/30 bg-gradient-to-br from-primary-500/15 to-violet-500/10 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.35)]"
+                  : "border-transparent hover:bg-slate-500/5"
               )}
             >
-              <span
+              <Icon
+                size={17}
                 className={cn(
-                  "h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br flex items-center justify-center",
-                  t.accent
+                  "shrink-0",
+                  isActive ? "text-primary-500" : "text-slate-500"
                 )}
-              >
-                <Icon className="text-white" size={18} />
-              </span>
+              />
               <span className="flex flex-col min-w-0">
                 <span
                   className={cn(
-                    "text-sm font-bold truncate",
-                    isActive ? "text-indigo-500" : "text-slate-900 dark:text-slate-100"
+                    "text-[11px] font-semibold truncate leading-tight",
+                    isActive ? "text-slate-900 dark:text-white" : "text-slate-500"
                   )}
                 >
                   {t.label}
                 </span>
-                <span className="text-[11px] text-slate-500 truncate">{t.sub}</span>
+                <span className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">
+                  {t.sub}
+                </span>
               </span>
             </button>
           );
         })}
-      </div>
+      </section>
 
       <div>
         {active === "iris"   && <IrisPage />}
