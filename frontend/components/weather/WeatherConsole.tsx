@@ -175,6 +175,14 @@ function FeaturesPage() {
 export default function WeatherConsole() {
   const [theme, setTheme] = useState<Theme>('dark')
   const [activePage, setActivePage] = useState<Page>('overview')
+
+  // Синхронизация с URL: ?page=overview|stations|cities|models|features
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const p = new URLSearchParams(window.location.search).get('page') as Page | null
+    const allowed: Page[] = ['overview', 'stations', 'cities', 'models', 'features']
+    if (p && allowed.includes(p)) setActivePage(p)
+  }, [])
   const [stationId, setStationId] = useState(20891)
   const [stationModel, setStationModel] = useState('XGBoost')
   const [stationHorizon, setStationHorizon] = useState(7)

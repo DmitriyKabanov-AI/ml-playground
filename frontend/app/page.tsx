@@ -11,6 +11,10 @@ import {
   Gem,
   ShoppingCart,
   CloudSun,
+  Thermometer,
+  MapPin,
+  BarChart3,
+  Layers3,
 } from "lucide-react";
 
 const CLASSIFICATION_TASKS = [
@@ -28,7 +32,11 @@ const REGRESSION_TASKS = [
 ];
 
 const FORECASTING_TASKS = [
-  { href: "/weather", title: "Weather Forecasting", desc: "Skill vs persistence · 5 станций", icon: CloudSun, accent: "from-sky-500 to-cyan-500" },
+  { href: "/weather?page=overview", title: "Обзор",                 desc: "Сводка и KPI · ML Weather", icon: CloudSun,    accent: "from-sky-500 to-cyan-500" },
+  { href: "/weather?page=stations", title: "Станции",               desc: "1–14 дней · бэктест",      icon: Thermometer, accent: "from-emerald-500 to-teal-500" },
+  { href: "/weather?page=cities",   title: "Города и переменные",   desc: "5 параметров погоды",      icon: MapPin,      accent: "from-indigo-500 to-violet-500" },
+  { href: "/weather?page=models",   title: "Модели и метрики",      desc: "Лидерборды",               icon: BarChart3,   accent: "from-amber-500 to-orange-500" },
+  { href: "/weather?page=features", title: "Признаки и справочник", desc: "Features · метрики",       icon: Layers3,     accent: "from-fuchsia-500 to-pink-500" },
 ];
 
 function TaskCard({ href, title, desc, icon: Icon, accent }: { href: string; title: string; desc: string; icon: any; accent: string }) {

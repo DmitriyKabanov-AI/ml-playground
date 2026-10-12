@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, TrendingUp, Layers, CloudSun } from "lucide-react";
@@ -22,7 +22,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Forecasting",
-    items: [{ href: "/weather", label: "Обзор", icon: CloudSun }],
+    items: [{ href: "/weather", label: "ML Weather", icon: CloudSun }],
   },
 ];
 
