@@ -101,7 +101,6 @@ function OverviewPage({ goStations, goCities, goModels, stationId, stationModel,
         <div className="overview-stat-list"><div><span>MAE</span><b>{fmt(evaluation.metrics.mae)} °C</b><small>средняя абсолютная ошибка</small></div><div><span>RMSE</span><b>{fmt(evaluation.metrics.rmse)} °C</b><small>штраф за большие промахи</small></div><div><span>R²</span><b>{fmt(evaluation.metrics.r2, 3)}</b><small>относительно дисперсии факта</small></div><div><span>Skill vs persistence</span><b className={evaluation.metrics.skill >= 0 ? 'positive-text' : 'negative-text'}>{signed(evaluation.metrics.skill)}</b><small>{evaluation.metrics.skill >= 0 ? 'MAE ниже baseline' : 'MAE выше baseline'}</small></div></div>
       </Panel>
     </section>
-    <div className="weather-disclaimer"><Info size={14} /><span><b>Демо-режим.</b> Числа, прогнозы и метрики искусственно сгенерированы для демонстрации интерфейса. Это не реальные данные городов и метеостанций и не предназначено для погодного планирования.</span></div>
   </div>
 }
 
@@ -168,7 +167,6 @@ function FeaturesPage() {
     <Panel title="Справочник метрик" subtitle="Интерпретация значений в таблицах и графиках">
       <div className="table-wrap"><table className="data-table metric-definitions"><thead><tr><th>Метрика</th><th>Что измеряет</th><th>Как читать</th></tr></thead><tbody>{metrics.map(([name, title, description]) => <tr key={name}><td><b>{name}</b></td><td>{title}</td><td>{description}</td></tr>)}</tbody></table></div>
     </Panel>
-    <div className="weather-disclaimer"><Info size={14} /><span><b>О важности признаков.</b> Величины в графике — синтетическая оценка feature importance, перенесённая из референса. Это не переобучение настоящей модели и не объяснение реального прогноза.</span></div>
   </div>
 }
 
@@ -274,7 +272,7 @@ export default function WeatherConsole() {
         {activePage === 'cities' && <CityWeatherDashboard cityIndex={cityIndex} setCityIndex={setCityIndex} variableKey={cityVariable} setVariableKey={setCityVariable} modelName={cityModel} setModelName={setCityModel} showInterval={showCityInterval} setShowInterval={setShowCityInterval} />}
         {activePage === 'models' && <ModelsPage cityIndex={cityIndex} cityVariable={cityVariable} />}
         {activePage === 'features' && <FeaturesPage />}
-        <footer className="page-footer"><span>Weather ML Console <span className="footer-separator">/</span> forecasting &amp; model evaluation</span><span>Демо-данные · синтетика · локальный React-проект</span></footer>
+        <footer className="page-footer"><span>Weather ML Console <span className="footer-separator">/</span> forecasting &amp; model evaluation</span></footer>
       </div>
     </main>
   </div>

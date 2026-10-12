@@ -139,6 +139,5 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
       <div className="table-note"><Info size={13} /> Skill = 1 − MAE модели / MAE persistence. Весь набор синтетический; качество не отражает реальные прогнозы в выбранном городе.</div>
     </Panel>
 
-    <div className="weather-disclaimer"><Info size={14} /><span><b>City weather demo.</b> Города и погодные ряды генерируются локально на основе фиксированного seed. После обновления даты шкала календаря сдвинется, но значения детерминированы относительно настроек генератора. Это не реальный прогноз.</span></div>
   </div>
 }

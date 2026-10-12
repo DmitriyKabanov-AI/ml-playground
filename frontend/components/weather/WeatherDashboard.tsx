@@ -334,6 +334,5 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
       <div className="table-note"><Info size={13} /> «Точные» — 10 минимальных |error|; «Ошибочные» — 10 максимальных. Это примеры из синтетического тестового ряда.</div>
     </Panel>
 
-    <div className="weather-disclaimer"><Info size={14} /><span><b>Demo-data edition.</b> Температурные ряды генерируются локально и детерминированы seed. Интерфейс демонстрирует взаимодействие моделей и метрик; данные не являются наблюдениями метеостанций и не должны использоваться для планирования погоды.</span></div>
   </div>
 }
