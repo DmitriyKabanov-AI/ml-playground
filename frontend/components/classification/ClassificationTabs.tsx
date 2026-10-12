@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sprout, ShieldCheck, HeartPulse, CreditCard, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,14 @@ type TabId = typeof TABS[number]["id"];
 
 export function ClassificationTabs() {
   const [active, setActive] = useState<TabId>("iris");
+
+  // Синхронизация с URL: ?tab=iris|bc-fp|bc-fn|fraud|digits
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search).get("tab") as TabId | null;
+    const allowed: TabId[] = ["iris", "bc-fp", "bc-fn", "fraud", "digits"];
+    if (p && allowed.includes(p)) setActive(p);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -46,7 +54,14 @@ export function ClassificationTabs() {
               key={t.id}
               type="button"
               aria-current={isActive ? "page" : undefined}
-              onClick={() => setActive(t.id)}
+              onClick={() => {
+                setActive(t.id);
+                if (typeof window !== "undefined") {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tab", t.id);
+                  window.history.replaceState(null, "", url.toString());
+                }
+              }}
               className={cn(
                 "flex items-center gap-3 px-3.5 py-2.5 rounded-xl border min-w-[205px] text-left transition-all",
                 isActive
