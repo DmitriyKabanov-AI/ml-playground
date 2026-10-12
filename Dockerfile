@@ -73,28 +73,43 @@ CMD ["python", "/app/scripts/run_api.py"]
 
 
 # ---------------------------------------------------------------------
-#  STAGE 3: сборка фронта (Vite + React)
+#  STAGE 3: сборка фронта (Next.js static export → out/)
+#
+#  Next.js с `output: "export"` (см. frontend/next.config.js)
+#  собирает статику в /app/out, а не в /app/dist.
+#
+#  public/artifacts и public/models на хосте — это junction
+#  (символические ссылки Windows), которые не переносятся в
+#  Linux-контейнер. Их отсекает .dockerignore, а здесь мы создаём
+#  пустые папки, потому что next build проверяет наличие всех путей
+#  внутри public/. Реальные артефакты попадут в nginx через volume.
 # ---------------------------------------------------------------------
 FROM node:20-alpine AS web-build
 
 WORKDIR /app
 
-ARG VITE_API_URL=/api
-ENV VITE_API_URL=$VITE_API_URL
-
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 COPY frontend/ ./
+
+# Пустые заглушки для junction-путей из public/ —
+# next build делает stat() по каждому пути и падает на ENOENT,
+# если папки нет физически.
+RUN mkdir -p public/artifacts public/models
+
 RUN npm run build
 
 
 # ---------------------------------------------------------------------
 #  STAGE 4: раздача статики через nginx
+#
+#  Next.js static export кладёт всё в /app/out (см. output: "export").
+#  Артефакты монтируются снаружи через docker-compose.volumes.
 # ---------------------------------------------------------------------
 FROM nginx:alpine AS web
 
-COPY --from=web-build /app/dist /usr/share/nginx/html
+COPY --from=web-build /app/out /usr/share/nginx/html
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

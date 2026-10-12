@@ -1,0 +1,391 @@
+{
+  "dataset_name": "Cities Weather Daily",
+  "generated_at": "2026-10-12T12:19:12.834767",
+  "source_by_city": {
+    "Almaty": "open_meteo",
+    "Moscow": "open_meteo",
+    "Sarajevo": "open_meteo",
+    "Tbilisi": "open_meteo"
+  },
+  "source_priority": [
+    "open_meteo",
+    "meteostat",
+    "nasa_power",
+    "noaa_gsod",
+    "visual_crossing"
+  ],
+  "period": {
+    "start": "1980-01-01",
+    "end": "2023-12-31"
+  },
+  "n_cities": 4,
+  "n_rows": 64284,
+  "variables": {
+    "temp": {
+      "desc": "Средняя температура за день",
+      "unit": "°C"
+    },
+    "temp_min": {
+      "desc": "Минимум за день",
+      "unit": "°C"
+    },
+    "temp_max": {
+      "desc": "Максимум за день",
+      "unit": "°C"
+    },
+    "humidity": {
+      "desc": "Средняя относительная влажность",
+      "unit": "%"
+    },
+    "precipitation": {
+      "desc": "Сумма осадков",
+      "unit": "мм"
+    },
+    "wind": {
+      "desc": "Максимальная скорость ветра",
+      "unit": "км/ч"
+    },
+    "pressure": {
+      "desc": "Среднее давление на уровне станции",
+      "unit": "гПа"
+    }
+  },
+  "cities": [
+    {
+      "city": "Almaty",
+      "city_ru": "Алматы",
+      "wmo_id": 36870,
+      "lat": 43.2333,
+      "lon": 76.9333,
+      "elevation": 847,
+      "timezone": "Asia/Almaty",
+      "source": "open_meteo",
+      "n_days": 16071
+    },
+    {
+      "city": "Moscow",
+      "city_ru": "Москва (ВДНХ)",
+      "wmo_id": 27612,
+      "lat": 55.8333,
+      "lon": 37.6167,
+      "elevation": 156,
+      "timezone": "Europe/Moscow",
+      "source": "open_meteo",
+      "n_days": 16071
+    },
+    {
+      "city": "Sarajevo",
+      "city_ru": "Сараево",
+      "wmo_id": 13353,
+      "lat": 43.8167,
+      "lon": 18.3333,
+      "elevation": 511,
+      "timezone": "Europe/Sarajevo",
+      "source": "open_meteo",
+      "n_days": 16071
+    },
+    {
+      "city": "Tbilisi",
+      "city_ru": "Тбилиси",
+      "wmo_id": 37545,
+      "lat": 41.7,
+      "lon": 44.75,
+      "elevation": 403,
+      "timezone": "Asia/Tbilisi",
+      "source": "open_meteo",
+      "n_days": 16071
+    }
+  ],
+  "stats_overall": {
+    "temp": {
+      "min": -35.1,
+      "max": 31.0,
+      "mean": 8.758582228859435,
+      "median": 9.3,
+      "std": 9.832749026979574,
+      "n_missing": 0
+    },
+    "temp_min": {
+      "min": -37.8,
+      "max": 25.6,
+      "mean": 4.337754340115736,
+      "median": 4.9,
+      "std": 9.256639449440218,
+      "n_missing": 0
+    },
+    "temp_max": {
+      "min": -32.3,
+      "max": 38.3,
+      "mean": 13.253227863854148,
+      "median": 14.0,
+      "std": 10.558236647006769,
+      "n_missing": 0
+    },
+    "humidity": {
+      "min": 11.0,
+      "max": 100.0,
+      "mean": 72.36600087113435,
+      "median": 74.0,
+      "std": 13.590889158519385,
+      "n_missing": 0
+    },
+    "precipitation": {
+      "min": 0.0,
+      "max": 85.5,
+      "mean": 2.2162824341982454,
+      "median": 0.1,
+      "std": 4.680281047072989,
+      "n_missing": 0
+    },
+    "wind": {
+      "min": 2.6,
+      "max": 48.6,
+      "mean": 12.31595887001431,
+      "median": 10.6,
+      "std": 5.83048158109329,
+      "n_missing": 0
+    },
+    "pressure": {
+      "min": 899.1,
+      "max": 1035.7,
+      "mean": 951.1735968514716,
+      "median": 943.4,
+      "std": 30.54178449428672,
+      "n_missing": 0
+    }
+  },
+  "stats_by_city": {
+    "Almaty": {
+      "temp": {
+        "min": -25.8,
+        "max": 31.0,
+        "mean": 8.593155373032168,
+        "median": 9.0,
+        "std": 10.001262107942956,
+        "n_missing": 0
+      },
+      "temp_min": {
+        "min": -30.7,
+        "max": 24.8,
+        "mean": 3.6007715761309194,
+        "median": 4.0,
+        "std": 9.262665861914407,
+        "n_missing": 0
+      },
+      "temp_max": {
+        "min": -19.2,
+        "max": 38.3,
+        "mean": 13.39581233277332,
+        "median": 14.2,
+        "std": 10.650561651053295,
+        "n_missing": 0
+      },
+      "humidity": {
+        "min": 11.0,
+        "max": 98.0,
+        "mean": 62.689813950594235,
+        "median": 63.0,
+        "std": 14.593685335886526,
+        "n_missing": 0
+      },
+      "precipitation": {
+        "min": 0.0,
+        "max": 53.2,
+        "mean": 2.1954887685893847,
+        "median": 0.0,
+        "std": 4.684752923307775,
+        "n_missing": 0
+      },
+      "wind": {
+        "min": 2.6,
+        "max": 38.6,
+        "mean": 9.715680418144485,
+        "median": 9.0,
+        "std": 3.2998739254322778,
+        "n_missing": 0
+      },
+      "pressure": {
+        "min": 899.1,
+        "max": 941.5,
+        "mean": 917.4242424242424,
+        "median": 916.9,
+        "std": 5.115449196537815,
+        "n_missing": 0
+      }
+    },
+    "Moscow": {
+      "temp": {
+        "min": -35.1,
+        "max": 30.5,
+        "mean": 5.386901872938833,
+        "median": 5.4,
+        "std": 10.904832577509524,
+        "n_missing": 0
+      },
+      "temp_min": {
+        "min": -37.8,
+        "max": 25.6,
+        "mean": 1.8018107149523988,
+        "median": 2.0,
+        "std": 10.355678009597868,
+        "n_missing": 0
+      },
+      "temp_max": {
+        "min": -32.3,
+        "max": 37.4,
+        "mean": 8.755012133656896,
+        "median": 8.6,
+        "std": 11.608584826689532,
+        "n_missing": 0
+      },
+      "humidity": {
+        "min": 35.0,
+        "max": 100.0,
+        "mean": 77.71277456287723,
+        "median": 80.0,
+        "std": 11.222233707924893,
+        "n_missing": 0
+      },
+      "precipitation": {
+        "min": 0.0,
+        "max": 58.0,
+        "mean": 1.7425424677991415,
+        "median": 0.2,
+        "std": 3.4551025884011333,
+        "n_missing": 0
+      },
+      "wind": {
+        "min": 3.9,
+        "max": 48.6,
+        "mean": 18.044415406633068,
+        "median": 17.5,
+        "std": 6.144787968981738,
+        "n_missing": 0
+      },
+      "pressure": {
+        "min": 952.4,
+        "max": 1035.7,
+        "mean": 996.5303839213491,
+        "median": 996.3,
+        "std": 10.057928213401448,
+        "n_missing": 0
+      }
+    },
+    "Sarajevo": {
+      "temp": {
+        "min": -19.0,
+        "max": 29.7,
+        "mean": 10.642075788687698,
+        "median": 11.1,
+        "std": 8.16568018084905,
+        "n_missing": 0
+      },
+      "temp_min": {
+        "min": -25.7,
+        "max": 24.8,
+        "mean": 6.283479559454919,
+        "median": 6.7,
+        "std": 7.663926457805789,
+        "n_missing": 0
+      },
+      "temp_max": {
+        "min": -12.5,
+        "max": 36.9,
+        "mean": 15.298176840271296,
+        "median": 15.7,
+        "std": 8.878019242714837,
+        "n_missing": 0
+      },
+      "humidity": {
+        "min": 33.0,
+        "max": 99.0,
+        "mean": 77.34272913944372,
+        "median": 78.0,
+        "std": 11.124246680688785,
+        "n_missing": 0
+      },
+      "precipitation": {
+        "min": 0.0,
+        "max": 85.5,
+        "mean": 2.9868769833862236,
+        "median": 0.3,
+        "std": 5.807621231247574,
+        "n_missing": 0
+      },
+      "wind": {
+        "min": 3.0,
+        "max": 29.4,
+        "mean": 9.713527471843692,
+        "median": 8.9,
+        "std": 3.553160150080951,
+        "n_missing": 0
+      },
+      "pressure": {
+        "min": 922.6,
+        "max": 980.2,
+        "mean": 957.0840520191649,
+        "median": 957.6,
+        "std": 6.485692561191093,
+        "n_missing": 0
+      }
+    },
+    "Tbilisi": {
+      "temp": {
+        "min": -16.6,
+        "max": 29.9,
+        "mean": 10.412195880779045,
+        "median": 10.7,
+        "std": 9.135219323316118,
+        "n_missing": 0
+      },
+      "temp_min": {
+        "min": -23.4,
+        "max": 25.4,
+        "mean": 5.6649555099247095,
+        "median": 5.9,
+        "std": 8.857902377700269,
+        "n_missing": 0
+      },
+      "temp_max": {
+        "min": -9.5,
+        "max": 37.4,
+        "mean": 15.563910148715077,
+        "median": 15.9,
+        "std": 9.441193115033778,
+        "n_missing": 0
+      },
+      "humidity": {
+        "min": 21.0,
+        "max": 99.0,
+        "mean": 71.71868583162218,
+        "median": 72.0,
+        "std": 11.349357428566904,
+        "n_missing": 0
+      },
+      "precipitation": {
+        "min": 0.0,
+        "max": 57.9,
+        "mean": 1.9402215170182315,
+        "median": 0.0,
+        "std": 4.372203174384259,
+        "n_missing": 0
+      },
+      "wind": {
+        "min": 3.4,
+        "max": 39.1,
+        "mean": 11.790212183436003,
+        "median": 10.3,
+        "std": 5.299363303600761,
+        "n_missing": 0
+      },
+      "pressure": {
+        "min": 915.6,
+        "max": 954.4,
+        "mean": 933.65570904113,
+        "median": 933.3,
+        "std": 4.867801667464435,
+        "n_missing": 0
+      }
+    }
+  }
+}

@@ -6,6 +6,9 @@ scipy==1.14.1
 # === ML ===
 scikit-learn==1.5.2
 lightgbm==4.5.0
+xgboost>=2.0
+statsmodels>=0.14
+torch>=2.5.0
 
 # === Visualization ===
 matplotlib==3.9.2
@@ -26,6 +29,7 @@ kaggle==1.6.17
 
 # === Временные ряды ===
 prophet==1.1.6
+meteostat==1.6.8
 
 # === HF datasets (если используется) ===
 datasets==3.1.0
@@ -33,6 +37,14 @@ datasets==3.1.0
 # === Database ===
 psycopg2-binary==2.9.10
 SQLAlchemy==2.0.36
+
+# === Web API ===
+fastapi==0.115.4
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+
+# === HTTP ===
+requests==2.32.3
 
 # === Web API ===
 fastapi==0.115.4

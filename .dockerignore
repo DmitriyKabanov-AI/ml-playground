@@ -34,6 +34,8 @@ config/.env
 node_modules/
 frontend/node_modules/
 frontend/dist/
+frontend/.next/
+frontend/out/
 frontend/.vite/
 frontend/.cache/
 frontend/coverage/
@@ -56,3 +58,15 @@ structure.txt
 preview.log
 preview.err.log
 ps-output.txt
+
+# ---------- Данные и артефакты (монтируются через volumes) ----------
+data/
+models/
+artifacts/
+
+# ---------- Junction на Windows ----------
+# Junction-ссылки не переносятся в Linux-контейнер.
+# Dockerfile создаёт пустые папки public/artifacts и public/models,
+# а реальные данные приходят в nginx через volume из docker-compose.yml.
+frontend/public/artifacts
+frontend/public/models
