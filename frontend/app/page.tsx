@@ -10,6 +10,7 @@ import {
   Building2,
   Gem,
   ShoppingCart,
+  CloudSun,
 } from "lucide-react";
 
 const CLASSIFICATION_TASKS = [
@@ -24,6 +25,10 @@ const REGRESSION_TASKS = [
   { href: "/regression?tab=property", title: "Недвижимость", desc: "Модель + калькулятор", icon: Building2, accent: "from-cyan-500 to-blue-500" },
   { href: "/regression?tab=diamonds", title: "Алмазы", desc: "Diamonds · цена и метрики", icon: Gem, accent: "from-fuchsia-500 to-pink-500" },
   { href: "/regression?tab=walmart", title: "Walmart Sales", desc: "Магазины + прогноз", icon: ShoppingCart, accent: "from-indigo-500 to-violet-500" },
+];
+
+const FORECASTING_TASKS = [
+  { href: "/weather", title: "Weather Forecasting", desc: "Skill vs persistence · 5 станций", icon: CloudSun, accent: "from-sky-500 to-cyan-500" },
 ];
 
 function TaskCard({ href, title, desc, icon: Icon, accent }: { href: string; title: string; desc: string; icon: any; accent: string }) {
@@ -71,6 +76,18 @@ export default function HomePage() {
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {REGRESSION_TASKS.map((t) => (
+            <TaskCard key={t.href} {...t} />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">Forecasting</h2>
+          <p className="text-sm text-slate-500 mt-1">Прогноз временных рядов · skill относительно baseline</p>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {FORECASTING_TASKS.map((t) => (
             <TaskCard key={t.href} {...t} />
           ))}
         </div>

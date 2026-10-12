@@ -21,7 +21,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [{ href: "/regression", label: "ML Regression", icon: TrendingUp }],
   },
   {
-    label: "Погода",
+    label: "Forecasting",
     items: [{ href: "/weather", label: "Weather Forecasting", icon: CloudSun }],
   },
 ];
