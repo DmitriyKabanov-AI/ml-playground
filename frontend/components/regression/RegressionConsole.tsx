@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useAppStore } from '@/lib/store'
 import {
   Activity,
   ArrowDownRight,
@@ -113,9 +114,8 @@ function SliderField({ label, value, min, max, step = 1, suffix = '', onChange }
 }
 
 function RegressionConsole() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    try { return (localStorage.getItem('ml-hub-theme') as Theme | null) ?? 'dark' } catch { return 'dark' }
-  })
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
   const searchParams = useSearchParams()
   const tabParam = searchParams?.get('tab') ?? null
   const [activeModule, setActiveModule] = useState<Module>('property')
@@ -138,7 +138,8 @@ function RegressionConsole() {
   const [walmartShowHolidays, setWalmartShowHolidays] = useState(true)
 
   useEffect(() => {
-    // theme applied via data-theme on .mlr-root
+    if (typeof document === 'undefined') return
+    document.documentElement.classList.toggle('dark', theme === 'dark')
     try { localStorage.setItem('ml-hub-theme', theme) } catch { /* storage may be unavailable */ }
   }, [theme])
 
@@ -518,7 +519,7 @@ function RegressionConsole() {
           <div className="breadcrumbs"><span>ML Hub</span><span className="crumb-slash">/</span><b>Регрессия</b></div>
           <div className="top-actions">
             <span className="data-badge"><span className="status-dot" /> {(activeModule === 'property' || activeModule === 'walmart') ? 'ARTIFACT' : 'DEMO DATA'}</span>
-            <button type="button" className="icon-button" onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} aria-label="Переключить тему" title="Переключить тему">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
+            <button type="button" className="icon-button" onClick={toggleTheme} aria-label="Переключить тему" title="Переключить тему">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
             <button type="button" className="button button-quiet" onClick={downloadReport}><Download size={15} /> Экспорт JSON</button>
           </div>
         </header>

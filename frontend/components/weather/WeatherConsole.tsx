@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useAppStore } from '@/lib/store'
 import {
   Activity, ArrowDownRight, BarChart3, CheckCircle2, CloudRain,
   CloudSun, Database, Download, LayoutDashboard, Layers3,
@@ -171,7 +172,8 @@ function FeaturesPage() {
 }
 
 export default function WeatherConsole() {
-  const [theme, setTheme] = useState<Theme>('dark')
+  const theme = useAppStore((s) => s.theme)
+  const toggleTheme = useAppStore((s) => s.toggleTheme)
   const [activePage, setActivePage] = useState<Page>('overview')
 
   // Синхронизация с URL: ?page=overview|stations|cities|models|features
@@ -193,6 +195,8 @@ export default function WeatherConsole() {
   const [showCityInterval, setShowCityInterval] = useState(true)
 
   useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.documentElement.classList.toggle('dark', theme === 'dark')
     document.documentElement.dataset.theme = theme
   }, [theme])
 
@@ -246,7 +250,7 @@ export default function WeatherConsole() {
     </aside>
 
     <main className="main-area">
-      <header className="topbar"><div className="breadcrumbs"><ActiveIcon size={15} /><span>Weather ML</span><span className="crumb-slash">/</span><b>{activeMeta.title}</b></div><div className="top-actions"><span className="data-badge"><i className="status-dot" /> SYNTHETIC DEMO</span><button type="button" className="button button-quiet" onClick={exportReport}><Download size={14} /> Экспорт JSON</button><button type="button" className="icon-button" title={theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'} aria-label="Переключить тему" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}</button><button type="button" className="icon-button" title="Печать / сохранить PDF" aria-label="Печать" onClick={() => window.print()}><Printer size={15} /></button></div></header>
+      <header className="topbar"><div className="breadcrumbs"><ActiveIcon size={15} /><span>Weather ML</span><span className="crumb-slash">/</span><b>{activeMeta.title}</b></div><div className="top-actions"><span className="data-badge"><i className="status-dot" /> SYNTHETIC DEMO</span><button type="button" className="button button-quiet" onClick={exportReport}><Download size={14} /> Экспорт JSON</button><button type="button" className="icon-button" title={theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'} aria-label="Переключить тему" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}</button><button type="button" className="icon-button" title="Печать / сохранить PDF" aria-label="Печать" onClick={() => window.print()}><Printer size={15} /></button></div></header>
       <div className="page-content">
         <div className="page-title-row"><div><div className="eyebrow">WEATHER / {activePage.toUpperCase()}</div><h1>{activeMeta.title}</h1><p>{activeMeta.subtitle}</p></div><div className="last-run"><span className="last-run-icon"><CheckCircle2 size={15} /></span><div><b>Демо готово к анализу</b><small>{weatherDemo.stations.length} станций · {weatherDemo.horizons.length} горизонтов · {cityVariables.length} переменных</small></div></div></div>
         <section className="module-tabs" aria-label="Раздел погоды">
