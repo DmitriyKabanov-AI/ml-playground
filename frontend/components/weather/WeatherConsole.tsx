@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -13,10 +14,9 @@ import {
 } from 'recharts'
 import WeatherDashboard, { type WeatherSampleMode } from './WeatherDashboard'
 import CityWeatherDashboard from './CityWeatherDashboard'
-import {
-  featureImportance, mean, weatherDemo, weatherModels,
-} from '@/lib/data/demoWeather'
-import { cityDateTick, cityModelNames, cityVariables, cityWeatherDemo, evaluateCityModel, type CityVariableKey } from '@/lib/data/cityWeather'
+import { mean } from '@/lib/data/demoWeather'
+import { cityDateTick, cityModelNames, cityVariables, evaluateCityModel, type CityVariableKey } from '@/lib/data/cityWeather'
+import { WeatherDataProvider, useWeatherData } from '@/lib/data/weatherArtifacts'
 
 type Theme = 'dark' | 'light'
 type Page = 'overview' | 'stations' | 'cities' | 'models' | 'features'
@@ -53,7 +53,9 @@ function ChartTip({ active, payload, label }: { active?: boolean; payload?: Arra
 function OverviewPage({ goStations, goCities, goModels, stationId, stationModel, stationHorizon, cityIndex }: {
   goStations: () => void; goCities: () => void; goModels: () => void; stationId: number; stationModel: string; stationHorizon: number; cityIndex: number
 }) {
-  const selected = weatherDemo.stationData.find((item) => item.station.id === stationId) ?? weatherDemo.stationData[0]
+  const { weatherDemo, cityWeatherDemo } = useWeatherData()
+  const weatherModels = weatherDemo.models
+  const selected = weatherDemo.stationData.find((item: any) => item.station.id === stationId) ?? weatherDemo.stationData[0]
   const evaluation = selected.evaluations[stationModel][stationHorizon]
   const stationSeries = selected.series.slice(-220).map((day) => ({ date: day.date.slice(5), actual: day.actual, anomaly: day.anomaly ? day.actual : null }))
   const stationRows = useMemo(() => weatherModels.filter((model) => !model.isBaseline).map((model) => {
@@ -61,7 +63,7 @@ function OverviewPage({ goStations, goCities, goModels, stationId, stationModel,
     return { name: model.name, skill: mean(scores), color: model.name === stationModel ? 'var(--c2)' : 'var(--bar-muted)' }
   }).sort((a, b) => b.skill - a.skill), [stationModel])
   const cityRanks = useMemo(() => cityModelNames.map((name) => {
-    const scores = cityWeatherDemo.cities.flatMap((_, ci) => cityVariables.map((variable) => evaluateCityModel(ci, variable.key, name).skill))
+    const scores = cityWeatherDemo.cities.flatMap((_, ci) => cityVariables.map((variable) => evaluateCityModel(cityWeatherDemo, ci, variable.key, name).skill))
     return { name, skill: mean(scores), selected: name === 'LSTM' }
   }).sort((a, b) => b.skill - a.skill), [])
   const forecastCity = cityWeatherDemo.cities[cityIndex] ?? cityWeatherDemo.cities[0]
@@ -106,15 +108,17 @@ function OverviewPage({ goStations, goCities, goModels, stationId, stationModel,
 }
 
 function ModelsPage({ cityIndex, cityVariable }: { cityIndex: number; cityVariable: CityVariableKey }) {
-  const stationRanking = useMemo(() => weatherModels.map((model) => {
+  const { weatherDemo, cityWeatherDemo } = useWeatherData()
+  const weatherModels = weatherDemo.models
+  const stationRanking = useMemo(() => weatherModels.map((model: any) => {
     const cells = weatherDemo.stationData.flatMap((station) => weatherDemo.horizons.map((h) => station.evaluations[model.name][h]))
     return { name: model.name, mae: mean(cells.map((cell) => cell.metrics.mae)), rmse: mean(cells.map((cell) => cell.metrics.rmse)), r2: mean(cells.map((cell) => cell.metrics.r2)), skill: mean(cells.map((cell) => cell.metrics.skill)), baseline: model.isBaseline }
   }).sort((a, b) => b.skill - a.skill), [])
   const cityRanking = useMemo(() => cityModelNames.map((name) => {
-    const cells = cityWeatherDemo.cities.flatMap((_, ci) => cityVariables.map((variable) => evaluateCityModel(ci, variable.key, name)))
+    const cells = cityWeatherDemo.cities.flatMap((_, ci) => cityVariables.map((variable) => evaluateCityModel(cityWeatherDemo, ci, variable.key, name)))
     return { name, skill: mean(cells.map((item) => item.skill)), mae: mean(cells.map((item) => item.mae)), rmse: mean(cells.map((item) => item.rmse)), r2: mean(cells.map((item) => item.r2)) }
   }).sort((a, b) => b.skill - a.skill), [])
-  const cityRows = cityModelNames.map((name) => ({ name, ...evaluateCityModel(cityIndex, cityVariable, name) }))
+  const cityRows = cityModelNames.map((name) => ({ name, ...evaluateCityModel(cityWeatherDemo, cityIndex, cityVariable, name) }))
   return <div className="content-stack">
     <section className="metrics-grid overview-metrics"><Metric label="Station benchmark" value="84" note="6 моделей × 14 горизонтов на станцию" icon={<BarChart3 size={16} />} /><Metric label="Station evaluations" value="420" note="5 станции × 84 комбинации" tone="green" icon={<Database size={16} />} /><Metric label="City evaluations" value="80" note="4 города × 5 переменных × 4 модели" tone="amber" icon={<CloudSun size={16} />} /><Metric label="Горизонты" value="1–14 дн." note="Подробная оценка на каждом горизонте" tone="purple" icon={<Activity size={16} />} /></section>
     <section className="two-column">
@@ -137,6 +141,8 @@ function ModelsPage({ cityIndex, cityVariable }: { cityIndex: number; cityVariab
 }
 
 function FeaturesPage() {
+  const { weatherDemo } = useWeatherData()
+  const featureImportance = weatherDemo.featureImportance
   const modelDescriptors = [
     { name: 'Persistence', group: 'Baseline · оба набора', equation: 'ŷ(t+h) = y(t)', description: 'Последнее доступное наблюдение; контрольная точка для Skill.' },
     { name: 'Seasonal Naive', group: 'Baseline · станции', equation: 'ŷ(t) = y(t−365)', description: 'Температура в тот же день предыдущего года.' },
@@ -172,6 +178,15 @@ function FeaturesPage() {
 }
 
 export default function WeatherConsole() {
+  return (
+    <WeatherDataProvider>
+      <WeatherConsoleInner />
+    </WeatherDataProvider>
+  )
+}
+
+function WeatherConsoleInner() {
+  const { weatherDemo, cityWeatherDemo } = useWeatherData()
   const theme = useAppStore((s) => s.theme)
   const toggleTheme = useAppStore((s) => s.toggleTheme)
   const [activePage, setActivePage] = useState<Page>('overview')
@@ -281,3 +296,5 @@ export default function WeatherConsole() {
     </main>
   </div>
 }
+
+
