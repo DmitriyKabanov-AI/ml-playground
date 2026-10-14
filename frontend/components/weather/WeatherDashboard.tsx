@@ -5,12 +5,9 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
-  CheckCircle2,
   CloudSun,
-  Info,
   MapPin,
   Thermometer,
-  XCircle,
 } from 'lucide-react'
 import {
   Area,
@@ -51,7 +48,6 @@ const fmt = (value: number, digits = 2) => Number.isFinite(value)
   ? value.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: digits })
   : '—'
 const signed = (value: number, digits = 3) => `${value > 0 ? '+' : ''}${fmt(value, digits)}`
-const shortDate = (value: string) => value ? `${value.slice(8, 10)}.${value.slice(5, 7)}` : ''
 
 export type WeatherSampleMode = 'accurate' | 'error'
 
@@ -124,8 +120,6 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
   const station = stationData.station
   const current: WeatherEvaluation = stationData.evaluations[modelName][horizon]
   const currentMetrics = current.metrics
-  const skillAtOne = stationData.evaluations[modelName][1].metrics.skill
-  const skillAtFourteen = stationData.evaluations[modelName][14].metrics.skill
   const zeroCrossing = weatherDemo.horizons.find((h) => stationData.evaluations[modelName][h].metrics.skill <= 0)
 
   const bestStation = useMemo(() => weatherDemo.stationData.map((item) => ({
@@ -172,46 +166,6 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
     weatherModels.forEach((model) => { row[model.name.replace(/ /g, '')] = stationData.evaluations[model.name][h].metrics.mae })
     return row
   }), [stationData])
-
-  const seasonData = useMemo(() => {
-    const series = stationData.series.slice(stationData.testStart)
-    const h1 = new Map(stationData.evaluations[modelName][1].points.map((point) => [point.date, point.predicted]))
-    const h14 = new Map(stationData.evaluations[modelName][14].points.map((point) => [point.date, point.predicted]))
-    return series.map((day) => ({
-      date: day.date,
-      axisDate: shortDate(day.date),
-      actual: day.actual,
-      predicted1: h1.get(day.date) ?? null,
-      predicted14: h14.get(day.date) ?? null,
-      holiday: day.holiday,
-      anomaly: day.anomaly,
-    }))
-  }, [stationData, modelName])
-
-  const seasonJan = seasonData.find((item) => item.date.endsWith('-01-01'))?.date
-  const seasonJul = seasonData.find((item) => item.date.endsWith('-07-01'))?.date
-  const bestSkillByHorizon = useMemo(() => Object.fromEntries(weatherDemo.horizons.map((h) => {
-    const best = weatherModels.map((model) => ({ name: model.name, skill: stationData.evaluations[model.name][h].metrics.skill })).sort((a, b) => b.skill - a.skill)[0]
-    return [h, best.name]
-  })), [stationData])
-
-  const metricRows = useMemo(() => weatherDemo.horizons.flatMap((h) => weatherModels.map((model) => {
-    const evaluation = stationData.evaluations[model.name][h]
-    return { ...evaluation, isBaseline: model.isBaseline, model: model.name, horizon: h }
-  })), [stationData])
-
-  const sampleRows = useMemo(() => {
-    const rows = [...stationData.evaluations[modelName][1].points]
-    rows.sort((a, b) => sampleMode === 'accurate' ? a.abs_error - b.abs_error : b.abs_error - a.abs_error)
-    return rows.slice(0, 10)
-  }, [stationData, modelName, sampleMode])
-
-  const bestH1Title = skillAtOne <= 0
-    ? 'На h=1 persistence лучше ML'
-    : skillAtOne <= 0.15 ? 'На h=1 ML почти не выигрывает' : 'На h=1 ML выигрывает у persistence'
-  const h14Title = skillAtFourteen > 0.3
-    ? 'На h=14 ML уверенно обыгрывает persistence'
-    : skillAtFourteen > 0 ? 'На h=14 преимущество ML сохраняется' : 'На h=14 persistence остаётся сильным baseline'
 
   return <div className="content-stack weather-dashboard">
     <section className="control-strip weather-control-strip">
@@ -276,7 +230,7 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
 
     <section className="two-column weather-charts-row">
       <Panel title="MAE(h) по моделям" subtitle={`Станция ${station.label} · меньше — лучше`}>
-        <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><LineChart data={modelMaeData} margin={{ top: 10, right: 8, bottom: 3, left: -8 }}>
+        <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><LineChart data={modelMaeData} margin={{ top: 10, right: 8, bottom: 3, left: -8 }}>
           <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="horizon" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => fmt(Number(value), 0)} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={34} /><Tooltip content={<GenericWeatherTooltip />} /><Legend wrapperStyle={{ fontSize: 9, color: 'var(--muted)' }} />
           {weatherModels.filter((model) => !model.isBaseline).map((model) => <Line key={model.name} type="monotone" dataKey={model.name.replace(/ /g, '')} name={model.name} stroke={model.name === modelName ? palette.cyan : model.name === 'Ridge' ? palette.purple : model.name === 'RandomForest' ? palette.indigo : palette.green} strokeWidth={model.name === modelName ? 2.8 : 1.5} dot={false} activeDot={{ r: 3 }} />)}
           {showBaseline && <><Line type="monotone" dataKey="Persistence" name="Persistence" stroke={palette.gray} strokeWidth={2.2} strokeDasharray="7 4" dot={false} /><Line type="monotone" dataKey="SeasonalNaive" name="Seasonal Naive" stroke="#64748b" strokeWidth={1.7} strokeDasharray="2 4" dot={false} /></>}
@@ -284,59 +238,13 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
         <div className="chart-footnote"><span>Persistence — базовая точка сравнения</span><span>Все ошибки рассчитаны на общей тестовой части</span></div>
       </Panel>
 
-      <Panel title="Сезонность и предсказание" subtitle="Последние 365 дней тестового периода · факт и выбранная модель">
-        <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={seasonData} margin={{ top: 10, right: 8, bottom: 4, left: -8 }}>
-          <defs><linearGradient id="weatherActualFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={palette.cyan} stopOpacity={0.22} /><stop offset="100%" stopColor={palette.cyan} stopOpacity={0.015} /></linearGradient></defs>
-          <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="date" tickFormatter={shortDate} interval={29} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => `${fmt(Number(value), 0)}°`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={40} /><Tooltip content={<GenericWeatherTooltip />} />
-          <Area type="monotone" dataKey="actual" name="Факт" stroke={palette.cyan} fill="url(#weatherActualFill)" strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} />
-          <Line type="monotone" dataKey="predicted1" name="Прогноз h=1" stroke={palette.green} strokeWidth={1.7} dot={false} activeDot={{ r: 3 }} connectNulls={false} />
-          <Line type="monotone" dataKey="predicted14" name="Прогноз h=14" stroke={palette.indigo} strokeWidth={1.7} strokeDasharray="6 4" dot={false} activeDot={{ r: 3 }} connectNulls={false} />
-          {seasonJan && <ReferenceLine x={seasonJan} stroke={palette.amber} strokeDasharray="3 4" label={{ value: '1 янв.', fill: palette.amber, fontSize: 9, position: 'insideTopLeft' }} />}
-          {seasonJul && <ReferenceLine x={seasonJul} stroke={palette.purple} strokeDasharray="3 4" label={{ value: '1 июл.', fill: palette.purple, fontSize: 9, position: 'insideTopLeft' }} />}
-        </ComposedChart></ResponsiveContainer></div>
-        <div className="chart-footnote"><span><i className="legend-line actual-line" /> Факт</span><span><i className="legend-line forecast-line" /> h=1</span><span><i className="legend-line interval-line" /> h=14</span></div>
-      </Panel>
-    </section>
-
-    <section className="two-column weather-insights-row">
-      <Panel title="Актуальность на длинном горизонте" subtitle="Интерпретация зависит от выбранной станции и модели" className="insights-card">
-        <div className="insight-list">
-          <div className="insight-item"><span className="insight-icon season"><Thermometer size={16} /></span><div><b>{bestH1Title}</b><p>На h=1 Skill = <strong>{signed(skillAtOne)}</strong> для {modelName}. Погода инерционна, поэтому persistence остаётся обязательной точкой сравнения.</p></div></div>
-          <div className="insight-item"><span className="insight-icon scale"><CloudSun size={16} /></span><div><b>{h14Title}</b><p>На h=14 Skill = <strong>{signed(skillAtFourteen)}</strong>. Ошибка persistence на дальнем горизонте растёт из-за сезонного хода температуры; реальное качество зависит от станции.</p></div></div>
-          <div className="insight-item"><span className="insight-icon holiday"><MapPin size={16} /></span><div><b>Климат меняет skill-кривую</b><p>Север и Сибирь имеют большую сезонную амплитуду, Юг и Запад — более мягкую. Сравнивайте Skill(h) вместе с MAE в °C, а не изолированно.</p></div></div>
-          <div className="insight-footnote"><Info size={13} /> Данные синтетические: этот интерфейс не предназначен для получения реального прогноза погоды.</div>
-        </div>
-      </Panel>
-
       <Panel title="Важность признаков" subtitle="Одна демонстрационная оценка важности для всего модуля">
-        <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={featureImportance} layout="vertical" margin={{ top: 3, right: 18, bottom: 3, left: 5 }}>
+        <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><BarChart data={featureImportance} layout="vertical" margin={{ top: 3, right: 18, bottom: 3, left: 5 }}>
           <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.36]} tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis type="category" dataKey="name" width={88} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericWeatherTooltip />} /><Bar dataKey="value" name="Importance" fill={palette.purple} radius={[0, 4, 4, 0]} barSize={12}>{featureImportance.map((item, index) => <Cell key={item.name} fill={[palette.cyan, palette.indigo, palette.green, palette.purple, palette.amber, palette.blue, palette.gray, palette.rose, palette.cyan, palette.indigo][index]} />)}</Bar>
         </BarChart></ResponsiveContainer></div>
         <div className="chart-footnote"><span>Сумма importance = 1,00</span><span>lag и rolling-признаки доминируют в демо-профиле</span></div>
       </Panel>
     </section>
 
-    <Panel title="Метрики по горизонтам и моделям" subtitle={`${station.label} · клик по ML-строке переключит модель и горизонт; baseline остаётся сравнительной линией`} right={<span className="small-tag">84 СТРОКИ</span>}>
-      <div className="table-wrap weather-metrics-table-wrap"><table className="data-table weather-metrics-table"><thead><tr><th>Горизонт</th><th>Модель</th><th>MAE °C</th><th>RMSE °C</th><th>MedAE</th><th>MAPE %</th><th>Bias</th><th>Skill</th><th>Δ vs persistence</th></tr></thead><tbody>
-        {metricRows.map((row) => {
-          const isCurrent = row.model === modelName && row.horizon === horizon
-          const isBest = bestSkillByHorizon[row.horizon] === row.model
-          return <tr key={`${row.horizon}-${row.model}`} className={`${isCurrent ? 'row-selected' : ''} ${row.isBaseline ? 'weather-baseline-row' : ''}`} onClick={() => { setHorizon(row.horizon); if (!row.isBaseline) setModelName(row.model); else setShowBaseline(true) }} title={row.isBaseline ? 'Базовая модель: при выборе горизонт обновится, ML-модель останется выбранной' : 'Выбрать модель и горизонт'}>
-            <td>h={row.horizon}</td><td><span className="model-cell">{row.model}{row.isBaseline && <span className="weather-baseline-tag">baseline</span>}{isBest && <span className="best-mark">BEST</span>}</span></td><td>{fmt(row.metrics.mae)}</td><td>{fmt(row.metrics.rmse)}</td><td>{fmt(row.metrics.medae)}</td><td>{fmt(row.metrics.mape, 1)}%</td><td>{signed(row.metrics.bias, 2)}</td><td className={row.metrics.skill >= 0 ? 'positive-text' : 'negative-text'}>{signed(row.metrics.skill)}</td><td className={row.deltaVsPersistence <= 0 ? 'positive-text' : 'negative-text'}>{signed(row.deltaVsPersistence, 2)} °C</td>
-          </tr>
-        })}
-      </tbody></table></div>
-      <div className="table-note"><Info size={13} /> MAPE при температуре около 0 °C нестабилен: в расчёте относительная ошибка исключает наблюдения в диапазоне ±1 °C. Skill &gt; 0 означает меньшую MAE, чем у persistence.</div>
-    </Panel>
-
-    <Panel title="Sample predictions" subtitle={`10 ${sampleMode === 'accurate' ? 'самых точных' : 'самых ошибочных'} прогнозов · горизонт h=1 · ${modelName}`} right={<div className="segmented weather-sample-toggle"><button type="button" className={sampleMode === 'accurate' ? 'active' : ''} onClick={() => setSampleMode('accurate')}>Точные</button><button type="button" className={sampleMode === 'error' ? 'active' : ''} onClick={() => setSampleMode('error')}>Ошибочные</button></div>}>
-      <div className="table-wrap"><table className="data-table"><thead><tr><th>Дата</th><th>Факт °C</th><th>Прогноз °C</th><th>Ошибка °C</th><th>|Ошибка|</th><th>В пределах MAE</th></tr></thead><tbody>
-        {sampleRows.map((row) => <tr key={row.date}><td>{row.date}</td><td>{fmt(row.actual)}</td><td>{fmt(row.predicted)}</td><td className={row.error >= 0 ? 'positive-text' : 'negative-text'}>{signed(row.error, 2)}</td><td>{fmt(row.abs_error)}</td><td>{row.within_mae ? <span className="sample-status good"><CheckCircle2 size={13} /> Да</span> : <span className="sample-status bad"><XCircle size={13} /> Нет</span>}</td></tr>)}
-      </tbody></table></div>
-      <div className="table-note"><Info size={13} /> «Точные» — 10 минимальных |error|; «Ошибочные» — 10 максимальных. Это примеры из синтетического тестового ряда.</div>
-    </Panel>
-
   </div>
 }
-
-

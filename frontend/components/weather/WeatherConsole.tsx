@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAppStore } from '@/lib/store'
 import {
-  Activity, ArrowDownRight, BarChart3, CheckCircle2, CloudRain,
+  Activity, BarChart3, CloudRain,
   CloudSun, Database, Download, LayoutDashboard, Layers3,
   MapPin, Moon, Sun, Thermometer, Wind, Info, Printer,
 } from 'lucide-react'
@@ -50,8 +50,8 @@ function ChartTip({ active, payload, label }: { active?: boolean; payload?: Arra
   return <div className="custom-tooltip"><b>{label}</b>{payload.filter((item) => typeof item.value === 'number' && Number.isFinite(item.value)).map((item, index) => <span key={`${item.name}-${index}`}><i className="tooltip-dot" style={{ background: item.color ?? 'var(--c2)' }} />{item.name}: {fmt(Number(item.value), 2)}</span>)}</div>
 }
 
-function OverviewPage({ goStations, goCities, goModels, stationId, stationModel, stationHorizon, cityIndex }: {
-  goStations: () => void; goCities: () => void; goModels: () => void; stationId: number; stationModel: string; stationHorizon: number; cityIndex: number
+function OverviewPage({ stationId, stationModel, stationHorizon, cityIndex }: {
+  stationId: number; stationModel: string; stationHorizon: number; cityIndex: number
 }) {
   const { weatherDemo, cityWeatherDemo } = useWeatherData()
   const weatherModels = weatherDemo.models
@@ -75,21 +75,21 @@ function OverviewPage({ goStations, goCities, goModels, stationId, stationModel,
   })
   const CityIcon = cityIndex === 0 ? CloudSun : cityIndex === 1 ? Wind : cityIndex === 2 ? CloudRain : Sun
   return <div className="content-stack">
-    <section className="overview-banner"><div className="overview-banner-copy"><div className="banner-kicker"><span className="source-dot" /> WEATHER ML LAB · DEMO</div><h2>Погода — от прогноза до качества модели</h2><p>Интерактивная консоль для бэктеста температурных рядов и оценки нескольких погодных параметров. Все наблюдения синтетические, вычисляются в браузере и не требуют API.</p><div className="banner-actions"><button type="button" className="button button-primary" onClick={goStations}>Открыть бэктест станций <ArrowDownRight size={14} /></button><button type="button" className="button" onClick={goCities}>Городской прогноз <ArrowDownRight size={14} /></button></div></div><div className="overview-weather-mark"><div className="weather-orbit orbit-one" /><div className="weather-orbit orbit-two" /><CloudSun size={76} strokeWidth={1.1} /><span>ML</span></div></section>
+    <section className="overview-banner"><div className="overview-banner-copy"><div className="banner-kicker"><span className="source-dot" /> WEATHER ML LAB · DEMO</div><h2>Погода — от прогноза до качества модели</h2><p>Интерактивная консоль для бэктеста температурных рядов и оценки нескольких погодных параметров. Все наблюдения синтетические, вычисляются в браузере и не требуют API.</p></div><div className="overview-weather-mark"><div className="weather-orbit orbit-one" /><div className="weather-orbit orbit-two" /><CloudSun size={76} strokeWidth={1.1} /><span>ML</span></div></section>
 
     <section className="metrics-grid overview-metrics">
-      <Metric label="Станции" value="05" note="Температурные ряды · train/test" tone="cyan" icon={<MapPin size={16} />} />
-      <Metric label="Города" value="04" note="Москва, Алматы, Нью-Йорк, Дубай" tone="green" icon={<CloudSun size={16} />} />
+      <Metric label="Станции" value="4" note="Температурные ряды · train/test" tone="cyan" icon={<MapPin size={16} />} />
+      <Metric label="Города" value="04" note="Москва, Алматы, Сараево, Тбилиси" tone="green" icon={<CloudSun size={16} />} />
       <Metric label="Переменные" value="05" note="°C · влажность · осадки · ветер · давление" tone="amber" icon={<Activity size={16} />} />
       <Metric label="Типы моделей" value="08" note="Две линейки бенчмарков, включая baseline" tone="purple" icon={<Layers3 size={16} />} />
     </section>
 
     <section className="two-column overview-charts">
-      <Panel title="Температурный ряд станции" subtitle={`${selected.station.label} · последние 220 дней синтетической истории`} right={<button type="button" className="inline-link" onClick={goStations}>Подробно <ArrowDownRight size={13} /></button>}>
+      <Panel title="Температурный ряд станции" subtitle={`${selected.station.label} · последние 220 дней синтетической истории`}>
         <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={stationSeries} margin={{ top: 8, right: 8, bottom: 4, left: -10 }}><defs><linearGradient id="overviewStationFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--c2)" stopOpacity={0.24} /><stop offset="100%" stopColor="var(--c2)" stopOpacity={0.01} /></linearGradient></defs><CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="date" interval={29} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => `${fmt(Number(value), 0)}°`} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} width={40} /><Tooltip content={<ChartTip />} /><Area dataKey="actual" name="Температура, факт" stroke="var(--c2)" strokeWidth={1.5} fill="url(#overviewStationFill)" dot={false} /><Line dataKey="anomaly" name="Аномалии" stroke="var(--c5)" strokeWidth={0} dot={{ r: 3, fill: 'var(--c5)' }} connectNulls={false} /></ComposedChart></ResponsiveContainer></div>
         <div className="chart-footnote"><span>Синтетическая история с сезонностью и шумом</span><span>Skill выбранной модели: <b className={evaluation.metrics.skill >= 0 ? 'positive-text' : 'negative-text'}>{signed(evaluation.metrics.skill)}</b> на h={stationHorizon}</span></div>
       </Panel>
-      <Panel title={`Городской прогноз · ${forecastCity.name}`} subtitle="Факт за последнюю неделю и моделируемое продолжение" right={<button type="button" className="inline-link" onClick={goCities}>Переменные <ArrowDownRight size={13} /></button>}>
+      <Panel title={`Городской прогноз · ${forecastCity.name}`} subtitle="Факт за последнюю неделю и моделируемое продолжение">
         <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={cityPreview} margin={{ top: 8, right: 8, bottom: 4, left: -10 }}><CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => `${fmt(Number(value), 0)}°`} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} width={40} /><Tooltip content={<ChartTip />} /><Area dataKey="actual" name="Факт" stroke="var(--c2)" fill="var(--c2)" fillOpacity={0.06} dot={false} /><Line dataKey="forecast" name="Прогноз LSTM" stroke="var(--c1)" strokeWidth={2.3} dot={false} connectNulls={false} /><ReferenceLine x={cityDateTick(cityWeatherDemo.dates[cityWeatherDemo.nPast - 1])} stroke="var(--c4)" strokeDasharray="4 4" /></ComposedChart></ResponsiveContainer></div>
         <div className="chart-footnote"><span><CityIcon size={13} /> Температура · °C</span><span>В модели также доступны 4 других переменных</span></div>
       </Panel>
@@ -98,7 +98,6 @@ function OverviewPage({ goStations, goCities, goModels, stationId, stationModel,
     <section className="two-column overview-bottom">
       <Panel title="Лидеры station benchmark" subtitle="Средний Skill по 5 станциям и 14 горизонтам · больше лучше" right={<span className="small-tag">5 × 14</span>}>
         <div className="chart-area chart-short"><ResponsiveContainer width="100%" height="100%"><BarChart data={stationRows} layout="vertical" margin={{ top: 4, right: 17, bottom: 2, left: 5 }}><CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis type="category" dataKey="name" width={113} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<ChartTip />} /><ReferenceLine x={0} stroke="var(--muted)" /><Bar dataKey="skill" name="Mean skill" radius={[0, 4, 4, 0]} barSize={13}>{stationRows.map((row) => <Cell key={row.name} fill={row.color} />)}</Bar></BarChart></ResponsiveContainer></div>
-        <button type="button" className="inline-link" onClick={goModels}>Полная таблица сравнения <ArrowDownRight size={13} /></button>
       </Panel>
       <Panel title="Ключевые показатели текущего среза" subtitle={`${selected.station.label} · ${stationModel} · горизонт ${stationHorizon} дней`}>
         <div className="overview-stat-list"><div><span>MAE</span><b>{fmt(evaluation.metrics.mae)} °C</b><small>средняя абсолютная ошибка</small></div><div><span>RMSE</span><b>{fmt(evaluation.metrics.rmse)} °C</b><small>штраф за большие промахи</small></div><div><span>R²</span><b>{fmt(evaluation.metrics.r2, 3)}</b><small>относительно дисперсии факта</small></div><div><span>Skill vs persistence</span><b className={evaluation.metrics.skill >= 0 ? 'positive-text' : 'negative-text'}>{signed(evaluation.metrics.skill)}</b><small>{evaluation.metrics.skill >= 0 ? 'MAE ниже baseline' : 'MAE выше baseline'}</small></div></div>
@@ -267,7 +266,7 @@ function WeatherConsoleInner() {
     <main className="main-area">
       <header className="topbar"><div className="breadcrumbs"><ActiveIcon size={15} /><span>Weather ML</span><span className="crumb-slash">/</span><b>{activeMeta.title}</b></div><div className="top-actions"><span className="data-badge"><i className="status-dot" /> SYNTHETIC DEMO</span><button type="button" className="button button-quiet" onClick={exportReport}><Download size={14} /> Экспорт JSON</button><button type="button" className="icon-button" title={theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'} aria-label="Переключить тему" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}</button><button type="button" className="icon-button" title="Печать / сохранить PDF" aria-label="Печать" onClick={() => window.print()}><Printer size={15} /></button></div></header>
       <div className="page-content">
-        <div className="page-title-row"><div><div className="eyebrow">WEATHER / {activePage.toUpperCase()}</div><h1>{activeMeta.title}</h1><p>{activeMeta.subtitle}</p></div><div className="last-run"><span className="last-run-icon"><CheckCircle2 size={15} /></span><div><b>Демо готово к анализу</b><small>{weatherDemo.stations.length} станций · {weatherDemo.horizons.length} горизонтов · {cityVariables.length} переменных</small></div></div></div>
+        <div className="page-title-row"><div><div className="eyebrow">WEATHER / {activePage.toUpperCase()}</div><h1>{activeMeta.title}</h1><p>{activeMeta.subtitle}</p></div></div>
         <section className="module-tabs" aria-label="Раздел погоды">
           {navItems.map((item) => {
             const Icon = item.icon
@@ -286,7 +285,7 @@ function WeatherConsoleInner() {
             )
           })}
         </section>
-        {activePage === 'overview' && <OverviewPage goStations={() => setActivePage('stations')} goCities={() => setActivePage('cities')} goModels={() => setActivePage('models')} stationId={stationId} stationModel={stationModel} stationHorizon={stationHorizon} cityIndex={cityIndex} />}
+        {activePage === 'overview' && <OverviewPage stationId={stationId} stationModel={stationModel} stationHorizon={stationHorizon} cityIndex={cityIndex} />}
         {activePage === 'stations' && <WeatherDashboard stationId={stationId} setStationId={setStationId} modelName={stationModel} setModelName={setStationModel} horizon={stationHorizon} setHorizon={setStationHorizon} showBaseline={showStationBaseline} setShowBaseline={setShowStationBaseline} showSkillCorridor={showSkillCorridor} setShowSkillCorridor={setShowSkillCorridor} sampleMode={sampleMode} setSampleMode={setSampleMode} />}
         {activePage === 'cities' && <CityWeatherDashboard cityIndex={cityIndex} setCityIndex={setCityIndex} variableKey={cityVariable} setVariableKey={setCityVariable} modelName={cityModel} setModelName={setCityModel} showInterval={showCityInterval} setShowInterval={setShowCityInterval} />}
         {activePage === 'models' && <ModelsPage cityIndex={cityIndex} cityVariable={cityVariable} />}
@@ -296,5 +295,3 @@ function WeatherConsoleInner() {
     </main>
   </div>
 }
-
-
