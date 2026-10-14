@@ -217,7 +217,7 @@ function WeatherConsoleInner() {
   const selectedStation = weatherDemo.stationData.find((item) => item.station.id === stationId) ?? weatherDemo.stationData[0]
   const selectedEvaluation = selectedStation.evaluations[stationModel][stationHorizon]
   const selectedCity = cityWeatherDemo.cities[cityIndex] ?? cityWeatherDemo.cities[0]
-  const selectedCityMetrics = evaluateCityModel(cityIndex, cityVariable, cityModel)
+  const selectedCityMetrics = evaluateCityModel(cityWeatherDemo, cityIndex, cityVariable, cityModel)
 
   const exportReport = () => {
     const stationRows = selectedEvaluation.points.map((point) => ({ date: point.date, actual_c: point.actual, forecast_c: point.predicted, error_c: point.error, abs_error_c: point.abs_error, within_mae: point.within_mae, outlier: point.is_outlier }))

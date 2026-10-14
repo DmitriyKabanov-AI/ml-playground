@@ -66,19 +66,30 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
   })
   .filter((p): p is NonNullable<typeof p> => p != null)
 
-  const series = useMemo(() => city.dates.map((date, index) => {
-    const pred = model.forecast[index]
-    const sd = model.sd[index] ?? 0
-    return {
-      date, tick: cityDateTick(date),
-      actual: index < cityWeatherDemo.nPast ? variable.actual[index] : null,
-      predicted: pred,
-      low: pred == null ? null : pred - 1.64 * sd,
-      band: pred == null ? null : 3.28 * sd,
-      high: pred == null ? null : pred + 1.64 * sd,
-      today: index === cityWeatherDemo.nPast - 1,
+  const series = useMemo(() => {
+    let lastPred: number | null = null
+    for (let i = model.forecast.length - 1; i >= 0; i--) {
+      const f = model.forecast[i]
+      if (f != null && Number.isFinite(f)) { lastPred = f; break }
     }
-  }), [city, model, variable])
+    return city.dates.map((date, index) => {
+      const rawActual = variable.actual[index]
+      const actual = (rawActual != null && Number.isFinite(rawActual)) ? rawActual : null
+      const rawPred = model.forecast[index]
+      const sd = model.sd[index] ?? 0
+      const pred = (rawPred != null && Number.isFinite(rawPred))
+        ? rawPred
+        : (index >= cityWeatherDemo.nPast && lastPred != null ? lastPred : null)
+      return {
+        date, tick: cityDateTick(date),
+        actual,
+        predicted: pred,
+        low: pred == null ? null : pred - 1.64 * sd,
+        band: pred == null ? null : 3.28 * sd,
+        high: pred == null ? null : pred + 1.64 * sd,
+      }
+    })
+  }, [city, model, variable])
 
   const leadData = useMemo(() => [1, 2, 3, 4, 5, 6, 7].map((horizon) => {
     const row: Record<string, number | string> = { horizon: `+${horizon} д`, n: horizon }
@@ -92,11 +103,13 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
   }), [variable, model.name])
 
   const skillData = useMemo(() => cityVariables.map((item) => {
-    const result = evaluateCityModel(cityIndex, item.key, model.name)
+    // FIX: первым аргументом обязательно cityWeatherDemo,
+    // иначе функция сразу возвращает EMPTY и skill=0.
+    const result = evaluateCityModel(cityWeatherDemo, cityIndex, item.key, model.name)
     return { label: `${item.icon} ${item.label}`, skill: Number((result.skill * 100).toFixed(2)), mae: result.mae, unit: item.unit }
-  }), [cityIndex, model.name])
+  }), [cityWeatherDemo, cityIndex, model.name])
 
-  const comparison = useMemo(() => cityModelNames.map((name) => ({ name, ...evaluateCityModel(cityWeatherDemo, cityIndex, spec.key, name) })), [cityIndex, spec.key])
+  const comparison = useMemo(() => cityModelNames.map((name) => ({ name, ...evaluateCityModel(cityWeatherDemo, cityIndex, spec.key, name) })), [cityWeatherDemo, cityIndex, spec.key])
   const testScatter = points.map((point) => ({ actual: point.actual, predicted: point.predicted, date: point.date }))
 
   const futureDays = Array.from({ length: cityWeatherDemo.forecastDays }, (_, offset) => {
@@ -141,9 +154,8 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
         {showInterval && <><Area type="monotone" dataKey="low" stackId="weather-band" stroke="none" fill="transparent" isAnimationActive={false} connectNulls={false} /><Area type="monotone" dataKey="band" stackId="weather-band" stroke="none" fill="var(--c2)" fillOpacity={0.14} name="90% интервал" isAnimationActive={false} connectNulls={false} /></>}
         <Area type="monotone" dataKey="actual" name={`Факт (${spec.unit})`} stroke="var(--c2)" fill="var(--c2)" fillOpacity={0.07} strokeWidth={1.8} dot={false} connectNulls={false} />
         <Line type="monotone" dataKey="predicted" name={`Прогноз ${model.name}`} stroke="var(--c1)" strokeWidth={2.3} dot={false} connectNulls={false} />
-        <ReferenceLine x={cityDateTick(city.dates[cityWeatherDemo.nPast - 1])} stroke="var(--c4)" strokeDasharray="4 4" label={{ value: 'СЕГОДНЯ', fill: 'var(--c4)', fontSize: 9, position: 'insideTopRight' }} />
       </ComposedChart></ResponsiveContainer></div>
-      <div className="chart-footnote"><span><i className="legend-line actual-line" /> Исторический факт</span><span><i className="legend-line forecast-line" /> Прогноз модели</span><span>Пунктир — начало будущего периода</span></div>
+      <div className="chart-footnote"><span><i className="legend-line actual-line" /> Исторический факт</span><span><i className="legend-line forecast-line" /> Прогноз модели</span></div>
     </Panel>
 
     <section className="three-column city-chart-row">
@@ -159,5 +171,3 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
 
   </div>
 }
-
-
