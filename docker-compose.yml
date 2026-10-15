@@ -43,7 +43,7 @@ services:
       - .:/app
       - jupyter-data:/root/.local/share/jupyter
       # Общий каталог event log: Spark History Server увидит задания notebook.
-      - spark-events:/opt/spark/events
+      - ./spark-state/events:/opt/spark/events
     working_dir: /app
     env_file:
       - config/.env
@@ -138,13 +138,17 @@ services:
           memory: 64m
 
   # ---------- Spark: master ----------
-  # Master UI:   :8085   (8080 занят airflow-webserver)
-  # Master RPC:  :7077   (внутренний для воркеров)
+  # Master UI:  :8085   (8080 занят airflow-webserver)
+  # Master RPC: :7077   (внутренний для воркеров)
   spark-master:
     image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
     container_name: spark-master
     restart: unless-stopped
     profiles: ["spark"]
+    # apache/spark запускает процесс от пользователя spark (uid 185),
+    # который не имеет прав на bind-mount каталоги на хосте.
+    # user: root — простейший способ решить это на dev-стенде.
+    user: root
     command: >
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.master.Master
@@ -154,13 +158,13 @@ services:
     environment:
       SPARK_NO_DAEMONIZE: "true"
     ports:
-      - "8085:8085"    # Master UI
-      - "7077:7077"    # Master RPC
+      - "8085:8085"
+      - "7077:7077"
     volumes:
       - ./spark-apps:/opt/spark/apps:ro
       - ./artifacts:/opt/spark/artifacts
-      - spark-ivy:/opt/spark/.ivy2
-      - spark-events:/opt/spark/events
+      - ./spark-state/ivy:/opt/spark/.ivy2
+      - ./spark-state/events:/opt/spark/events
     deploy:
       resources:
         limits:
@@ -178,6 +182,7 @@ services:
     container_name: spark-worker
     restart: unless-stopped
     profiles: ["spark"]
+    user: root
     depends_on:
       - spark-master
     command: >
@@ -190,13 +195,13 @@ services:
     environment:
       SPARK_NO_DAEMONIZE: "true"
     ports:
-      - "8086:8086"    # Worker UI
+      - "8086:8086"
     volumes:
       - ./spark-apps:/opt/spark/apps:ro
       - ./artifacts:/opt/spark/artifacts
-      - spark-work:/opt/spark/work
-      - spark-ivy:/opt/spark/.ivy2
-      - spark-events:/opt/spark/events
+      - ./spark-state/work:/opt/spark/work
+      - ./spark-state/ivy:/opt/spark/.ivy2
+      - ./spark-state/events:/opt/spark/events
     shm_size: '2g'
     deploy:
       resources:
@@ -215,6 +220,7 @@ services:
     container_name: spark-history
     restart: unless-stopped
     profiles: ["spark"]
+    user: root
     depends_on:
       - spark-master
     command: >
@@ -225,9 +231,9 @@ services:
         -Dspark.history.ui.port=18080
       SPARK_NO_DAEMONIZE: "true"
     ports:
-      - "18080:18080"  # History UI
+      - "18080:18080"
     volumes:
-      - spark-events:/opt/spark/events:ro
+      - ./spark-state/events:/opt/spark/events:ro
     deploy:
       resources:
         limits:
@@ -241,6 +247,4 @@ services:
 volumes:
   jupyter-data:
   pg-data:
-  spark-ivy:      # кэш jar-ов (postgres JDBC, pandas API и т.п.)
-  spark-work:     # shuffle / temp
-  spark-events:   # Spark event log для history server
+  # spark-ivy / spark-work / spark-events заменены на bind-mount в ./spark-state/
