@@ -16,8 +16,11 @@
 #
 #  torch ставим CPU-сборкой (+cpu) — CUDA-вариант весит 2.5 GB и
 #  требует GPU, которого на Spark-worker нет. Тот же +cpu — на
-#  кастомном Spark-образе (см. ./spark/Dockerfile), иначе notebook
-#  заметит разницу версий и уйдёт в локальный режим.
+#  кастомном Spark-образе (см. ./spark/Dockerfile).
+#
+#  xgboost ставим отдельно с --no-deps: PyPI-метаданные xgboost>=2.0
+#  включают nvidia-* пакеты (nccl, cublas, cudnn, ...) общим объёмом
+#  ~1.6 GB, которые нужны только для GPU-режима. На CPU они мертвы.
 # ---------------------------------------------------------------------
 FROM python:3.10-slim-bookworm AS ml
 
@@ -49,10 +52,16 @@ ENV PYSPARK_DRIVER_PYTHON=/usr/bin/python3
 
 WORKDIR /app
 
+# 1) Все зависимости из requirements.txt, кроме xgboost и torch
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    pip install --no-cache-dir \
+    pip install -r requirements.txt
+
+# 2) xgboost без nvidia-зависимостей (~10 MB вместо ~1.6 GB)
+RUN pip install --no-cache-dir --no-deps "xgboost>=2.0"
+
+# 3) torch — CPU-сборка (+cpu), с заменой возможной CUDA-версии
+RUN pip install --no-cache-dir \
         --extra-index-url https://download.pytorch.org/whl/cpu \
         --force-reinstall --no-deps \
         "torch==2.14.1+cpu"
@@ -90,7 +99,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install --no-cache-dir --no-deps "xgboost>=2.0"
 
 # Код API + скрипты: main.py, run_api.py, register_models.py
 COPY scripts/ ./scripts/

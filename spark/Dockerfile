@@ -8,6 +8,15 @@
 #
 #  База: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu — Ubuntu 22.04,
 #  Python 3.10. Совпадает с ml-playground (python:3.10-slim-bookworm).
+#
+#  ВАЖНО: версии Python-пакетов здесь должны посимвольно совпадать
+#  с requirements.txt драйвера. Меняешь в одном месте — меняй и в другом.
+#
+#  xgboost ставится с --no-deps: PyPI-метаданные xgboost>=2.0 включают
+#  nvidia-* пакеты (~1.6 GB — nccl, cublas, cufft, curand, cusolver,
+#  cusparse, cusparselt, cuda-runtime, cuda-nvrtc, nvjitlink, nvtx),
+#  которые нужны только для GPU. На CPU-worker они мертвы и только
+#  раздувают образ.
 # =====================================================================
 FROM apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
 
@@ -22,8 +31,7 @@ RUN apt-get update && \
         libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Версии точно такие же, как в requirements.txt драйвера.
-# Меняешь в одном месте — меняй и в другом.
+# 1) Всё, кроме xgboost и torch
 RUN pip3 install --no-cache-dir --upgrade pip && \
     pip3 install --no-cache-dir \
         numpy==2.1.3 \
@@ -31,12 +39,13 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
         scipy==1.14.1 \
         scikit-learn==1.5.2 \
         lightgbm==4.5.0 \
-        "xgboost>=2.0" \
         "statsmodels>=0.14" \
         prophet==1.1.6
 
-# torch — CPU-сборка, точно как на драйвере (см. STAGE 1 Dockerfile).
-# Суффикс +cpu обязателен: PyPI-вариант — это CUDA-сборка.
+# 2) xgboost без nvidia-зависимостей (~10 MB вместо ~1.6 GB)
+RUN pip3 install --no-cache-dir --no-deps "xgboost>=2.0"
+
+# 3) torch — CPU-сборка (+cpu), симметрично драйверу
 RUN pip3 install --no-cache-dir \
         --extra-index-url https://download.pytorch.org/whl/cpu \
         "torch==2.14.1+cpu"

@@ -6,7 +6,8 @@ scipy==1.14.1
 # === ML ===
 scikit-learn==1.5.2
 lightgbm==4.5.0
-xgboost>=2.0
+# xgboost ставится отдельно с --no-deps в Dockerfile (STAGE 1),
+# иначе pip тянет ~1.6 GB nvidia-колёс, ненужных на CPU.
 statsmodels>=0.14
 # torch ставится отдельно из CPU-индекса (см. Dockerfile STAGE 1)
 
