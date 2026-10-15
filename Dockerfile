@@ -7,7 +7,7 @@
 # ---------------------------------------------------------------------
 #  STAGE 1: Jupyter + Python ML + PySpark
 # ---------------------------------------------------------------------
-FROM python:3.11-slim AS ml
+FROM python:3.11-slim-bookworm AS ml
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -45,8 +45,6 @@ CMD ["sh", "-c", "jupyter lab \
     --no-browser \
     --allow-root \
     --ServerApp.token=${JUPYTER_TOKEN}"]
-
-
 # ---------------------------------------------------------------------
 #  STAGE 2: FastAPI (inference API)
 #  Модели НЕ копируем — они приходят через volume
