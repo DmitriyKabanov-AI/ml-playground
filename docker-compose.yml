@@ -17,6 +17,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256m
+        reservations:
+          cpus: '0.05'
+          memory: 64m
+    pids_limit: 256
+    shm_size: '128m'
 
   # ---------- Jupyter Lab ----------
   ml:
@@ -32,11 +42,15 @@ services:
     volumes:
       - .:/app
       - jupyter-data:/root/.local/share/jupyter
+      # Общий каталог event log: Spark History Server увидит задания notebook.
+      - spark-events:/opt/bitnami/spark/events
     working_dir: /app
     env_file:
       - config/.env
     environment:
       PYTHONUNBUFFERED: "1"
+      SPARK_MASTER_URL: "spark://spark-master:7077"
+      WEATHER_EXECUTION_MODE: "auto"
     depends_on:
       db:
         condition: service_healthy
@@ -46,6 +60,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4g
+        reservations:
+          cpus: '0.5'
+          memory: 1g
+    pids_limit: 2048
+    shm_size: '1g'
 
   # ---------- FastAPI (inference) ----------
   api:
@@ -74,6 +98,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256m
+        reservations:
+          cpus: '0.05'
+          memory: 64m
+    pids_limit: 512
 
   # ---------- Фронт: Next.js static → nginx ----------
   web:
@@ -98,7 +131,118 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512m
+        reservations:
+          cpus: '0.05'
+          memory: 64m
+    pids_limit: 256
+
+  # ---------- Spark: master ----------
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: spark-master
+    restart: unless-stopped
+    profiles: ["spark"]
+    environment:
+      SPARK_MODE: master
+      SPARK_MASTER_PORT: "7077"
+      SPARK_MASTER_WEBUI_PORT: "8080"
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+      SPARK_NO_DAEMONIZE: "true"
+    ports:
+      - "8080:8080"    # Master UI
+      - "7077:7077"    # Master RPC
+    volumes:
+      - ./spark-apps:/opt/bitnami/spark/apps:ro
+      - ./artifacts:/opt/bitnami/spark/artifacts
+      - spark-ivy:/bitnami/spark/.ivy2
+      - spark-events:/opt/bitnami/spark/events
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1g
+        reservations:
+          cpus: '0.1'
+          memory: 256m
+    pids_limit: 1024
+
+  # ---------- Spark: worker ----------
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: spark-worker
+    restart: unless-stopped
+    profiles: ["spark"]
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_CORES: "4"      # Spark видит 4 ядра, limit 4.5 — 0.5 на JVM
+      SPARK_WORKER_MEMORY: "11g"   # limit 13g — 2g на overhead/off-heap/shuffle
+      SPARK_WORKER_WEBUI_PORT: "8081"
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+      SPARK_NO_DAEMONIZE: "true"
+    ports:
+      - "8081:8081"    # Worker UI
+    volumes:
+      - ./spark-apps:/opt/bitnami/spark/apps:ro
+      - ./artifacts:/opt/bitnami/spark/artifacts
+      - spark-work:/opt/bitnami/spark/work
+      - spark-ivy:/bitnami/spark/.ivy2
+      - spark-events:/opt/bitnami/spark/events
+    shm_size: '2g'
+    deploy:
+      resources:
+        limits:
+          cpus: '4.5'
+          memory: 13g
+        reservations:
+          cpus: '1.0'
+          memory: 2g
+    pids_limit: 4096
+
+  # ---------- Spark: history server ----------
+  spark-history:
+    image: bitnami/spark:3.5
+    container_name: spark-history
+    restart: unless-stopped
+    profiles: ["spark"]
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: history-server
+      SPARK_HISTORY_OPTS: >-
+        -Dspark.history.fs.logDirectory=/opt/bitnami/spark/events
+        -Dspark.history.ui.port=18080
+      SPARK_NO_DAEMONIZE: "true"
+    ports:
+      - "18080:18080"  # History UI
+    volumes:
+      - spark-events:/opt/bitnami/spark/events:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512m
+        reservations:
+          cpus: '0.05'
+          memory: 128m
+    pids_limit: 512
 
 volumes:
   jupyter-data:
   pg-data:
+  spark-ivy:      # кэш jar-ов (postgres JDBC, pandas API и т.п.)
+  spark-work:     # shuffle / temp
+  spark-events:   # Spark event log для history server
