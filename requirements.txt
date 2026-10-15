@@ -8,7 +8,7 @@ scikit-learn==1.5.2
 lightgbm==4.5.0
 xgboost>=2.0
 statsmodels>=0.14
-torch>=2.5.0
+# torch ставится отдельно из CPU-индекса (см. Dockerfile STAGE 1)
 
 # === Visualization ===
 matplotlib==3.9.2
@@ -46,10 +46,5 @@ pydantic==2.9.2
 # === HTTP ===
 requests==2.32.3
 
-# === Web API ===
-fastapi==0.115.4
-uvicorn[standard]==0.32.0
-pydantic==2.9.2
-
-# === Spark ===
+# === Spark client ===
 pyspark==3.5.3

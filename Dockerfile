@@ -9,11 +9,15 @@
 #
 #  python:3.10-slim-bookworm — потому что образ apache/spark:3.5.x
 #  основан на Ubuntu 22.04, где Python 3.10. PySpark жёстко требует
-#  совпадения minor-версии Python на driver и executor, иначе:
-#  PYTHON_VERSION_MISMATCH: Python in worker has different version.
+#  совпадения minor-версии Python на driver и executor.
 #
 #  bookworm (Debian 12) — потому что в trixie (Debian 13) нет
 #  пакета openjdk-17-jre-headless, а Spark 3.5.x не поддерживает Java 21.
+#
+#  torch ставим CPU-сборкой (+cpu) — CUDA-вариант весит 2.5 GB и
+#  требует GPU, которого на Spark-worker нет. Тот же +cpu — на
+#  кастомном Spark-образе (см. ./spark/Dockerfile), иначе notebook
+#  заметит разницу версий и уйдёт в локальный режим.
 # ---------------------------------------------------------------------
 FROM python:3.10-slim-bookworm AS ml
 
@@ -46,7 +50,12 @@ ENV PYSPARK_DRIVER_PYTHON=/usr/bin/python3
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install --no-cache-dir \
+        --extra-index-url https://download.pytorch.org/whl/cpu \
+        --force-reinstall --no-deps \
+        "torch==2.14.1+cpu"
 
 COPY . .
 

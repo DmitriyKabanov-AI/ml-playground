@@ -140,8 +140,15 @@ services:
   # ---------- Spark: master ----------
   # Master UI:  :8085   (8080 занят airflow-webserver)
   # Master RPC: :7077   (внутренний для воркеров)
+  #
+  # Собран из ./spark/Dockerfile — содержит ML-пакеты (torch CPU,
+  # xgboost, statsmodels, sklearn, prophet), чтобы executor имел
+  # те же версии, что и driver, и notebook мог включить distributed.
   spark-master:
-    image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: spark-custom:latest
     container_name: spark-master
     restart: unless-stopped
     profiles: ["spark"]
@@ -178,7 +185,10 @@ services:
   # ---------- Spark: worker ----------
   # Worker UI: :8086   (8081 занят cadvisor)
   spark-worker:
-    image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: spark-custom:latest
     container_name: spark-worker
     restart: unless-stopped
     profiles: ["spark"]
@@ -216,7 +226,10 @@ services:
   # ---------- Spark: history server ----------
   # History UI: :18080
   spark-history:
-    image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: spark-custom:latest
     container_name: spark-history
     restart: unless-stopped
     profiles: ["spark"]
