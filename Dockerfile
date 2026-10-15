@@ -5,7 +5,7 @@
 
 
 # ---------------------------------------------------------------------
-#  STAGE 1: Jupyter + Python ML
+#  STAGE 1: Jupyter + Python ML + PySpark
 # ---------------------------------------------------------------------
 FROM python:3.11-slim AS ml
 
@@ -13,12 +13,22 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# Java 17 нужна PySpark 3.5.x (JVM под капотом).
+# procps — Spark-лаунчер дергает ps для диагностики.
+# bash — Spark-скрипты в /opt/spark/bin/* написаны на bash.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         git \
         curl \
         libgomp1 \
+        openjdk-17-jre-headless \
+        procps \
+        bash \
     && rm -rf /var/lib/apt/lists/*
+
+# PySpark ищет java через JAVA_HOME. Без этого — "JAVA_HOME is not set".
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 WORKDIR /app
 
