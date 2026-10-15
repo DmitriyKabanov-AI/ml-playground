@@ -1,4 +1,4 @@
-﻿// Типы и хелперы городского модуля. Данные — artifacts/weather/cities/cities.json.
+// Типы и хелперы городского модуля. Данные — artifacts/weather/cities/cities.json.
 
 export type CityVariableKey = "temp" | "hum" | "rain" | "wind" | "pres";
 
@@ -50,7 +50,11 @@ export const cityVariables: CityVariableSpec[] = [
   { key: "pres", label: "Давление",    unit: "гПа", icon: "🧭" },
 ];
 
-export const cityModelNames = ["Persistence", "SARIMAX", "XGBoost", "LSTM"] as const;
+// Keep in sync with STATION_MODELS/CITY_MODELS in the Jupyter benchmark.
+export const cityModelNames = [
+  "Persistence", "Seasonal Naive", "Ridge", "RandomForest",
+  "GradientBoosting", "XGBoost", "SARIMAX", "LSTM",
+] as const;
 
 const EMPTY: CityMetrics = {
   mae: 0, rmse: 0, r2: 0, mape: 0, bias: 0, maxError: 0, medae: 0, skill: 0,
@@ -66,9 +70,8 @@ export function evaluateCityModel(
   const city = cityWeatherDemo?.cities?.[cityIndex] ?? cityWeatherDemo?.cities?.[0];
   const variable = city?.vars?.[variableKey];
   if (!variable) return EMPTY;
-  const model =
-    variable.models.find((m: CityForecastModel) => m.name === modelName) ??
-    variable.models[0];
+  const model = variable.models.find((m: CityForecastModel) => m.name === modelName);
+  // Не показываем метрики другой модели, если артефакт неполный.
   return model?.metrics ?? EMPTY;
 }
 
@@ -80,3 +83,5 @@ export function cityWeatherIcon(rain: number, temp: number, humidity: number) {
   return rain >= 1 ? (temp <= 0 ? "🌨️" : "🌧️")
     : humidity > 80 ? "☁️" : humidity > 62 ? "⛅" : "☀️";
 }
+
+

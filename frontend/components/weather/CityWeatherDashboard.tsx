@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { useMemo, type ReactNode } from 'react'
 import {
   Activity, CloudRain, Droplets, Gauge, Info, MapPin, Thermometer, Wind,
@@ -43,6 +43,7 @@ function Tip({ active, payload, label }: { active?: boolean; payload?: Array<{ v
 
 export default function CityWeatherDashboard({ cityIndex, setCityIndex, variableKey, setVariableKey, modelName, setModelName, showInterval, setShowInterval }: Props) {
   const { cityWeatherDemo } = useWeatherData()
+  const forecastDays = Number(cityWeatherDemo.forecastDays ?? 21)
   const city = cityWeatherDemo.cities[cityIndex] ?? cityWeatherDemo.cities[0]
   const spec = cityVariables.find((item) => item.key === variableKey) ?? cityVariables[0]
   const variable = city.vars[spec.key]
@@ -66,41 +67,31 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
   })
   .filter((p): p is NonNullable<typeof p> => p != null)
 
-  const series = useMemo(() => {
-    let lastPred: number | null = null
-    for (let i = model.forecast.length - 1; i >= 0; i--) {
-      const f = model.forecast[i]
-      if (f != null && Number.isFinite(f)) { lastPred = f; break }
+  const series = useMemo(() => city.dates.map((date, index) => {
+    const rawActual = variable.actual[index]
+    const actual = (rawActual != null && Number.isFinite(rawActual)) ? rawActual : null
+    const rawPred = model.forecast[index]
+    const pred = (rawPred != null && Number.isFinite(rawPred)) ? rawPred : null
+    const rawSd = model.sd[index]
+    const sd = rawSd != null && Number.isFinite(rawSd) ? rawSd : null
+    return {
+      date, tick: cityDateTick(date), actual, predicted: pred,
+      low: pred == null || sd == null ? null : pred - 1.64 * sd,
+      band: pred == null || sd == null ? null : 3.28 * sd,
+      high: pred == null || sd == null ? null : pred + 1.64 * sd,
     }
-    return city.dates.map((date, index) => {
-      const rawActual = variable.actual[index]
-      const actual = (rawActual != null && Number.isFinite(rawActual)) ? rawActual : null
-      const rawPred = model.forecast[index]
-      const sd = model.sd[index] ?? 0
-      const pred = (rawPred != null && Number.isFinite(rawPred))
-        ? rawPred
-        : (index >= cityWeatherDemo.nPast && lastPred != null ? lastPred : null)
-      return {
-        date, tick: cityDateTick(date),
-        actual,
-        predicted: pred,
-        low: pred == null ? null : pred - 1.64 * sd,
-        band: pred == null ? null : 3.28 * sd,
-        high: pred == null ? null : pred + 1.64 * sd,
-      }
-    })
-  }, [city, model, variable])
+  }), [city, model, variable])
 
   const leadData = useMemo(() => [1, 2, 3, 4, 5, 6, 7].map((horizon) => {
     const row: Record<string, number | string> = { horizon: `+${horizon} д`, n: horizon }
-    const baselineLead = variable.leadMae.Persistence[horizon - 1]
-    row[model.name] = variable.leadMae[model.name][horizon - 1]
-    row.Persistence = baselineLead
-    row.SARIMAX = variable.leadMae.SARIMAX[horizon - 1]
-    row.XGBoost = variable.leadMae.XGBoost[horizon - 1]
-    row.LSTM = variable.leadMae.LSTM[horizon - 1]
+    // Строим ряды по фактически сохранённым метрикам всех моделей,
+    // не хардкодим только Persistence/SARIMAX/XGBoost/LSTM.
+    for (const name of cityModelNames) {
+      const value = variable.leadMae?.[name]?.[horizon - 1]
+      if (typeof value === 'number' && Number.isFinite(value)) row[name] = value
+    }
     return row
-  }), [variable, model.name])
+  }), [variable])
 
   const skillData = useMemo(() => cityVariables.map((item) => {
     // FIX: первым аргументом обязательно cityWeatherDemo,
@@ -112,11 +103,12 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
   const comparison = useMemo(() => cityModelNames.map((name) => ({ name, ...evaluateCityModel(cityWeatherDemo, cityIndex, spec.key, name) })), [cityWeatherDemo, cityIndex, spec.key])
   const testScatter = points.map((point) => ({ actual: point.actual, predicted: point.predicted, date: point.date }))
 
-  const futureDays = Array.from({ length: cityWeatherDemo.forecastDays }, (_, offset) => {
+  const futureDays = Array.from({ length: forecastDays }, (_, offset) => {
     const index = cityWeatherDemo.nPast + offset
     const get = (key: CityVariableKey) => {
       const data = city.vars[key]
-      return data.models.find((candidate) => candidate.name === model.name)?.forecast[index] ?? data.actual[index - 1] ?? 0
+      const value = data.models.find((candidate) => candidate.name === model.name)?.forecast[index]
+      return value == null || !Number.isFinite(value) ? null : value
     }
     return { date: city.dates[index], temp: get('temp'), hum: get('hum'), rain: get('rain'), wind: get('wind') }
   })
@@ -126,7 +118,7 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
 
   return <div className="content-stack weather-dashboard city-weather-dashboard">
     <section className="control-strip weather-control-strip">
-      <div className="controls-intro"><span className="control-icon"><MapPin size={16} /></span><div><b>Городской прогноз</b><span>Многопараметрическая оценка и 7-дневный прогноз</span></div></div>
+      <div className="controls-intro"><span className="control-icon"><MapPin size={16} /></span><div><b>Городской прогноз</b><span>Многопараметрическая оценка и {forecastDays}-дневный прогноз</span></div></div>
       <label className="select-field weather-select"><span>Город</span><select value={cityIndex} onChange={(event) => setCityIndex(Number(event.target.value))}>{cityWeatherDemo.cities.map((item, index) => <option value={index} key={item.name}>{item.name}</option>)}</select></label>
       <label className="select-field weather-select"><span>Модель</span><select value={model.name} onChange={(event) => setModelName(event.target.value)}>{cityModelNames.map((name) => <option key={name}>{name}</option>)}</select></label>
       <div className="variable-selector"><span>Переменная</span><div className="segmented">{cityVariables.map((item) => <button key={item.key} type="button" className={item.key === spec.key ? 'active' : ''} onClick={() => setVariableKey(item.key)}>{item.icon} {item.label}</button>)}</div></div>
@@ -134,7 +126,7 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
     </section>
 
     <section className="weather-hero panel">
-      <div className="weather-hero-heading"><div><h2><Icon size={19} /> {city.name} <span>·</span> {spec.label}</h2><p>Бэктест за 14 последних исторических дней · прогноз на 7 дней вперёд · модель {model.name}</p></div><span className={metrics.skill >= 0 ? 'skill-badge-positive' : 'skill-badge-negative'}>{metrics.skill >= 0 ? '↑' : '↓'} Skill {signed(metrics.skill * 100, 1)}%</span></div>
+      <div className="weather-hero-heading"><div><h2><Icon size={19} /> {city.name} <span>·</span> {spec.label}</h2><p>Исторический бэктест · прогноз на {forecastDays} дней вперёд · модель {model.name}</p></div><span className={metrics.skill >= 0 ? 'skill-badge-positive' : 'skill-badge-negative'}>{metrics.skill >= 0 ? '↑' : '↓'} Skill {signed(metrics.skill * 100, 1)}%</span></div>
       <div className="weather-hero-stats">
         <div><span>MAE · {spec.unit}</span><b>{fmt(metrics.mae)}</b></div>
         <div><span>RMSE · {spec.unit}</span><b>{fmt(metrics.rmse)}</b></div>
@@ -144,11 +136,11 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
       <div className="weather-badge-row"><span className="weather-info-pill"><Activity size={13} /> Baseline MAE: <b>{fmt(baseline.mae)} {spec.unit}</b></span><span className="weather-info-pill"><Info size={13} /> {metrics.skill >= 0 ? 'Лучше persistence по MAE' : 'Хуже persistence по MAE'}</span><span className="weather-info-pill">Лучший алгоритм для выбора: <b>{winner?.name ?? '—'}</b></span></div>
     </section>
 
-    <Panel title="Прогноз на 7 дней" subtitle={`${city.name} · ${model.name} · карточки показывают согласованный прогноз температуры, влажности, осадков и ветра`}>
+    <Panel title={`Прогноз на ${forecastDays} дней`} subtitle={`${city.name} · ${model.name} · карточки показывают согласованный прогноз температуры, влажности, осадков и ветра`}>
       <div className="city-forecast-cards">{futureDays.map((day) => <article className="city-forecast-day" key={day.date}><div className="forecast-day-date">{new Date(`${day.date}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}</div><div className="forecast-day-icon">{cityWeatherIcon(day.rain, day.temp, day.hum)}</div><div className="forecast-day-temp">{fmt(day.temp, 0)}°</div><div className="forecast-day-detail"><span>💧 {fmt(day.hum, 0)}%</span><span>🌧 {fmt(day.rain, 1)} мм</span><span>💨 {fmt(day.wind, 1)} м/с</span></div></article>)}</div>
     </Panel>
 
-    <Panel title={`${spec.icon} Факт и прогноз: ${spec.label.toLowerCase()}`} subtitle={`История, 14-дневный бэктест и прогнозный участок · единица измерения ${spec.unit}`} className="weather-skill-panel">
+    <Panel title={`${spec.icon} Факт и прогноз: ${spec.label.toLowerCase()}`} subtitle={`Исторические наблюдения и прогнозный участок на ${forecastDays} дней · единица измерения ${spec.unit}`} className="weather-skill-panel">
       <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={series} margin={{ top: 12, right: 15, bottom: 4, left: -5 }}>
         <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="tick" interval={5} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={43} /><Tooltip content={<Tip />} />
         {showInterval && <><Area type="monotone" dataKey="low" stackId="weather-band" stroke="none" fill="transparent" isAnimationActive={false} connectNulls={false} /><Area type="monotone" dataKey="band" stackId="weather-band" stroke="none" fill="var(--c2)" fillOpacity={0.14} name="90% интервал" isAnimationActive={false} connectNulls={false} /></>}
@@ -159,14 +151,23 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
     </Panel>
 
     <section className="three-column city-chart-row">
-      <Panel title="MAE по горизонту" subtitle="Прогнозная ошибка на 1–7 дней вперёд"><div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><LineChart data={leadData} margin={{ top: 10, right: 8, bottom: 4, left: -14 }}><CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="horizon" tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} width={35} /><Tooltip content={<Tip />} /><Line type="monotone" dataKey={model.name} name={model.name} stroke="var(--c2)" strokeWidth={2.5} dot={{ r: 2 }} /><Line type="monotone" dataKey="Persistence" name="Persistence" stroke="var(--muted)" strokeDasharray="4 4" dot={false} /></LineChart></ResponsiveContainer></div></Panel>
+      <Panel title="MAE по горизонту" subtitle="Прогнозная ошибка на 1–7 дней вперёд"><div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><LineChart data={leadData} margin={{ top: 10, right: 8, bottom: 4, left: -14 }}><CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="horizon" tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} width={35} /><Tooltip content={<Tip />} />{cityModelNames.map((name, index) => {
+        const modelPalette = ['var(--muted)', '#64748b', '#818cf8', '#34d399', '#fbbf24', '#22d3ee', '#a78bfa', '#f472b6']
+        const present = leadData.some((row) => typeof row[name] === 'number')
+        if (!present) return null
+        return <Line key={name} type="monotone" dataKey={name} name={name}
+          stroke={modelPalette[index % modelPalette.length]}
+          strokeWidth={name === model.name ? 2.8 : 1.4}
+          strokeDasharray={name === 'Persistence' || name === 'Seasonal Naive' ? '4 4' : undefined}
+          strokeOpacity={name === model.name ? 1 : 0.78} dot={false} activeDot={{ r: 3 }} />
+      })}</LineChart></ResponsiveContainer></div></Panel>
       <Panel title="Predicted vs Actual" subtitle="Бэктест · каждая точка — исторический день"><div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 10, right: 12, bottom: 4, left: -12 }}><CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis type="number" dataKey="actual" name="Факт" tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} width={35} /><Tooltip cursor={{ strokeDasharray: '3 3' }} content={<Tip />} /><Scatter data={testScatter} name="Дни" fill="var(--c1)" fillOpacity={0.72} /></ScatterChart></ResponsiveContainer></div></Panel>
       <Panel title="Skill по переменным" subtitle={`Skill vs persistence · модель ${model.name}`}><div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={skillData} layout="vertical" margin={{ top: 7, right: 14, bottom: 2, left: 5 }}><CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `${value}%`} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><YAxis type="category" dataKey="label" width={94} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<Tip />} /><ReferenceLine x={0} stroke="var(--muted)" /><Bar dataKey="skill" name="Skill, %" radius={[0, 4, 4, 0]}>{skillData.map((item) => <Cell key={item.label} fill={item.skill >= 0 ? 'var(--c3)' : 'var(--c5)'} />)}</Bar></BarChart></ResponsiveContainer></div></Panel>
     </section>
 
-    <Panel title="Сравнение моделей" subtitle={`Метрики на общей 14-дневной тестовой выборке · ${city.name} · ${spec.label}`} right={<span className="small-tag">4 МОДЕЛИ</span>}>
-      <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>MAE</th><th>RMSE</th><th>R²</th><th>MAPE</th><th>Bias</th><th>Max error</th><th>MedAE</th><th>Skill</th></tr></thead><tbody>{comparison.map((row) => <tr key={row.name} className={row.name === model.name ? 'row-selected click' : 'click'} onClick={() => setModelName(row.name)} title="Нажмите, чтобы выбрать модель"><td><span className="model-cell">{row.name}{row.name === 'Persistence' && <span className="weather-baseline-tag">baseline</span>}</span></td><td>{fmt(row.mae)}</td><td>{fmt(row.rmse)}</td><td>{fmt(row.r2, 3)}</td><td>{fmt(row.mape, 1)}%</td><td>{signed(row.bias)}</td><td>{fmt(row.maxError)}</td><td>{fmt(row.medae)}</td><td className={row.skill >= 0 ? 'positive-text' : 'negative-text'}>{signed(row.skill * 100, 1)}%</td></tr>)}</tbody></table></div>
-      <div className="table-note"><Info size={13} /> Skill = 1 − MAE модели / MAE persistence. Весь набор синтетический; качество не отражает реальные прогнозы в выбранном городе.</div>
+    <Panel title="Сравнение моделей" subtitle={`Исторический бэктест по ${city.name} · ${spec.label}; прогноз отдельно строится на ${forecastDays} дней`} right={<span className="small-tag">{cityModelNames.length} МОДЕЛЕЙ</span>}>
+      <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>MAE</th><th>RMSE</th><th>R²</th><th>MAPE</th><th>Bias</th><th>Max error</th><th>MedAE</th><th>Skill</th></tr></thead><tbody>{comparison.map((row) => <tr key={row.name} className={row.name === model.name ? 'row-selected click' : 'click'} onClick={() => setModelName(row.name)} title="Нажмите, чтобы выбрать модель"><td><span className="model-cell">{row.name}{(row.name === 'Persistence' || row.name === 'Seasonal Naive') && <span className="weather-baseline-tag">baseline</span>}</span></td><td>{fmt(row.mae)}</td><td>{fmt(row.rmse)}</td><td>{fmt(row.r2, 3)}</td><td>{fmt(row.mape, 1)}%</td><td>{signed(row.bias)}</td><td>{fmt(row.maxError)}</td><td>{fmt(row.medae)}</td><td className={row.skill >= 0 ? 'positive-text' : 'negative-text'}>{signed(row.skill * 100, 1)}%</td></tr>)}</tbody></table></div>
+      <div className="table-note"><Info size={13} /> Skill = 1 − MAE модели / MAE persistence. Метрики рассчитаны на историческом бэктесте; 21-дневная линия — отдельный прогноз от даты origin.</div>
     </Panel>
 
   </div>

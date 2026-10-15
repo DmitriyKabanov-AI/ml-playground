@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 
 import { useMemo, type ReactNode } from 'react'
 import {
@@ -135,25 +135,23 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
   const skillData = useMemo(() => weatherDemo.horizons.map((h) => {
     const selected = stationData.evaluations[modelName][h]
     const persistence = stationData.evaluations.Persistence[h]
-    const seasonal = stationData.evaluations['Seasonal Naive'][h]
-    const rf = stationData.evaluations.RandomForest[h]
-    const ridge = stationData.evaluations.Ridge[h]
     const skill = selected.metrics.skill
     const uncertainty = Math.max(0.025, selected.metrics.rmse / Math.sqrt(Math.max(1, selected.points.length)) / Math.max(0.5, persistence.metrics.mae))
-    return {
+    const row: Record<string, number> = {
       horizon: h,
       selectedSkill: skill,
       selectedMae: selected.metrics.mae,
       selectedDelta: selected.deltaVsPersistence,
-      RandomForestSkill: rf.metrics.skill,
-      RidgeSkill: ridge.metrics.skill,
-      PersistenceSkill: persistence.metrics.skill,
-      SeasonalNaiveSkill: seasonal.metrics.skill,
       lowerSkill: skill - uncertainty,
       upperSkill: skill + uncertainty,
       skillBand: uncertainty * 2,
     }
-  }), [stationData, modelName])
+    // add every trained model's skill for a consistent 8-model comparison
+    weatherModels.forEach((model) => {
+      row[`skill_${model.name.replace(/[^A-Za-z0-9]/g, '')}`] = stationData.evaluations[model.name][h].metrics.skill
+    })
+    return row
+  }), [stationData, modelName, weatherModels])
 
   const stationMaeData = useMemo(() => weatherDemo.horizons.map((h) => {
     const row: Record<string, string | number> = { horizon: h }
@@ -169,12 +167,12 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
 
   return <div className="content-stack weather-dashboard">
     <section className="control-strip weather-control-strip">
-      <div className="controls-intro"><span className="control-icon"><CloudSun size={17} /></span><div><b>Настройка прогноза</b><span>Сравнение моделей на отложенном годовом периоде</span></div></div>
+      <div className="controls-intro"><span className="control-icon"><CloudSun size={17} /></span><div><b>Настройка прогноза</b><span>8 моделей · общая отложенная выборка · горизонты 1–14 дней</span></div></div>
       <label className="select-field weather-select"><span>Станция</span><select value={stationId} onChange={(event) => setStationId(Number(event.target.value))} aria-label="Станция">
         {weatherDemo.stations.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.id}</option>)}
       </select></label>
       <label className="select-field weather-select"><span>Модель</span><select value={modelName} onChange={(event) => setModelName(event.target.value)} aria-label="Модель">
-        {weatherModels.filter((model) => !model.isBaseline).map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}
+        {weatherModels.map((model) => <option key={model.name} value={model.name}>{model.name}{model.isBaseline ? ' · baseline' : ''}</option>)}
       </select></label>
       <div className="horizon-control weather-horizon-control"><span>Горизонт, дней</span><div className="segmented">
         {[1, 3, 7, 14].map((h) => <button type="button" key={h} className={horizon === h ? 'active' : ''} onClick={() => setHorizon(h)}>{h}</button>)}
@@ -186,7 +184,7 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
     </section>
 
     <section className="panel weather-hero">
-      <div className="weather-hero-heading"><div><div className="eyebrow">FORECASTING · DEMO RUN</div><h2><MapPin size={16} /> Станция {station.label} <span>·</span> {modelName} <span>·</span> h={horizon}</h2><p>Прогноз температуры для сравнения качества моделей, не фактический прогноз погоды.</p></div>
+      <div className="weather-hero-heading"><div><div className="eyebrow">FORECASTING · DEMO RUN</div><h2><MapPin size={16} /> Станция {station.label} <span>·</span> {modelName} <span>·</span> h={horizon}</h2><p>Исторический бэктест: качество на отложенных датах, а не оперативный прогноз погоды.</p></div>
         <span className={`skill-badge-${currentMetrics.skill >= 0 ? 'positive' : 'negative'}`}>{currentMetrics.skill >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />} Skill {signed(currentMetrics.skill)}</span>
       </div>
       <div className="weather-hero-stats">
@@ -212,9 +210,14 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
           <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="horizon" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} label={{ value: 'Горизонт h, дней', position: 'insideBottom', offset: -1, fill: 'var(--muted)', fontSize: 9 }} /><YAxis tickFormatter={(value) => Number(value).toFixed(1)} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={42} /><Tooltip content={<SkillTooltip />} /><ReferenceLine y={0} stroke={palette.rose} strokeDasharray="5 4" label={{ value: 'persistence-уровень', fill: palette.rose, fontSize: 9, position: 'insideTopLeft' }} />
           {showSkillCorridor && <><Area type="monotone" dataKey="lowerSkill" name="Skill corridor lower" stackId="skillRange" stroke="none" fill="transparent" fillOpacity={0} activeDot={false} /><Area type="monotone" dataKey="skillBand" name="Skill corridor width" stackId="skillRange" stroke="none" fill={palette.cyan} fillOpacity={0.10} activeDot={false} /><Line type="monotone" dataKey="upperSkill" name="Skill corridor upper" stroke={palette.cyan} strokeOpacity={0.32} strokeDasharray="2 4" dot={false} activeDot={false} /><Line type="monotone" dataKey="lowerSkill" name="Skill corridor lower" stroke={palette.cyan} strokeOpacity={0.32} strokeDasharray="2 4" dot={false} activeDot={false} /></>}
           <Line type="monotone" dataKey="selectedSkill" name={`${modelName} · выбранная`} stroke={palette.cyan} strokeWidth={3} dot={false} activeDot={{ r: 4 }} />
-          {modelName !== 'RandomForest' && <Line type="monotone" dataKey="RandomForestSkill" name="RandomForest" stroke={palette.indigo} strokeWidth={1.7} dot={false} activeDot={{ r: 3 }} />}
-          {modelName !== 'Ridge' && <Line type="monotone" dataKey="RidgeSkill" name="Ridge" stroke={palette.purple} strokeWidth={1.7} dot={false} activeDot={{ r: 3 }} />}
-          {showBaseline && <><Line type="monotone" dataKey="PersistenceSkill" name="Persistence" stroke={palette.gray} strokeWidth={1.6} strokeDasharray="6 4" dot={false} activeDot={{ r: 3 }} /><Line type="monotone" dataKey="SeasonalNaiveSkill" name="Seasonal Naive" stroke="#64748b" strokeWidth={1.6} strokeDasharray="2 4" dot={false} activeDot={{ r: 3 }} /></>}
+          {weatherModels.filter((model) => model.name !== modelName && (!model.isBaseline || showBaseline)).map((model, index) => {
+            const colors: Record<string, string> = { Persistence: palette.gray, 'Seasonal Naive': '#64748b', Ridge: palette.purple, RandomForest: palette.indigo, GradientBoosting: palette.amber, XGBoost: palette.blue, SARIMAX: palette.green, LSTM: palette.rose }
+            const key = `skill_${model.name.replace(/[^A-Za-z0-9]/g, '')}`
+            return <Line key={model.name} type="monotone" dataKey={key} name={model.name}
+              stroke={colors[model.name] ?? palette.green} strokeWidth={1.5}
+              strokeDasharray={model.isBaseline ? (model.name === 'Persistence' ? '6 4' : '2 4') : undefined}
+              strokeOpacity={0.82} dot={false} activeDot={{ r: 3 }} />
+          })}
         </ComposedChart></ResponsiveContainer></div>
         <div className="chart-footnote"><span>Skill &gt; 0 — лучше наивного прогноза</span><span>Skill &lt; 0 — хуже persistence</span></div>
       </Panel>
@@ -232,8 +235,24 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
       <Panel title="MAE(h) по моделям" subtitle={`Станция ${station.label} · меньше — лучше`}>
         <div className="chart-area chart-tall"><ResponsiveContainer width="100%" height="100%"><LineChart data={modelMaeData} margin={{ top: 10, right: 8, bottom: 3, left: -8 }}>
           <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="horizon" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => fmt(Number(value), 0)} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={34} /><Tooltip content={<GenericWeatherTooltip />} /><Legend wrapperStyle={{ fontSize: 9, color: 'var(--muted)' }} />
-          {weatherModels.filter((model) => !model.isBaseline).map((model) => <Line key={model.name} type="monotone" dataKey={model.name.replace(/ /g, '')} name={model.name} stroke={model.name === modelName ? palette.cyan : model.name === 'Ridge' ? palette.purple : model.name === 'RandomForest' ? palette.indigo : palette.green} strokeWidth={model.name === modelName ? 2.8 : 1.5} dot={false} activeDot={{ r: 3 }} />)}
-          {showBaseline && <><Line type="monotone" dataKey="Persistence" name="Persistence" stroke={palette.gray} strokeWidth={2.2} strokeDasharray="7 4" dot={false} /><Line type="monotone" dataKey="SeasonalNaive" name="Seasonal Naive" stroke="#64748b" strokeWidth={1.7} strokeDasharray="2 4" dot={false} /></>}
+          {weatherModels.filter((model) => model.name === modelName || !model.isBaseline || showBaseline).map((model) => {
+            const colors: Record<string, string> = {
+              Persistence: palette.gray,
+              'Seasonal Naive': '#64748b',
+              Ridge: palette.purple,
+              RandomForest: palette.indigo,
+              GradientBoosting: palette.amber,
+              XGBoost: palette.blue,
+              SARIMAX: palette.green,
+              LSTM: palette.rose,
+            }
+            return <Line key={model.name} type="monotone"
+              dataKey={model.name.replace(/ /g, '')} name={model.name}
+              stroke={model.name === modelName ? palette.cyan : colors[model.name] ?? palette.green}
+              strokeWidth={model.name === modelName ? 2.8 : model.isBaseline ? 2 : 1.5}
+              strokeDasharray={model.isBaseline ? (model.name === 'Persistence' ? '7 4' : '2 4') : undefined}
+              dot={false} activeDot={{ r: 3 }} />
+          })}
         </LineChart></ResponsiveContainer></div>
         <div className="chart-footnote"><span>Persistence — базовая точка сравнения</span><span>Все ошибки рассчитаны на общей тестовой части</span></div>
       </Panel>
@@ -248,3 +267,4 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
 
   </div>
 }
+
