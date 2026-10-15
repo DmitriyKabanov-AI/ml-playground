@@ -138,6 +138,8 @@ services:
           memory: 64m
 
   # ---------- Spark: master ----------
+  # Master UI:   :8085   (8080 занят airflow-webserver)
+  # Master RPC:  :7077   (внутренний для воркеров)
   spark-master:
     image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
     container_name: spark-master
@@ -148,11 +150,11 @@ services:
       org.apache.spark.deploy.master.Master
       --host spark-master
       --port 7077
-      --webui-port 8080
+      --webui-port 8085
     environment:
       SPARK_NO_DAEMONIZE: "true"
     ports:
-      - "8080:8080"    # Master UI
+      - "8085:8085"    # Master UI
       - "7077:7077"    # Master RPC
     volumes:
       - ./spark-apps:/opt/spark/apps:ro
@@ -170,6 +172,7 @@ services:
           memory: 256m
 
   # ---------- Spark: worker ----------
+  # Worker UI: :8086   (8081 занят cadvisor)
   spark-worker:
     image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
     container_name: spark-worker
@@ -183,11 +186,11 @@ services:
       spark://spark-master:7077
       --cores 4
       --memory 11g
-      --webui-port 8081
+      --webui-port 8086
     environment:
       SPARK_NO_DAEMONIZE: "true"
     ports:
-      - "8081:8081"    # Worker UI
+      - "8086:8086"    # Worker UI
     volumes:
       - ./spark-apps:/opt/spark/apps:ro
       - ./artifacts:/opt/spark/artifacts
@@ -206,6 +209,7 @@ services:
           memory: 2g
 
   # ---------- Spark: history server ----------
+  # History UI: :18080
   spark-history:
     image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
     container_name: spark-history
