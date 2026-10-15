@@ -22,10 +22,10 @@ services:
         limits:
           cpus: '0.25'
           memory: 256m
+          pids: 256
         reservations:
           cpus: '0.05'
           memory: 64m
-    pids_limit: 256
     shm_size: '128m'
 
   # ---------- Jupyter Lab ----------
@@ -65,10 +65,10 @@ services:
         limits:
           cpus: '1.5'
           memory: 4g
+          pids: 2048
         reservations:
           cpus: '0.5'
           memory: 1g
-    pids_limit: 2048
     shm_size: '1g'
 
   # ---------- FastAPI (inference) ----------
@@ -103,10 +103,10 @@ services:
         limits:
           cpus: '0.25'
           memory: 256m
+          pids: 512
         reservations:
           cpus: '0.05'
           memory: 64m
-    pids_limit: 512
 
   # ---------- Фронт: Next.js static → nginx ----------
   web:
@@ -136,10 +136,10 @@ services:
         limits:
           cpus: '0.25'
           memory: 512m
+          pids: 256
         reservations:
           cpus: '0.05'
           memory: 64m
-    pids_limit: 256
 
   # ---------- Spark: master ----------
   spark-master:
@@ -169,10 +169,10 @@ services:
         limits:
           cpus: '0.5'
           memory: 1g
+          pids: 1024
         reservations:
           cpus: '0.1'
           memory: 256m
-    pids_limit: 1024
 
   # ---------- Spark: worker ----------
   spark-worker:
@@ -207,10 +207,10 @@ services:
         limits:
           cpus: '4.5'
           memory: 13g
+          pids: 4096
         reservations:
           cpus: '1.0'
           memory: 2g
-    pids_limit: 4096
 
   # ---------- Spark: history server ----------
   spark-history:
@@ -235,10 +235,10 @@ services:
         limits:
           cpus: '0.25'
           memory: 512m
+          pids: 512
         reservations:
           cpus: '0.05'
           memory: 128m
-    pids_limit: 512
 
 volumes:
   jupyter-data:
