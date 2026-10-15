@@ -6,8 +6,16 @@
 
 # ---------------------------------------------------------------------
 #  STAGE 1: Jupyter + Python ML + PySpark
+#
+#  python:3.10-slim-bookworm — потому что образ apache/spark:3.5.x
+#  основан на Ubuntu 22.04, где Python 3.10. PySpark жёстко требует
+#  совпадения minor-версии Python на driver и executor, иначе:
+#  PYTHON_VERSION_MISMATCH: Python in worker has different version.
+#
+#  bookworm (Debian 12) — потому что в trixie (Debian 13) нет
+#  пакета openjdk-17-jre-headless, а Spark 3.5.x не поддерживает Java 21.
 # ---------------------------------------------------------------------
-FROM python:3.11-slim-bookworm AS ml
+FROM python:3.10-slim-bookworm AS ml
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -30,6 +38,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
+# Driver и executor должны использовать один и тот же python.
+# python:3.10-slim и apache/spark:python3-ubuntu оба имеют /usr/bin/python3.
+ENV PYSPARK_PYTHON=/usr/bin/python3
+ENV PYSPARK_DRIVER_PYTHON=/usr/bin/python3
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -45,6 +58,8 @@ CMD ["sh", "-c", "jupyter lab \
     --no-browser \
     --allow-root \
     --ServerApp.token=${JUPYTER_TOKEN}"]
+
+
 # ---------------------------------------------------------------------
 #  STAGE 2: FastAPI (inference API)
 #  Модели НЕ копируем — они приходят через volume
