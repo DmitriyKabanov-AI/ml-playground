@@ -43,7 +43,7 @@ services:
       - .:/app
       - jupyter-data:/root/.local/share/jupyter
       # Общий каталог event log: Spark History Server увидит задания notebook.
-      - spark-events:/opt/bitnami/spark/events
+      - spark-events:/opt/spark/events
     working_dir: /app
     env_file:
       - config/.env
@@ -85,9 +85,7 @@ services:
     env_file:
       - config/.env
     volumes:
-      # Монтируем models/ снаружи — не тащим 3.4 ГБ в образ
       - ./models:/app/models:ro
-      # artifacts/ — для отдачи расширенного report
       - ./artifacts:/app/artifacts:ro
     depends_on:
       db:
@@ -120,8 +118,6 @@ services:
     ports:
       - "4173:80"
     volumes:
-      # artifacts/ монтируем поверх html — nginx отдаёт их как статику.
-      # Не нужно пересобирать образ при каждом обновлении артефактов.
       - ./artifacts:/usr/share/nginx/html/artifacts:ro
     depends_on:
       - api
@@ -143,27 +139,26 @@ services:
 
   # ---------- Spark: master ----------
   spark-master:
-    image: bitnamilegacy/spark:3.5
+    image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
     container_name: spark-master
     restart: unless-stopped
     profiles: ["spark"]
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.master.Master
+      --host spark-master
+      --port 7077
+      --webui-port 8080
     environment:
-      SPARK_MODE: master
-      SPARK_MASTER_PORT: "7077"
-      SPARK_MASTER_WEBUI_PORT: "8080"
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
       SPARK_NO_DAEMONIZE: "true"
     ports:
       - "8080:8080"    # Master UI
       - "7077:7077"    # Master RPC
     volumes:
-      - ./spark-apps:/opt/bitnami/spark/apps:ro
-      - ./artifacts:/opt/bitnami/spark/artifacts
-      - spark-ivy:/bitnami/spark/.ivy2
-      - spark-events:/opt/bitnami/spark/events
+      - ./spark-apps:/opt/spark/apps:ro
+      - ./artifacts:/opt/spark/artifacts
+      - spark-ivy:/opt/spark/.ivy2
+      - spark-events:/opt/spark/events
     deploy:
       resources:
         limits:
@@ -176,31 +171,29 @@ services:
 
   # ---------- Spark: worker ----------
   spark-worker:
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
     container_name: spark-worker
     restart: unless-stopped
     profiles: ["spark"]
     depends_on:
       - spark-master
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+      --cores 4
+      --memory 11g
+      --webui-port 8081
     environment:
-      SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-master:7077
-      SPARK_WORKER_CORES: "4"      # Spark видит 4 ядра, limit 4.5 — 0.5 на JVM
-      SPARK_WORKER_MEMORY: "11g"   # limit 13g — 2g на overhead/off-heap/shuffle
-      SPARK_WORKER_WEBUI_PORT: "8081"
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
       SPARK_NO_DAEMONIZE: "true"
     ports:
       - "8081:8081"    # Worker UI
     volumes:
-      - ./spark-apps:/opt/bitnami/spark/apps:ro
-      - ./artifacts:/opt/bitnami/spark/artifacts
-      - spark-work:/opt/bitnami/spark/work
-      - spark-ivy:/bitnami/spark/.ivy2
-      - spark-events:/opt/bitnami/spark/events
+      - ./spark-apps:/opt/spark/apps:ro
+      - ./artifacts:/opt/spark/artifacts
+      - spark-work:/opt/spark/work
+      - spark-ivy:/opt/spark/.ivy2
+      - spark-events:/opt/spark/events
     shm_size: '2g'
     deploy:
       resources:
@@ -214,22 +207,23 @@ services:
 
   # ---------- Spark: history server ----------
   spark-history:
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.3-scala2.12-java17-python3-ubuntu
     container_name: spark-history
     restart: unless-stopped
     profiles: ["spark"]
     depends_on:
       - spark-master
+    command: >
+      /opt/spark/sbin/start-history-server.sh
     environment:
-      SPARK_MODE: history-server
       SPARK_HISTORY_OPTS: >-
-        -Dspark.history.fs.logDirectory=/opt/bitnami/spark/events
+        -Dspark.history.fs.logDirectory=/opt/spark/events
         -Dspark.history.ui.port=18080
       SPARK_NO_DAEMONIZE: "true"
     ports:
       - "18080:18080"  # History UI
     volumes:
-      - spark-events:/opt/bitnami/spark/events:ro
+      - spark-events:/opt/spark/events:ro
     deploy:
       resources:
         limits:
