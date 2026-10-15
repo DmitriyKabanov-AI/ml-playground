@@ -143,7 +143,7 @@ services:
 
   # ---------- Spark: master ----------
   spark-master:
-    image: bitnami/spark:3.5
+    image: bitnamilegacy/spark:3.5
     container_name: spark-master
     restart: unless-stopped
     profiles: ["spark"]
