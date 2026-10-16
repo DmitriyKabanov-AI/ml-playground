@@ -155,7 +155,7 @@ function FeaturesPage() {
     { name: 'Seasonal Naive', group: 'Baseline · оба набора', equation: 'ŷ(t) = y(t−365)', description: 'Температура в тот же день предыдущего года.' },
     { name: 'Ridge', group: 'Регрессия · оба набора', equation: 'L2 regularization', description: 'Линейная модель с регуляризацией коэффициентов.' },
     { name: 'RandomForest', group: 'Ансамбль деревьев · оба набора', equation: 'RF(n=100, d=15)', description: 'Ансамбль деревьев решений для нелинейных зависимостей.' },
-    { name: 'GradientBoosting', group: 'Бустинг · оба набора', equation: 'GBM(lr=0.05)', description: 'Последовательное уменьшение ошибки градиентным бустингом.' },
+    { name: 'MLP', group: 'Нейросеть · оба набора', equation: 'MLP(lookback=30, hidden=64)', description: 'Полносвязная нейросеть direct multi-output на окне 30 дней.' },
     { name: 'XGBoost', group: 'Бустинг · оба набора', equation: 'XGB(d=6, lr=0.05)', description: 'Градиентный бустинг с регуляризацией; встречается в обоих бенчмарках.' },
     { name: 'SARIMAX', group: 'Временные ряды · оба набора', equation: 'Seasonal ARIMA + X', description: 'Классический подход для сезонных временных рядов.' },
     { name: 'LSTM', group: 'Нейросеть · оба набора', equation: 'Long Short-Term Memory', description: 'Рекуррентная нейросеть, моделирующая последовательности.' },

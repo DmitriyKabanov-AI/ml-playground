@@ -211,7 +211,16 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
           {showSkillCorridor && <><Area type="monotone" dataKey="lowerSkill" name="Skill corridor lower" stackId="skillRange" stroke="none" fill="transparent" fillOpacity={0} activeDot={false} /><Area type="monotone" dataKey="skillBand" name="Skill corridor width" stackId="skillRange" stroke="none" fill={palette.cyan} fillOpacity={0.10} activeDot={false} /><Line type="monotone" dataKey="upperSkill" name="Skill corridor upper" stroke={palette.cyan} strokeOpacity={0.32} strokeDasharray="2 4" dot={false} activeDot={false} /><Line type="monotone" dataKey="lowerSkill" name="Skill corridor lower" stroke={palette.cyan} strokeOpacity={0.32} strokeDasharray="2 4" dot={false} activeDot={false} /></>}
           <Line type="monotone" dataKey="selectedSkill" name={`${modelName} · выбранная`} stroke={palette.cyan} strokeWidth={3} dot={false} activeDot={{ r: 4 }} />
           {weatherModels.filter((model) => model.name !== modelName && (!model.isBaseline || showBaseline)).map((model, index) => {
-            const colors: Record<string, string> = { Persistence: palette.gray, 'Seasonal Naive': '#64748b', Ridge: palette.purple, RandomForest: palette.indigo, GradientBoosting: palette.amber, XGBoost: palette.blue, SARIMAX: palette.green, LSTM: palette.rose }
+            const colors: Record<string, string> = {
+  Persistence: palette.gray,
+  'Seasonal Naive': '#64748b',
+  Ridge: palette.purple,
+  RandomForest: palette.indigo,
+  MLP: palette.amber,
+  XGBoost: palette.blue,
+  SARIMAX: palette.green,
+  LSTM: palette.rose,
+}
             const key = `skill_${model.name.replace(/[^A-Za-z0-9]/g, '')}`
             return <Line key={model.name} type="monotone" dataKey={key} name={model.name}
               stroke={colors[model.name] ?? palette.green} strokeWidth={1.5}
@@ -237,15 +246,15 @@ export default function WeatherDashboard(props: WeatherDashboardProps) {
           <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis dataKey="horizon" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tickFormatter={(value) => fmt(Number(value), 0)} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={34} /><Tooltip content={<GenericWeatherTooltip />} /><Legend wrapperStyle={{ fontSize: 9, color: 'var(--muted)' }} />
           {weatherModels.filter((model) => model.name === modelName || !model.isBaseline || showBaseline).map((model) => {
             const colors: Record<string, string> = {
-              Persistence: palette.gray,
-              'Seasonal Naive': '#64748b',
-              Ridge: palette.purple,
-              RandomForest: palette.indigo,
-              GradientBoosting: palette.amber,
-              XGBoost: palette.blue,
-              SARIMAX: palette.green,
-              LSTM: palette.rose,
-            }
+  Persistence: palette.gray,
+  'Seasonal Naive': '#64748b',
+  Ridge: palette.purple,
+  RandomForest: palette.indigo,
+  MLP: palette.amber,
+  XGBoost: palette.blue,
+  SARIMAX: palette.green,
+  LSTM: palette.rose,
+}
             return <Line key={model.name} type="monotone"
               dataKey={model.name.replace(/ /g, '')} name={model.name}
               stroke={model.name === modelName ? palette.cyan : colors[model.name] ?? palette.green}
