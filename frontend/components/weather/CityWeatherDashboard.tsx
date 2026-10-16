@@ -136,7 +136,7 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
       <div className="weather-badge-row"><span className="weather-info-pill"><Activity size={13} /> Baseline MAE: <b>{fmt(baseline.mae)} {spec.unit}</b></span><span className="weather-info-pill"><Info size={13} /> {metrics.skill >= 0 ? 'Лучше persistence по MAE' : 'Хуже persistence по MAE'}</span><span className="weather-info-pill">Лучший алгоритм для выбора: <b>{winner?.name ?? '—'}</b></span></div>
     </section>
 
-    <Panel title={`Прогноз на ${forecastDays} дней`} subtitle={`${city.name} · ${model.name} · карточки показывают согласованный прогноз температуры, влажности, осадков и ветра`}>
+    <Panel title="Прогноз на 7 дней" subtitle={`${city.name} · ${model.name} · карточки · полный 21-дневный горизонт — на графике ниже`}>
       <div className="city-forecast-cards">{futureDays.slice(0, 7).map((day) => <article className="city-forecast-day" key={day.date}><div className="forecast-day-date">{new Date(`${day.date}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}</div><div className="forecast-day-icon">{cityWeatherIcon(day.rain, day.temp, day.hum)}</div><div className="forecast-day-temp">{fmt(day.temp, 0)}°</div><div className="forecast-day-detail"><span>💧 {fmt(day.hum, 0)}%</span><span>🌧 {fmt(day.rain, 1)} мм</span><span>💨 {fmt(day.wind, 1)} м/с</span></div></article>)}</div>
     </Panel>
 
