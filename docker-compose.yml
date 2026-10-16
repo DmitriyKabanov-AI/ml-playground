@@ -51,8 +51,8 @@ services:
       PYTHONUNBUFFERED: "1"
       SPARK_MASTER_URL: "spark://spark-master:7077"
       WEATHER_EXECUTION_MODE: "auto"
-      WEATHER_SPARK_CORES: "3"                
-      WEATHER_SPARK_EXECUTOR_MEMORY: "6g"     
+      WEATHER_SPARK_CORES: "5"                
+      WEATHER_SPARK_EXECUTOR_MEMORY: "8g"     
     depends_on:
       db:
         condition: service_healthy
@@ -65,8 +65,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.0'
-          memory: 6g
+          cpus: '2.0'
+          memory: 4g
           pids: 2048
         reservations:
           cpus: '0.5'
@@ -132,8 +132,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: 512m
+          cpus: '0.10'
+          memory: 256m
           pids: 256
         reservations:
           cpus: '0.05'
@@ -177,8 +177,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 1g
+          cpus: '0.25'
+          memory: 512m
           pids: 1024
         reservations:
           cpus: '0.1'
@@ -218,8 +218,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.5'
-          memory: 10g
+          cpus: '5.0'
+          memory: 12g
           pids: 2048
         reservations:
           cpus: '1.0'
@@ -252,8 +252,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: 512m
+          cpus: '0.15'
+          memory: 256m
           pids: 512
         reservations:
           cpus: '0.05'
