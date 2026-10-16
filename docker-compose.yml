@@ -212,6 +212,7 @@ services:
     volumes:
       - ./spark-apps:/opt/spark/apps:ro
       - ./artifacts:/opt/spark/artifacts
+      - ./models:/app/models
       - ./spark-state/work:/opt/spark/work
       - ./spark-state/ivy:/opt/spark/.ivy2
       - ./spark-state/events:/opt/spark/events
