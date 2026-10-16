@@ -201,8 +201,8 @@ services:
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077
-      --cores 3
-      --memory 8g
+      --cores 5
+      --memory 10g
       --webui-port 8086
     environment:
       SPARK_NO_DAEMONIZE: "true"
