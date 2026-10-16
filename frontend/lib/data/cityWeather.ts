@@ -53,7 +53,7 @@ export const cityVariables: CityVariableSpec[] = [
 // Keep in sync with STATION_MODELS/CITY_MODELS in the Jupyter benchmark.
 export const cityModelNames = [
   "Persistence", "Seasonal Naive", "Ridge", "RandomForest",
-  "GradientBoosting", "XGBoost", "SARIMAX", "LSTM",
+  "MLP", "XGBoost", "SARIMAX", "LSTM",
 ] as const;
 
 const EMPTY: CityMetrics = {
