@@ -137,7 +137,7 @@ export default function CityWeatherDashboard({ cityIndex, setCityIndex, variable
     </section>
 
     <Panel title={`Прогноз на ${forecastDays} дней`} subtitle={`${city.name} · ${model.name} · карточки показывают согласованный прогноз температуры, влажности, осадков и ветра`}>
-      <div className="city-forecast-cards">{futureDays.map((day) => <article className="city-forecast-day" key={day.date}><div className="forecast-day-date">{new Date(`${day.date}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}</div><div className="forecast-day-icon">{cityWeatherIcon(day.rain, day.temp, day.hum)}</div><div className="forecast-day-temp">{fmt(day.temp, 0)}°</div><div className="forecast-day-detail"><span>💧 {fmt(day.hum, 0)}%</span><span>🌧 {fmt(day.rain, 1)} мм</span><span>💨 {fmt(day.wind, 1)} м/с</span></div></article>)}</div>
+      <div className="city-forecast-cards">{futureDays.slice(0, 7).map((day) => <article className="city-forecast-day" key={day.date}><div className="forecast-day-date">{new Date(`${day.date}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })}</div><div className="forecast-day-icon">{cityWeatherIcon(day.rain, day.temp, day.hum)}</div><div className="forecast-day-temp">{fmt(day.temp, 0)}°</div><div className="forecast-day-detail"><span>💧 {fmt(day.hum, 0)}%</span><span>🌧 {fmt(day.rain, 1)} мм</span><span>💨 {fmt(day.wind, 1)} м/с</span></div></article>)}</div>
     </Panel>
 
     <Panel title={`${spec.icon} Факт и прогноз: ${spec.label.toLowerCase()}`} subtitle={`Исторические наблюдения и прогнозный участок на ${forecastDays} дней · единица измерения ${spec.unit}`} className="weather-skill-panel">
