@@ -51,6 +51,8 @@ services:
       PYTHONUNBUFFERED: "1"
       SPARK_MASTER_URL: "spark://spark-master:7077"
       WEATHER_EXECUTION_MODE: "auto"
+      WEATHER_SPARK_CORES: "3"                
+      WEATHER_SPARK_EXECUTOR_MEMORY: "6g"     
     depends_on:
       db:
         condition: service_healthy
