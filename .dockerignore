@@ -70,3 +70,17 @@ artifacts/
 # а реальные данные приходят в nginx через volume из docker-compose.yml.
 frontend/public/artifacts
 frontend/public/models
+# ---------- Spark bind-mounts (не должны попадать в образ) ----------
+spark-state/
+spark-apps/
+
+# ---------- Логи (каталог, не только *.log) ----------
+logs/
+
+# ---------- Бинарные артефакты данных ----------
+*.parquet
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.ckpt

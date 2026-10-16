@@ -63,8 +63,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 4g
+          cpus: '3.0'
+          memory: 6g
           pids: 2048
         reservations:
           cpus: '0.5'
@@ -199,8 +199,8 @@ services:
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077
-      --cores 4
-      --memory 11g
+      --cores 3
+      --memory 8g
       --webui-port 8086
     environment:
       SPARK_NO_DAEMONIZE: "true"
@@ -216,9 +216,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4.5'
-          memory: 13g
-          pids: 4096
+          cpus: '3.5'
+          memory: 10g
+          pids: 2048
         reservations:
           cpus: '1.0'
           memory: 2g
