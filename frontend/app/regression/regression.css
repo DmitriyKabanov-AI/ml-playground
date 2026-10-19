@@ -197,6 +197,8 @@ h1 { margin-bottom: 7px; color: var(--text); font-size: clamp(24px, 2.2vw, 30px)
 .store-picker-heading .eyebrow { margin-bottom: 5px; font-size: 8px; }
 .store-picker-caption { color: var(--muted); font-size: 9px; }
 .store-picker-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+.store-picker-grid { max-height: min(360px, 42vh); overflow-y: auto; align-content: start; padding-right: 4px; }
+.walmart-mape-chart { height: clamp(420px, 55vh, 690px); }
 .store-option { position: relative; display: flex; align-items: center; gap: 9px; min-width: 0; padding: 11px 10px; border: 1px solid var(--card-border); border-radius: 10px; color: var(--text-soft); background: var(--card-soft); text-align: left; cursor: pointer; transition: .17s ease; }
 .store-option:hover { border-color: rgba(129, 140, 248, .5); transform: translateY(-1px); }
 .store-option.active { border-color: rgba(34, 211, 238, .55); background: linear-gradient(110deg, rgba(34, 211, 238, .11), rgba(99, 102, 241, .1)); box-shadow: inset 0 0 0 1px rgba(34, 211, 238, .09); }

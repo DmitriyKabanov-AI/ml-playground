@@ -48,7 +48,6 @@ import {
 } from './demoData'
 import {
   useHousingReport,
-  predictHousing,
   HOUSING_LABELS,
 } from '@/lib/data/housing'
 import {
@@ -173,11 +172,12 @@ function RegressionConsole() {
     ?? walmart?.models[walmart.models.length - 1]
     ?? null
 
-  // 3 крупнейших + 2 мельчайших магазина: сразу видно контраст MAE vs MAPE.
+  // Показываем все магазины, существующие в датасете, в порядке Store ID.
+  // В исходном Kaggle-файле нет торговых названий — реальные идентификаторы
+  // именно Store 1 ... Store 45 (или полный доступный набор IDs).
   const walmartTopStores = useMemo(() => {
     if (!walmart) return []
-    const sorted = [...walmart.per_store].sort((a, b) => b.avg_sales - a.avg_sales)
-    return [...sorted.slice(0, 3), ...sorted.slice(-2)]
+    return [...walmart.per_store].sort((a, b) => a.store - b.store)
   }, [walmart])
 
   const walmartTopFeatures = useMemo(() => {
@@ -203,11 +203,9 @@ function RegressionConsole() {
     })
 
     const interval = currentWalmartModel ? 1.96 * currentWalmartModel.metrics.rmse : null
-
-    return storeSeries.dates.map((date, i) => {
+    const allRows = storeSeries.dates.map((date, i) => {
       const testIdx = testIdxForStore.get(date)
-      const predicted =
-        testIdx != null ? currentWalmartModel?.predictions[testIdx] ?? null : null
+      const predicted = testIdx != null ? currentWalmartModel?.predictions[testIdx] ?? null : null
       const holiday = walmart.meta.holidays.find((h) => h.date === date) ?? null
       return {
         date,
@@ -219,7 +217,17 @@ function RegressionConsole() {
         holiday,
       }
     })
-  }, [walmart, walmartActiveStoreId, currentWalmartModel])
+    // Горизонт — это последние N недель временного holdout, а не просто KPI.
+    // У более ранних дат actual остаётся, но predicted=null, поэтому линия прогноза
+    // рисуется только там, где мы проверяем прогноз на ещё не использованных фактах.
+    const horizonDates = new Set(
+      allRows.filter((row) => row.predicted != null).slice(-walmartHorizon).map((row) => row.date),
+    )
+    return allRows.map((row) => horizonDates.has(row.date)
+      ? row
+      : { ...row, predicted: null, low: null, high: null },
+    )
+  }, [walmart, walmartActiveStoreId, currentWalmartModel, walmartHorizon])
 
   // Слайс последних N тестовых недель (горизонт)
   const walmartHorizonRows = useMemo(() => {
@@ -350,23 +358,34 @@ function RegressionConsole() {
     if (!housing || !currentRegModel) return null
     if (Object.keys(propertyInputs).length === 0) return null
 
-    const raw = predictHousing(propertyInputs, housing.calculator)   // в $100k
-    const uncertainty = Math.max(0.05, currentRegModel.metrics.rmse)
+    const coefficients = housing.calculator?.coefficients ?? {}
+    const calculatorModel = housing.models.find((model) => model.name === housing.calculator?.model) ?? currentRegModel
+    const intercept = Number(housing.calculator?.intercept ?? 0)
+    // California Housing target задан в единицах $100k. Считаем Ridge по
+    // тем же intercept и coefficient, которые экспортированы из Spark-модели.
+    const raw = intercept + housing.meta.features.reduce((sum, feature) => {
+      const coefficient = Number(coefficients[feature] ?? 0)
+      const value = Number(propertyInputs[feature] ?? housing.data.feature_stats[feature]?.median ?? 0)
+      return sum + (Number.isFinite(coefficient) && Number.isFinite(value) ? coefficient * value : 0)
+    }, 0)
+    const nonNegativeEstimate = Math.max(0, raw)
+    const uncertainty = Math.max(0.05, calculatorModel?.metrics.rmse ?? 0.05)
 
     const drivers = housing.meta.features
       .map(f => {
         const median = housing.data.feature_stats[f].median
+        const coefficient = Number(coefficients[f] ?? 0)
         return {
           label: HOUSING_LABELS[f] ?? f,
-          value: housing.calculator.coefficients[f] * (propertyInputs[f] - median),
+          value: coefficient * ((propertyInputs[f] ?? median) - median),
         }
       })
       .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
 
     return {
-      estimated: raw,
-      low:  Math.max(0, raw - uncertainty),
-      high: raw + uncertainty,
+      estimated: nonNegativeEstimate,
+      low: Math.max(0, nonNegativeEstimate - uncertainty),
+      high: nonNegativeEstimate + uncertainty,
       drivers,
     }
   }, [housing, propertyInputs, currentRegModel])
@@ -430,9 +449,42 @@ function RegressionConsole() {
   }, [walmart])
 
   const walmartPerStore = useMemo(() => {
-    if (!walmart) return []
-    return [...walmart.per_store].sort((a, b) => a.mape - b.mape)
-  }, [walmart])
+    if (!walmart || !currentWalmartModel) return []
+    const actuals = walmart.data.y_test ?? []
+    const predictions = currentWalmartModel.predictions ?? []
+    const storeIds = walmart.data.stores_test ?? []
+    const totals = new Map<number, { n: number; absError: number; squaredError: number; ape: number; apeN: number; actualSum: number }>()
+    const rowCount = Math.min(actuals.length, predictions.length, storeIds.length)
+    for (let i = 0; i < rowCount; i += 1) {
+      const actual = Number(actuals[i])
+      const predicted = Number(predictions[i])
+      const store = Number(storeIds[i])
+      if (!Number.isFinite(actual) || !Number.isFinite(predicted) || !Number.isFinite(store)) continue
+      const error = predicted - actual
+      const entry = totals.get(store) ?? { n: 0, absError: 0, squaredError: 0, ape: 0, apeN: 0, actualSum: 0 }
+      entry.n += 1
+      entry.absError += Math.abs(error)
+      entry.squaredError += error * error
+      entry.actualSum += actual
+      // MAPE определяем только при ненулевом факте; никакого деления на ноль.
+      if (Math.abs(actual) > 1e-9) {
+        entry.ape += Math.abs(error / actual) * 100
+        entry.apeN += 1
+      }
+      totals.set(store, entry)
+    }
+    return [...totals.entries()].map(([store, value]) => {
+      const fullSeries = walmart.per_store.find((row) => row.store === store)
+      return {
+        store,
+        n_weeks: value.n,
+        avg_sales: fullSeries?.avg_sales ?? (value.n ? value.actualSum / value.n : 0),
+        mae: value.n ? value.absError / value.n : 0,
+        rmse: value.n ? Math.sqrt(value.squaredError / value.n) : 0,
+        mape: value.apeN ? value.ape / value.apeN : 0,
+      }
+    }).sort((a, b) => a.mape - b.mape)
+  }, [walmart, currentWalmartModel])
   const regressionBest = housingModels.length
     ? housingModels.reduce((best, model) => model.metrics.rmse < best.metrics.rmse ? model : best, housingModels[0])
     : null
@@ -442,7 +494,7 @@ function RegressionConsole() {
       ? { source: 'artifact:regression/housing/report.json', section: 'regression-property', selectedModel: currentRegModel?.name, metrics: currentRegModel?.metrics, propertyInputs: propertyInputs, estimate: propertyEstimate }
       : activeModule === 'diamonds'
         ? { source: 'synthetic demo data', section: 'regression-diamonds', selectedModel: currentDiamondModel.name, metrics: currentDiamondModel.metrics, diamondInputs: diamond, estimate: diamondEstimate, sampleSize: diamondsDemo.samples.length }
-        : { source: 'artifact:regression/walmart/report.json', section: 'regression-walmart', model: currentWalmartModel?.name, metrics: currentWalmartModel?.metrics, perStore: walmart?.per_store, samplePredictions: walmart?.sample_predictions }
+        : { source: 'artifact:regression/walmart/report.json', section: 'regression-walmart', model: currentWalmartModel?.name, metrics: currentWalmartModel?.metrics, perStore: walmartPerStore, samplePredictions: walmart?.sample_predictions }
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const link = document.createElement('a')
     link.href = url
@@ -593,7 +645,7 @@ function RegressionConsole() {
                     <XAxis type="number" dataKey="actual" name="Факт" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · USD', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
                     <YAxis type="number" dataKey="predicted" name="Прогноз" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={54} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<DiamondScatterTooltip />} />
-                    <Scatter isAnimationActive={false} name={currentDiamondModel.name} data={diamondScatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                    <Scatter isAnimationActive={true} animationDuration={900} name={currentDiamondModel.name} data={diamondScatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
                   </ScatterChart></ResponsiveContainer></div>
                   <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — бриллиант</span><span>Близость к диагонали = более точный прогноз</span></div>
                 </Card>
@@ -625,7 +677,7 @@ function RegressionConsole() {
           ) : activeModule === 'property' && housing ? (
             <div className="content-stack">
               <section className="control-strip">
-                <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Параметры модели</b><span>Выберите алгоритм для всех графиков и оценки объекта</span></div></div>
+                <div className="controls-intro"><span className="control-icon"><SlidersHorizontal size={16} /></span><div><b>Параметры модели</b><span>Алгоритм для графиков; калькулятор отдельно считает Ridge</span></div></div>
                 <label className="select-field"><span>Модель регрессии</span><select value={selectedRegModel} onChange={(event) => setSelectedRegModel(event.target.value)}>{housingModels.map((model) => <option key={model.name} value={model.name}>{model.name}</option>)}</select></label>
                 <div className="model-context"><span className="mini-status" />{regressionBest && selectedRegModel === regressionBest.name ? 'Лучшая по RMSE' : `RMSE ${formatNumber(currentRegModel?.metrics.rmse ?? 0, 2)}`}</div>
               </section>
@@ -674,7 +726,7 @@ function RegressionConsole() {
                     <XAxis type="number" dataKey="actual" name="Факт" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · $ тыс.', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
                     <YAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<RegressionScatterTooltip />} />
-                    <Scatter isAnimationActive={false} name={currentRegModel?.name ?? ''} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                    <Scatter isAnimationActive={true} animationDuration={900} name={currentRegModel?.name ?? ''} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
                   </ScatterChart></ResponsiveContainer></div>
                   <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — один объект</span><span>Чем ближе к диагонали, тем точнее прогноз</span></div>
                 </Card>
@@ -966,7 +1018,7 @@ function RegressionConsole() {
                     </div>
                   </div>
                   <div className="insight-footnote">
-                    <Info size={13} /> Источник — <code>artifacts/regression/walmart/report.json</code>. Разбиение train/test случайное, не по времени.
+                    <Info size={13} /> Источник — <code>artifacts/regression/walmart/report.json</code>. Прогноз сравнивается с фактом на хронологическом holdout.
                   </div>
                 </Card>
               </section>
@@ -1038,7 +1090,7 @@ function RegressionConsole() {
                     <span className="small-tag">spread ×{formatNumber(walmart.meta.store_spread.ratio_max_min, 2)}</span>
                   ) : null}
                 >
-                  <div className="chart-area chart-medium">
+                  <div className="chart-area walmart-mape-chart">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={walmartPerStore} layout="vertical" margin={{ top: 8, right: 20, bottom: 8, left: 12 }}>
                         <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" />
@@ -1058,7 +1110,7 @@ function RegressionConsole() {
                     </ResponsiveContainer>
                   </div>
                   <div className="chart-footnote">
-                    <span>Розовым — магазины с MAPE &gt; 2× от среднего</span>
+                    <span>MAPE рассчитан по выбранной модели на временном holdout</span>
                     <span>Всего {walmartPerStore.length} магазинов в тесте</span>
                   </div>
                 </Card>
@@ -1144,3 +1196,4 @@ function GenericTooltip({ active, payload, label, valueFormatter = (value: numbe
 }
 
 export default RegressionConsole
+
