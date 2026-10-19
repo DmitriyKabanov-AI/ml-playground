@@ -1,6 +1,5 @@
-"use client";
-import { DigitsPage } from "@/components/digits/DigitsPage";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return <DigitsPage />;
+export default function LegacyClassificationRoute() {
+  redirect("/classification?tab=cover-type");
 }

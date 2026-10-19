@@ -1,2 +1,5 @@
-﻿import { redirect } from "next/navigation";
-export default function Page() { redirect("/credit-fraud"); }
+import { redirect } from "next/navigation";
+
+export default function LegacyClassificationRoute() {
+  redirect("/classification?tab=taxi-payment");
+}

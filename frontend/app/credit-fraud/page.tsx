@@ -1,6 +1,5 @@
-"use client";
-import { CreditFraudPage } from "@/components/fraud/CreditFraudPage";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return <CreditFraudPage />;
+export default function LegacyClassificationRoute() {
+  redirect("/classification?tab=taxi-payment");
 }

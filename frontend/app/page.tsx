@@ -2,11 +2,10 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import {
+  Plane,
+  CarFront,
+  Trees,
   Sprout,
-  ShieldCheck,
-  HeartPulse,
-  CreditCard,
-  Hash,
   Building2,
   Gem,
   ShoppingCart,
@@ -18,11 +17,10 @@ import {
 } from "lucide-react";
 
 const CLASSIFICATION_TASKS = [
-  { href: "/classification?tab=iris", title: "Iris", desc: "Многоклассовая классификация", icon: Sprout, accent: "from-emerald-500 to-teal-500" },
-  { href: "/classification?tab=bc-fp", title: "Breast Cancer · Скрининг", desc: "Дорогие ложноположительные", icon: ShieldCheck, accent: "from-sky-500 to-indigo-500" },
-  { href: "/classification?tab=bc-fn", title: "Breast Cancer · Второе мнение", desc: "Критичны ложноотрицательные", icon: HeartPulse, accent: "from-rose-500 to-pink-500" },
-  { href: "/classification?tab=fraud", title: "Credit Fraud", desc: "Экстремальный дисбаланс", icon: CreditCard, accent: "from-amber-500 to-orange-500" },
-  { href: "/classification?tab=digits", title: "Digits Imbalanced", desc: "Редкий класс, macro vs weighted", icon: Hash, accent: "from-violet-500 to-fuchsia-500" },
+  { href: "/classification?tab=iris", title: "Iris", desc: "Базовая многоклассовая классификация", icon: Sprout, accent: "from-emerald-500 to-teal-500" },
+  { href: "/classification?tab=flight-delay", title: "Flight Delay Risk", desc: "Миллионы реальных рейсов · задержка ≥ 15 минут", icon: Plane, accent: "from-sky-500 to-indigo-500" },
+  { href: "/classification?tab=taxi-payment", title: "NYC Taxi · Payment Type", desc: "Миллионы поездок · сильный дисбаланс классов", icon: CarFront, accent: "from-amber-500 to-orange-500" },
+  { href: "/classification?tab=cover-type", title: "Forest Cover Type", desc: "581 тыс. измерений · 7 типов лесного покрова", icon: Trees, accent: "from-emerald-500 to-green-600" },
 ];
 
 const REGRESSION_TASKS = [
@@ -39,9 +37,17 @@ const FORECASTING_TASKS = [
   { href: "/weather?page=features", title: "Признаки и справочник", desc: "Features · метрики",       icon: Layers3,     accent: "from-fuchsia-500 to-pink-500" },
 ];
 
-function TaskCard({ href, title, desc, icon: Icon, accent }: { href: string; title: string; desc: string; icon: any; accent: string }) {
+type TaskCardProps = {
+  href: string;
+  title: string;
+  desc: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  accent: string;
+};
+
+function TaskCard({ href, title, desc, icon: Icon, accent }: TaskCardProps) {
   return (
-    <Link href={href}>
+    <Link href={href} className="block h-full">
       <Card className="h-full group cursor-pointer">
         <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${accent} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
           <Icon className="text-white" size={20} />
@@ -59,21 +65,19 @@ export default function HomePage() {
       <div>
         <h1 className="text-3xl font-black">ML Explorer</h1>
         <p className="text-slate-500 mt-2">
-          Данные читаются напрямую из{" "}
-          <code className="px-1.5 py-0.5 rounded bg-slate-500/10">public/artifacts/</code>{" "}
-          (junction → ../artifacts)
+          Метрики моделей и датасеты из{" "}
+          <code className="px-1.5 py-0.5 rounded bg-slate-500/10">artifacts/</code>
+          . Крупные задачи классификации обучаются на Spark MLlib.
         </p>
       </div>
 
       <section>
         <div className="mb-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">Классификация</h2>
-          <p className="text-sm text-slate-500 mt-1">Пять задач бинарной и многоклассовой классификации</p>
+          <p className="text-sm text-slate-500 mt-1">Четыре самостоятельные задачи на реальных данных</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {CLASSIFICATION_TASKS.map((t) => (
-            <TaskCard key={t.href} {...t} />
-          ))}
+          {CLASSIFICATION_TASKS.map((task) => <TaskCard key={task.href} {...task} />)}
         </div>
       </section>
 
@@ -83,9 +87,7 @@ export default function HomePage() {
           <p className="text-sm text-slate-500 mt-1">Регрессионные модели, калькуляторы и прогноз продаж</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {REGRESSION_TASKS.map((t) => (
-            <TaskCard key={t.href} {...t} />
-          ))}
+          {REGRESSION_TASKS.map((task) => <TaskCard key={task.href} {...task} />)}
         </div>
       </section>
 
@@ -95,9 +97,7 @@ export default function HomePage() {
           <p className="text-sm text-slate-500 mt-1">Прогноз временных рядов · skill относительно baseline</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FORECASTING_TASKS.map((t) => (
-            <TaskCard key={t.href} {...t} />
-          ))}
+          {FORECASTING_TASKS.map((task) => <TaskCard key={task.href} {...task} />)}
         </div>
       </section>
     </div>

@@ -42,7 +42,7 @@ services:
     volumes:
       - .:/app
       - jupyter-data:/root/.local/share/jupyter
-      # Общий каталог event log: Spark History Server увидит задания notebook.
+      - ./data:/opt/spark/data
       - ./spark-state/events:/opt/spark/events
     working_dir: /app
     env_file:
@@ -213,6 +213,7 @@ services:
       - ./spark-apps:/opt/spark/apps:ro
       - ./artifacts:/opt/spark/artifacts
       - ./models:/app/models
+      - ./data:/opt/spark/data
       - ./spark-state/work:/opt/spark/work
       - ./spark-state/ivy:/opt/spark/.ivy2
       - ./spark-state/events:/opt/spark/events
