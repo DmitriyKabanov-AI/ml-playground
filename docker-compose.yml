@@ -51,7 +51,7 @@ services:
       PYTHONUNBUFFERED: "1"
       SPARK_MASTER_URL: "spark://spark-master:7077"
       WEATHER_EXECUTION_MODE: "auto"
-      WEATHER_SPARK_CORES: "5"                
+      WEATHER_SPARK_CORES: "8"                
       WEATHER_SPARK_EXECUTOR_MEMORY: "8g"     
     depends_on:
       db:
@@ -203,7 +203,7 @@ services:
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077
-      --cores 5
+      --cores 8
       --memory 10g
       --webui-port 8086
     environment:
@@ -222,7 +222,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '5.0'
+          cpus: '8.0'
           memory: 12g
           pids: 2048
         reservations:
