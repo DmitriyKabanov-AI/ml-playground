@@ -316,17 +316,21 @@ function RegressionConsole() {
   const yActual = housing?.data.y_test ?? []
   const yPredicted = currentRegModel?.predictions ?? []
 
-  const scatterData = useMemo(
-    () => yActual.map((actual, i) => ({ actual, predicted: yPredicted[i] ?? 0 })),
-    [yActual, yPredicted]
-  )
-  const residualData = useMemo(
-    () => yActual.map((actual, i) => ({
-      predicted: yPredicted[i] ?? 0,
-      residual: +((yPredicted[i] ?? 0) - actual).toFixed(3),
-    })),
-    [yActual, yPredicted]
-  )
+  const scatterData = useMemo(() => {
+    const STEP = Math.max(1, Math.floor(yActual.length / 800))
+    return yActual
+      .filter((_, i) => i % STEP === 0)
+      .map((actual, i) => ({ actual, predicted: yPredicted[i * STEP] ?? 0 }))
+  }, [yActual, yPredicted])
+  const residualData = useMemo(() => {
+    const STEP = Math.max(1, Math.floor(yActual.length / 800))
+    return yActual
+      .filter((_, i) => i % STEP === 0)
+      .map((actual, i) => ({
+        predicted: yPredicted[i * STEP] ?? 0,
+        residual: +((yPredicted[i * STEP] ?? 0) - actual).toFixed(3),
+      }))
+  }, [yActual, yPredicted])
   const residualDistribution = useMemo(() => {
     const residuals = residualData.map((item) => item.residual)
     if (!residuals.length) return [] as { range: string; count: number; center: number }[]
@@ -589,7 +593,7 @@ function RegressionConsole() {
                     <XAxis type="number" dataKey="actual" name="Факт" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · USD', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
                     <YAxis type="number" dataKey="predicted" name="Прогноз" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={54} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<DiamondScatterTooltip />} />
-                    <Scatter name={currentDiamondModel.name} data={diamondScatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                    <Scatter isAnimationActive={false} name={currentDiamondModel.name} data={diamondScatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
                   </ScatterChart></ResponsiveContainer></div>
                   <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — бриллиант</span><span>Близость к диагонали = более точный прогноз</span></div>
                 </Card>
@@ -598,13 +602,13 @@ function RegressionConsole() {
               <section className="three-column charts-row diamond-charts-row">
                 <Card title="Сравнение моделей" subtitle="RMSE на общей выборке · меньше лучше">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={diamondModelComparison} layout="vertical" margin={{ top: 4, right: 18, bottom: 4, left: 8 }}>
-                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={formatUsd} />} /><Bar dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{diamondModelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedDiamondModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={formatUsd} />} /><Bar isAnimationActive={false} dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{diamondModelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedDiamondModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
                   <button type="button" className="inline-link" onClick={() => setSelectedDiamondModel(diamondBest.name)}>Лучшая модель: {diamondBest.name} <ArrowUpRight size={14} /></button>
                 </Card>
                 <Card title="Важность факторов" subtitle="Ориентировочный вклад в прогноз цены">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={diamondsDemo.importance} layout="vertical" margin={{ top: 4, right: 10, bottom: 4, left: 3 }}>
-                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.45]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={105} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 1)}%`} />} /><Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={13} />
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.45]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={105} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 1)}%`} />} /><Bar isAnimationActive={false} dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={13} />
                   </BarChart></ResponsiveContainer></div>
                 </Card>
                 <Card title="Что влияет на цену?" subtitle="Изменение относительно контрольного варианта">
@@ -670,7 +674,7 @@ function RegressionConsole() {
                     <XAxis type="number" dataKey="actual" name="Факт" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'Actual · $ тыс.', position: 'insideBottom', offset: -8, fill: 'var(--muted)', fontSize: 11 }} />
                     <YAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<RegressionScatterTooltip />} />
-                    <Scatter name={currentRegModel?.name ?? ''} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
+                    <Scatter isAnimationActive={false} name={currentRegModel?.name ?? ''} data={scatterData} fill={chartPalette.cyan} fillOpacity={0.58} shape="circle" />
                   </ScatterChart></ResponsiveContainer></div>
                   <div className="chart-footnote"><span><i className="legend-dot cyan" /> Каждая точка — один объект</span><span>Чем ближе к диагонали, тем точнее прогноз</span></div>
                 </Card>
@@ -679,13 +683,13 @@ function RegressionConsole() {
               <section className="three-column charts-row">
                 <Card title="Остатки vs прогноз" subtitle="Нет выраженного паттерна — хорошо.">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 10, bottom: 12, left: -6 }}>
-                    <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis type="number" dataKey="residual" name="Остаток" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={40} /><ReferenceLine y={0} stroke={chartPalette.rose} strokeDasharray="5 4" /><Tooltip content={<ResidualTooltip />} /><Scatter data={residualData} fill={chartPalette.purple} fillOpacity={0.65} />
+                    <CartesianGrid strokeDasharray="3 5" stroke="var(--chart-grid)" /><XAxis type="number" dataKey="predicted" name="Прогноз" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis type="number" dataKey="residual" name="Остаток" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} width={40} /><ReferenceLine y={0} stroke={chartPalette.rose} strokeDasharray="5 4" /><Tooltip content={<ResidualTooltip />} /><Scatter isAnimationActive={false} data={residualData} fill={chartPalette.purple} fillOpacity={0.65} />
                   </ScatterChart></ResponsiveContainer></div>
                   <div className="chart-footnote"><span>Остаток = прогноз − факт</span><span className={(currentRegModel?.metrics.bias ?? 0) >= 0 ? 'positive-text' : 'negative-text'}>Bias {(currentRegModel?.metrics.bias ?? 0) > 0 ? '+' : ''}{formatNumber(currentRegModel?.metrics.bias ?? 0, 3)}</span></div>
                 </Card>
                 <Card title="Сравнение моделей" subtitle="RMSE на одной тестовой выборке · меньше лучше">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={modelComparison} layout="vertical" margin={{ top: 4, right: 22, bottom: 4, left: 12 }}>
-                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => formatNumber(value, 2)} />} /><Bar dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{modelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedRegModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => formatNumber(value, 2)} />} /><Bar isAnimationActive={false} dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{modelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedRegModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
                   {regressionBest && (
                     <button type="button" className="inline-link" onClick={() => setSelectedRegModel(regressionBest.name)}>Выбрать лучшую: {regressionBest.name} <ArrowUpRight size={14} /></button>
@@ -693,7 +697,7 @@ function RegressionConsole() {
                 </Card>
                 <Card title="Важность факторов" subtitle="RandomForest importance из артефакта">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={housing.feature_importance.RandomForest ?? []} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
-                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.4]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={120} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 0)}%`} />} /><Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={14} />
+                    <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" domain={[0, 0.4]} tickFormatter={(value) => `${Math.round(value * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={120} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${formatNumber(value * 100, 0)}%`} />} /><Bar isAnimationActive={false} dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={14} />
                   </BarChart></ResponsiveContainer></div>
                 </Card>
               </section>
@@ -701,7 +705,7 @@ function RegressionConsole() {
               <section className="two-column lower-grid">
                 <Card title="Распределение остатков" subtitle="Центр распределения должен быть около нуля.">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={residualDistribution} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
-                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="range" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${value} объектов`} />} /><Bar dataKey="count" name="Объекты" radius={[4, 4, 0, 0]}>{residualDistribution.map((bin, index) => <Cell key={`${bin.range}-${index}`} fill={Math.abs(bin.center) < (currentRegModel?.metrics.rmse ?? 1) * 0.45 ? chartPalette.green : chartPalette.indigo} />)}</Bar>
+                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" /><XAxis dataKey="range" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => `${value} объектов`} />} /><Bar isAnimationActive={false} dataKey="count" name="Объекты" radius={[4, 4, 0, 0]}>{residualDistribution.map((bin, index) => <Cell key={`${bin.range}-${index}`} fill={Math.abs(bin.center) < (currentRegModel?.metrics.rmse ?? 1) * 0.45 ? chartPalette.green : chartPalette.indigo} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
                 </Card>
                 <Card title="Таблица метрик" subtitle="Нажмите на строку, чтобы переключить модель." right={<span className="small-tag">{housingModels.length} МОДЕЛЕЙ</span>}>
@@ -867,13 +871,13 @@ function RegressionConsole() {
                       <Tooltip content={<GenericTooltip valueFormatter={(v) => formatUsd(Number(v))} />} />
                       {walmartShowConfidence && (
                         <>
-                          <Line dataKey="low"  stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} />
-                          <Line dataKey="high" stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} />
+                          <Line isAnimationActive={false} dataKey="low"  stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} />
+                          <Line isAnimationActive={false} dataKey="high" stroke={chartPalette.cyan} strokeOpacity={0.35} strokeDasharray="4 5" strokeWidth={1} dot={false} activeDot={false} connectNulls={false} />
                         </>
                       )}
-                      <Area type="monotone" dataKey="actual" stroke={undefined} fill="url(#salesGradient)" fillOpacity={0.15} connectNulls={false} activeDot={false} />
-                      <Line type="monotone" dataKey="actual"    name="Факт"    stroke="var(--text)"       strokeWidth={2}   dot={false} activeDot={{ r: 4 }} connectNulls={false} />
-                      <Line type="monotone" dataKey="predicted" name="Прогноз" stroke={chartPalette.cyan} strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} connectNulls={false} />
+                      <Area isAnimationActive={false} type="monotone" dataKey="actual" stroke={undefined} fill="url(#salesGradient)" fillOpacity={0.15} connectNulls={false} activeDot={false} />
+                      <Line isAnimationActive={false} type="monotone" dataKey="actual"    name="Факт"    stroke="var(--text)"       strokeWidth={2}   dot={false} activeDot={{ r: 4 }} connectNulls={false} />
+                      <Line isAnimationActive={false} type="monotone" dataKey="predicted" name="Прогноз" stroke={chartPalette.cyan} strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} connectNulls={false} />
                       {walmartShowHolidays && walmartStoreSeries.filter((r) => r.holiday).map((r) => (
                         <ReferenceLine
                           key={r.date}
@@ -906,7 +910,7 @@ function RegressionConsole() {
                         <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis type="category" dataKey="name" width={108} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <Tooltip content={<GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />} />
-                        <Bar dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={17}>
+                        <Bar isAnimationActive={false} dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={17}>
                           {walmartModelsComparison.map((model) => (
                             <Cell key={model.name} fill={model.name === selectedWalmartModel ? chartPalette.cyan : 'var(--bar-muted)'} />
                           ))}
@@ -976,7 +980,7 @@ function RegressionConsole() {
                         <XAxis dataKey="month" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis tickFormatter={(v) => `$${(v / 1_000_000).toFixed(1)}M`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <Tooltip content={<GenericTooltip valueFormatter={formatSales} />} />
-                        <Bar dataKey="sales" name="Средние продажи" fill={chartPalette.purple} radius={[5, 5, 0, 0]} barSize={20} />
+                        <Bar isAnimationActive={false} dataKey="sales" name="Средние продажи" fill={chartPalette.purple} radius={[5, 5, 0, 0]} barSize={20} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1021,7 +1025,7 @@ function RegressionConsole() {
                         <XAxis type="number" tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis dataKey="name" type="category" width={140} tickFormatter={(v) => WALMART_LABELS[v] ?? v} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <Tooltip content={<GenericTooltip valueFormatter={(v) => `${formatNumber(v * 100, 1)}%`} />} />
-                        <Bar dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={13} />
+                        <Bar isAnimationActive={false} dataKey="value" name="Важность" fill={chartPalette.purple} radius={[0, 5, 5, 0]} barSize={13} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1041,7 +1045,7 @@ function RegressionConsole() {
                         <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis dataKey="store" type="category" width={54} tickFormatter={(v) => `#${v}`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
                         <Tooltip content={<GenericTooltip valueFormatter={(v) => `${formatNumber(v, 2)}%`} />} />
-                        <Bar dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={12}>
+                        <Bar isAnimationActive={false} dataKey="mape" name="MAPE" radius={[0, 5, 5, 0]} barSize={12}>
                           {walmartPerStore.map((row) => (
                             <Cell key={row.store} fill={
                               walmartActiveStoreId === row.store ? chartPalette.cyan
