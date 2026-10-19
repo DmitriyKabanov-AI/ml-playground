@@ -656,7 +656,6 @@ function RegressionConsole() {
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={diamondModelComparison} layout="vertical" margin={{ top: 4, right: 18, bottom: 4, left: 8 }}>
                     <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={formatUsd} />} /><Bar isAnimationActive={false} dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{diamondModelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedDiamondModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
-                  <button type="button" className="inline-link" onClick={() => setSelectedDiamondModel(diamondBest.name)}>Лучшая модель: {diamondBest.name} <ArrowUpRight size={14} /></button>
                 </Card>
                 <Card title="Важность факторов" subtitle="Ориентировочный вклад в прогноз цены">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={diamondsDemo.importance} layout="vertical" margin={{ top: 4, right: 10, bottom: 4, left: 3 }}>
@@ -670,7 +669,7 @@ function RegressionConsole() {
               </section>
 
               <Card title="Таблица метрик по моделям" subtitle="Нажмите на строку, чтобы переключить калькулятор и график на выбранный алгоритм." right={<span className="small-tag">{diamondsDemo.models.length} МОДЕЛЕЙ</span>}>
-                <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{diamondModelComparison.map((model) => <tr key={model.name} className={model.name === selectedDiamondModel ? 'row-selected' : ''} onClick={() => setSelectedDiamondModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedDiamondModel(model.name) }}><td><span className="model-cell">{model.name}{model.name === diamondBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatUsd(model.rmse)}</td><td>{formatUsd(model.mae)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatUsd(model.maxError)}</td></tr>)}</tbody></table></div>
+                <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{diamondModelComparison.map((model) => <tr key={model.name} className={model.name === selectedDiamondModel ? 'row-selected' : ''} onClick={() => setSelectedDiamondModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedDiamondModel(model.name) }}><td><span className="model-cell">{model.name}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatUsd(model.rmse)}</td><td>{formatUsd(model.mae)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatUsd(model.maxError)}</td></tr>)}</tbody></table></div>
                 <div className="table-note"><Info size={13} /> Демо-набор: {diamondsDemo.samples.length} синтетических наблюдений. Метрики показывают поведение интерфейса, не результаты обучения на официальном датасете Diamonds.</div>
               </Card>
             </div>
@@ -743,9 +742,6 @@ function RegressionConsole() {
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={modelComparison} layout="vertical" margin={{ top: 4, right: 22, bottom: 4, left: 12 }}>
                     <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><YAxis dataKey="name" type="category" width={112} tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} /><Tooltip content={<GenericTooltip valueFormatter={(value) => formatNumber(value, 2)} />} /><Bar isAnimationActive={false} dataKey="rmse" name="RMSE" radius={[0, 6, 6, 0]} barSize={15}>{modelComparison.map((item) => <Cell key={item.name} fill={item.name === selectedRegModel ? chartPalette.cyan : 'var(--bar-muted)'} />)}</Bar>
                   </BarChart></ResponsiveContainer></div>
-                  {regressionBest && (
-                    <button type="button" className="inline-link" onClick={() => setSelectedRegModel(regressionBest.name)}>Выбрать лучшую: {regressionBest.name} <ArrowUpRight size={14} /></button>
-                  )}
                 </Card>
                 <Card title="Важность факторов" subtitle="RandomForest importance из артефакта">
                   <div className="chart-area chart-medium"><ResponsiveContainer width="100%" height="100%"><BarChart data={housing.feature_importance.RandomForest ?? []} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
@@ -761,7 +757,7 @@ function RegressionConsole() {
                   </BarChart></ResponsiveContainer></div>
                 </Card>
                 <Card title="Таблица метрик" subtitle="Нажмите на строку, чтобы переключить модель." right={<span className="small-tag">{housingModels.length} МОДЕЛЕЙ</span>}>
-                  <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{modelComparison.map((model) => <tr key={model.name} className={model.name === selectedRegModel ? 'row-selected' : ''} onClick={() => setSelectedRegModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedRegModel(model.name) }}><td><span className="model-cell">{model.name}{regressionBest && model.name === regressionBest.name && <span className="best-mark">BEST</span>}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatNumber(model.rmse, 2)}</td><td>{formatNumber(model.mae, 2)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatNumber(model.maxError, 1)}</td></tr>)}</tbody></table></div>
+                  <div className="table-wrap"><table className="data-table"><thead><tr><th>Модель</th><th>R²</th><th>RMSE</th><th>MAE</th><th>MAPE</th><th>Max err.</th></tr></thead><tbody>{modelComparison.map((model) => <tr key={model.name} className={model.name === selectedRegModel ? 'row-selected' : ''} onClick={() => setSelectedRegModel(model.name)} tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter') setSelectedRegModel(model.name) }}><td><span className="model-cell">{model.name}</span></td><td>{formatNumber(model.r2, 3)}</td><td>{formatNumber(model.rmse, 2)}</td><td>{formatNumber(model.mae, 2)}</td><td>{formatNumber(model.mape, 2)}%</td><td>{formatNumber(model.maxError, 1)}</td></tr>)}</tbody></table></div>
                   <div className="table-note"><Info size={13} /> Метрики на одной тестовой выборке ({housing.meta.n_test} объектов). Источник — artifacts/regression/housing/report.json.</div>
                 </Card>
               </section>
@@ -1135,7 +1131,7 @@ function RegressionConsole() {
                           tabIndex={0}
                           onKeyDown={(e) => { if (e.key === 'Enter') setSelectedWalmartModel(model.name) }}
                         >
-                          <td><span className="model-cell">{model.name}{walmartBest && model.name === walmartBest.name && <span className="best-mark">BEST</span>}</span></td>
+                          <td><span className="model-cell">{model.name}</span></td>
                           <td className="money-cell">{formatNumber(model.mape, 2)}%</td>
                           <td>{formatUsd(model.mae)}</td>
                           <td>{formatUsd(model.rmse)}</td>
