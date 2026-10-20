@@ -2,10 +2,10 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import {
-  Plane,
-  CarFront,
-  Trees,
   Sprout,
+  PlaneTakeoff,
+  ShieldAlert,
+  TrafficCone,
   Building2,
   Gem,
   ShoppingCart,
@@ -14,14 +14,13 @@ import {
   MapPin,
   BarChart3,
   Layers3,
-  type LucideIcon,
 } from "lucide-react";
 
 const CLASSIFICATION_TASKS = [
-  { href: "/classification?tab=iris", title: "Iris", desc: "Базовая многоклассовая классификация", icon: Sprout, accent: "from-emerald-500 to-teal-500" },
-  { href: "/classification?tab=flight-delay", title: "Flight Delay Risk", desc: "Миллионы реальных рейсов · задержка ≥ 15 минут", icon: Plane, accent: "from-sky-500 to-indigo-500" },
-  { href: "/classification?tab=taxi-payment", title: "NYC Taxi · Payment Type", desc: "Миллионы поездок · сильный дисбаланс классов", icon: CarFront, accent: "from-amber-500 to-orange-500" },
-  { href: "/classification?tab=cover-type", title: "Forest Cover Type", desc: "581 тыс. измерений · 7 типов лесного покрова", icon: Trees, accent: "from-emerald-500 to-green-600" },
+  { href: "/classification?tab=iris", title: "Iris", desc: "Многоклассовая классификация", icon: Sprout, accent: "from-emerald-500 to-teal-500" },
+  { href: "/classification?tab=flights", title: "Flight Delays", desc: "5.8 млн рейсов · цена ошибки и порог", icon: PlaneTakeoff, accent: "from-sky-500 to-indigo-500" },
+  { href: "/classification?tab=intrusion", title: "Network Intrusion", desc: "2.8 млн потоков · редкие атаки", icon: ShieldAlert, accent: "from-rose-500 to-pink-500" },
+  { href: "/classification?tab=accidents", title: "US Accidents", desc: "7.7 млн ДТП · macro vs weighted", icon: TrafficCone, accent: "from-amber-500 to-orange-500" },
 ];
 
 const REGRESSION_TASKS = [
@@ -38,17 +37,9 @@ const FORECASTING_TASKS = [
   { href: "/weather?page=features", title: "Признаки и справочник", desc: "Features · метрики",       icon: Layers3,     accent: "from-fuchsia-500 to-pink-500" },
 ];
 
-type TaskCardProps = {
-  href: string;
-  title: string;
-  desc: string;
-  icon: LucideIcon;
-  accent: string;
-};
-
-function TaskCard({ href, title, desc, icon: Icon, accent }: TaskCardProps) {
+function TaskCard({ href, title, desc, icon: Icon, accent }: { href: string; title: string; desc: string; icon: any; accent: string }) {
   return (
-    <Link href={href} className="block h-full">
+    <Link href={href}>
       <Card className="h-full group cursor-pointer">
         <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${accent} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
           <Icon className="text-white" size={20} />
@@ -66,19 +57,21 @@ export default function HomePage() {
       <div>
         <h1 className="text-3xl font-black">ML Explorer</h1>
         <p className="text-slate-500 mt-2">
-          Метрики моделей и датасеты из{" "}
-          <code className="px-1.5 py-0.5 rounded bg-slate-500/10">artifacts/</code>
-          . Крупные задачи классификации обучаются на Spark MLlib.
+          Данные читаются напрямую из{" "}
+          <code className="px-1.5 py-0.5 rounded bg-slate-500/10">public/artifacts/</code>{" "}
+          (junction → ../artifacts)
         </p>
       </div>
 
       <section>
         <div className="mb-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">Классификация</h2>
-          <p className="text-sm text-slate-500 mt-1">Четыре самостоятельные задачи на реальных данных</p>
+          <p className="text-sm text-slate-500 mt-1">Iris и три реальных датасета в миллионы строк, обработанных на Spark</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {CLASSIFICATION_TASKS.map((task) => <TaskCard key={task.href} {...task} />)}
+          {CLASSIFICATION_TASKS.map((t) => (
+            <TaskCard key={t.href} {...t} />
+          ))}
         </div>
       </section>
 
@@ -88,7 +81,9 @@ export default function HomePage() {
           <p className="text-sm text-slate-500 mt-1">Регрессионные модели, калькуляторы и прогноз продаж</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {REGRESSION_TASKS.map((task) => <TaskCard key={task.href} {...task} />)}
+          {REGRESSION_TASKS.map((t) => (
+            <TaskCard key={t.href} {...t} />
+          ))}
         </div>
       </section>
 
@@ -98,7 +93,9 @@ export default function HomePage() {
           <p className="text-sm text-slate-500 mt-1">Прогноз временных рядов · skill относительно baseline</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FORECASTING_TASKS.map((task) => <TaskCard key={task.href} {...task} />)}
+          {FORECASTING_TASKS.map((t) => (
+            <TaskCard key={t.href} {...t} />
+          ))}
         </div>
       </section>
     </div>

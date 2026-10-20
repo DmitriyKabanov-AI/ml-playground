@@ -266,4 +266,5 @@ services:
 volumes:
   jupyter-data:
   pg-data:
+  spark-data:
   # spark-ivy / spark-work / spark-events заменены на bind-mount в ./spark-state/
