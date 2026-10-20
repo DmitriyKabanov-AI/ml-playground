@@ -9,8 +9,8 @@ import NetworkIntrusionPage from "@/app/network-intrusion/page";
 import AccidentSeverityPage from "@/app/accident-severity/page";
 
 const TABS = [
-  { id: "iris",      label: "Iris",                       sub: "Многоклассовая классификация",           icon: Sprout },
-  { id: "flights",   label: "Flight Delays · 5.8 млн",    sub: "Цена ошибки и порог решения",            icon: PlaneTakeoff },
+  { id: "flights",   label: "Flight Delays · 5.8 млн",    sub: "Бинарная классификация и цена ошибки с порогом решения",            icon: PlaneTakeoff },
+  { id: "iris",      label: "Iris · 150 шт",                 sub: "Многоклассовая классификация",           icon: Sprout },
   { id: "intrusion", label: "Network Intrusion · 2.8 млн", sub: "Редкие атаки, экстремальный дисбаланс", icon: ShieldAlert },
   { id: "accidents", label: "US Accidents · 7.7 млн",     sub: "Многоклассовый дисбаланс, macro vs weighted", icon: TrafficCone },
 ] as const;
@@ -27,7 +27,7 @@ const LEGACY: Record<string, TabId> = {
 };
 
 export function ClassificationTabs() {
-  const [active, setActive] = useState<TabId>("iris");
+  const [active, setActive] = useState<TabId>("flights");
 
   // Синхронизация с URL: ?tab=iris|flights|intrusion|accidents
   useEffect(() => {

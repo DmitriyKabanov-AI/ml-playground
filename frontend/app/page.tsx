@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 
 const CLASSIFICATION_TASKS = [
-  { href: "/classification?tab=iris", title: "Iris", desc: "Многоклассовая классификация", icon: Sprout, accent: "from-emerald-500 to-teal-500" },
   { href: "/classification?tab=flights", title: "Flight Delays", desc: "5.8 млн рейсов · цена ошибки и порог", icon: PlaneTakeoff, accent: "from-sky-500 to-indigo-500" },
+  { href: "/classification?tab=iris", title: "Iris", desc: "150 образцов · многоклассовая классификация", icon: Sprout, accent: "from-emerald-500 to-teal-500" },
   { href: "/classification?tab=intrusion", title: "Network Intrusion", desc: "2.8 млн потоков · редкие атаки", icon: ShieldAlert, accent: "from-rose-500 to-pink-500" },
   { href: "/classification?tab=accidents", title: "US Accidents", desc: "7.7 млн ДТП · macro vs weighted", icon: TrafficCone, accent: "from-amber-500 to-orange-500" },
 ];
