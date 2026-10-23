@@ -8,17 +8,107 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
   HeroCard, MetricTile, ModelChips, NarrativeCard, SparkRunCard, ImportanceCard,
-  BinaryConfusion, SectionTitle, ReportError, ReportSkeleton, PALETTE,
+  SectionTitle, ReportError, ReportSkeleton, PALETTE,
 } from "@/components/shared/reportUi";
 import { ThresholdExplorer } from "@/components/shared/ThresholdExplorer";
 import { CurvesCard } from "@/components/shared/CurvesCard";
 import {
   FlightsReport, BinaryModel, REPORT_SLUGS, useReport,
-  countsAt, countsAtIdx, bestCostIdx, costPer1000, derive,
+  countsAtIdx, bestCostIdx, costPer1000,
   fmtPct, fmtNum, fmtInt, fmtCompact, isNum,
 } from "@/lib/data/reports";
 
 const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+
+type Counts = { tp: number; fp: number; fn: number; tn: number };
+const safeDiv = (a: number, b: number) => (b ? a / b : 0);
+const fBetaScore = (precision: number, recall: number, beta: number) => {
+  const b2 = beta * beta;
+  const denominator = b2 * precision + recall;
+  return denominator ? ((1 + b2) * precision * recall) / denominator : 0;
+};
+function binarySnapshot(c: Counts) {
+  const sensitivity = safeDiv(c.tp, c.tp + c.fn);
+  const specificity = safeDiv(c.tn, c.tn + c.fp);
+  const precision = safeDiv(c.tp, c.tp + c.fp);
+  const npv = safeDiv(c.tn, c.tn + c.fn);
+  const denominator = Math.sqrt((c.tp + c.fp) * (c.tp + c.fn) * (c.tn + c.fp) * (c.tn + c.fn));
+  const mcc = denominator ? (c.tp * c.tn - c.fp * c.fn) / denominator : 0;
+  return {
+    sensitivity, specificity, precision, npv, mcc,
+    f05: fBetaScore(precision, sensitivity, 0.5),
+    f2: fBetaScore(precision, sensitivity, 2),
+  };
+}
+
+/** Ищет ближайший сохранённый порог без предположения, что sweep содержит ровно 101 точку. */
+function countsAtGrid(sweep: BinaryModel["sweep"], threshold: number): Counts {
+  let bestIndex = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  sweep.thresholds.forEach((candidate, index) => {
+    const distance = Math.abs(candidate - threshold);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  return {
+    tp: sweep.tp[bestIndex],
+    fp: sweep.fp[bestIndex],
+    fn: sweep.fn[bestIndex],
+    tn: sweep.tn[bestIndex],
+  };
+}
+
+/** Стандартная ориентация: строки — фактический класс, столбцы — предсказанный. */
+function FlightConfusionMatrix({ counts, posLabel = "Задержка (1)", negLabel = "Вовремя (0)" }: {
+  counts: Counts; posLabel?: string; negLabel?: string;
+}) {
+  const total = counts.tp + counts.fp + counts.fn + counts.tn;
+  const cell = (label: string, value: number, tone: string) => (
+    <td className={`min-w-[115px] border border-border/70 p-3 text-center ${tone}`}>
+      <div className="text-[10px] uppercase tracking-wider opacity-75">{label}</div>
+      <div className="mt-1 text-xl font-black tabular-nums">{fmtInt(value)}</div>
+      <div className="mt-1 text-[10px] opacity-70">{total ? fmtPct(value / total) : "—"} от теста</div>
+    </td>
+  );
+  return (
+    <Card>
+      <SectionTitle>Confusion matrix · test</SectionTitle>
+      <p className="mt-1 text-xs text-slate-500">Строки — фактический класс, столбцы — предсказанный. Диагональ — верные решения.</p>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className="border border-border/70 p-2 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500">Фактический класс</th>
+              <th className="border border-border/70 p-2 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500" colSpan={2}>Предсказанный класс</th>
+            </tr>
+            <tr>
+              <th className="border border-border/70 p-2 text-left text-xs text-slate-500">Actual ↓ / Predicted →</th>
+              <th className="border border-border/70 p-2 text-center text-xs text-slate-500">{negLabel}</th>
+              <th className="border border-border/70 p-2 text-center text-xs text-slate-500">{posLabel}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th className="border border-border/70 p-3 text-left text-xs font-bold">{negLabel}</th>
+              {cell("TN · true negative", counts.tn, "bg-sky-500/10 text-sky-600 dark:text-sky-300")}
+              {cell("FP · false positive", counts.fp, "bg-rose-500/10 text-rose-600 dark:text-rose-300")}
+            </tr>
+            <tr>
+              <th className="border border-border/70 p-3 text-left text-xs font-bold">{posLabel}</th>
+              {cell("FN · false negative", counts.fn, "bg-amber-500/10 text-amber-700 dark:text-amber-300")}
+              {cell("TP · true positive", counts.tp, "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500">
+        <span>TP — задержка найдена</span><span>FN — задержка пропущена</span><span>FP — ложная тревога</span><span>TN — рейс вовремя распознан верно</span>
+      </div>
+    </Card>
+  );
+}
 
 /* ---------- калькулятор цены ошибок ---------- */
 function CostExplorer({
@@ -40,7 +130,7 @@ function CostExplorer({
   const bestI = useMemo(() => bestCostIdx(sw, cfp, cfn), [sw, cfp, cfn]);
   const bestThr = sw.thresholds[bestI];
   const bestCost = costPer1000(countsAtIdx(sw, bestI), cfp, cfn);
-  const cur = costPer1000(thr === null ? model.confusion_counts : countsAt(sw, thr), cfp, cfn);
+  const cur = costPer1000(thr === null ? model.confusion_counts : countsAtGrid(sw, thr), cfp, cfn);
   const baselines = models.filter((m) => m.is_baseline);
   const theory = cfp + cfn > 0 ? cfp / (cfp + cfn) : 0.5;
 
@@ -203,19 +293,25 @@ function ModelTable({
               <th className="text-left py-2">Model</th>
               <th className="text-right">Порог</th>
               <th className="text-right">{unit}/1000</th>
-              <th className="text-right">Recall</th>
+              <th className="text-right">Sensitivity</th>
+              <th className="text-right">Specificity</th>
               <th className="text-right">Precision</th>
+              <th className="text-right">NPV</th>
+              <th className="text-right">F0.5</th>
               <th className="text-right">F2</th>
               <th className="text-right">MCC</th>
-              <th className="text-right">PR-AUC</th>
-              <th className="text-right">ROC-AUC</th>
+              <th className="text-right">AP</th>
+              <th className="text-right">Brier</th>
               <th className="text-right">Train</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((m) => {
               const c = costPer1000(m.confusion_counts, cfp, cfn);
-              const d = derive(m.confusion_counts);
+              const d = binarySnapshot(m.confusion_counts);
+              const extra = m as any;
+              const ap = extra.ap ?? extra.metrics?.ap;
+              const brier = extra.brier_score ?? extra.metrics?.brier_score;
               return (
                 <tr key={m.name} className={`border-b border-border/50 ${m.name === selectedName ? "bg-indigo-500/5" : ""}`}>
                   <td className="py-2">
@@ -225,12 +321,15 @@ function ModelTable({
                   </td>
                   <td className="text-right font-mono">{m.threshold.toFixed(3)}</td>
                   <td className="text-right font-mono font-bold">{fmtInt(c)}</td>
-                  <td className="text-right font-mono">{fmtPct(d.recall)}</td>
+                  <td className="text-right font-mono">{fmtPct(d.sensitivity)}</td>
+                  <td className="text-right font-mono">{fmtPct(d.specificity)}</td>
                   <td className="text-right font-mono">{fmtPct(d.precision)}</td>
+                  <td className="text-right font-mono">{fmtPct(d.npv)}</td>
+                  <td className="text-right font-mono">{fmtNum(d.f05)}</td>
                   <td className="text-right font-mono">{fmtNum(d.f2)}</td>
                   <td className="text-right font-mono">{fmtNum(d.mcc)}</td>
-                  <td className="text-right font-mono">{fmtNum(m.pr_auc, 4)}</td>
-                  <td className="text-right font-mono">{fmtNum(m.roc_auc, 4)}</td>
+                  <td className="text-right font-mono">{fmtNum(ap, 4)}</td>
+                  <td className="text-right font-mono">{fmtNum(brier, 4)}</td>
                   <td className="text-right font-mono text-slate-500">{isNum(m.train_seconds) ? `${m.train_seconds.toFixed(0)} с` : "—"}</td>
                 </tr>
               );
@@ -261,8 +360,11 @@ export default function FlightDelaysPage() {
   const cfn = costs?.fn ?? def.fn;
   const unit = def.unit;
 
-  const counts = thr === null ? model.confusion_counts : countsAt(model.sweep, thr);
-  const d = derive(counts);
+  const counts = thr === null ? model.confusion_counts : countsAtGrid(model.sweep, thr);
+  const d = binarySnapshot(counts);
+  const extendedModel = model as any;
+  const ap = extendedModel.ap ?? extendedModel.metrics?.ap ?? extendedModel.average_precision;
+  const brier = extendedModel.brier_score ?? extendedModel.metrics?.brier_score;
   const cost = costPer1000(counts, cfp, cfn);
   const baselineCosts = models.filter((m) => m.is_baseline).map((m) => costPer1000(m.confusion_counts, cfp, cfn));
   const bestBaseline = baselineCosts.length ? Math.min(...baselineCosts) : NaN;
@@ -304,16 +406,15 @@ export default function FlightDelaysPage() {
       <ModelChips models={models} idx={idx} onSelect={select} />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MetricTile label="Recall" value={fmtPct(d.recall)} tone="text-emerald-500" hint="Доля пойманных задержек" />
-        <MetricTile label="Precision" value={fmtPct(d.precision)} hint="Доля верных предупреждений" />
-        <MetricTile label="F2" value={fmtNum(d.f2)} hint="F-мера с упором на recall" />
-        <MetricTile label="MCC" value={fmtNum(d.mcc)} />
-        <MetricTile label="Accuracy" value={fmtPct(d.accuracy)} tone="text-slate-500" hint="Не отражает цену пропусков" />
-        <MetricTile label="PR-AUC" value={fmtNum(model.pr_auc, 4)} />
-        <MetricTile label="ROC-AUC" value={fmtNum(model.roc_auc, 4)} />
-        <MetricTile label="Specificity" value={fmtPct(d.specificity)} />
-        <MetricTile label="FP на 1000" value={fmtInt((counts.fp / d.n) * 1000)} tone="text-amber-500" />
-        <MetricTile label="FN на 1000" value={fmtInt((counts.fn / d.n) * 1000)} tone="text-rose-500" />
+        <MetricTile label="Sensitivity" value={fmtPct(d.sensitivity)} tone="text-emerald-500" hint="Доля пойманных задержек · TP / (TP + FN)" />
+        <MetricTile label="Specificity" value={fmtPct(d.specificity)} hint="Доля рейсов вовремя, верно распознанных как отрицательные" />
+        <MetricTile label="Precision" value={fmtPct(d.precision)} hint="Среди предупреждений о задержке — действительно задержанные" />
+        <MetricTile label="NPV" value={fmtPct(d.npv)} hint="Среди прогнозов «вовремя» — действительно вовремя" />
+        <MetricTile label="MCC" value={fmtNum(d.mcc)} hint="Корреляция предсказания и факта; учитывает все клетки матрицы" />
+        <MetricTile label="AP" value={fmtNum(ap, 4)} hint="Average Precision · выше лучше; baseline ориентирован на prevalence" />
+        <MetricTile label="Brier Score" value={fmtNum(brier, 4)} hint="Ошибка вероятностей на test · ниже лучше" />
+        <MetricTile label="F0.5" value={fmtNum(d.f05)} hint="F-beta с большим весом precision" />
+        <MetricTile label="F2" value={fmtNum(d.f2)} hint="F-beta с большим весом sensitivity / recall" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
@@ -325,9 +426,10 @@ export default function FlightDelaysPage() {
         <div className="space-y-5">
           <ThresholdExplorer
             model={model} thr={thr} onThr={setThr} counts={counts}
-            lines={["precision", "recall", "f2", "mcc"]} tunedLabel="оптимум на валидации"
+            thresholdOptima={(model as any).threshold_optima}
+            lines={["f0_5_pos", "f2_pos", "f0_5_neg", "f2_neg"]} tunedLabel="оптимум на валидации"
           />
-          <BinaryConfusion counts={counts} posLabel="задержка" negLabel="вовремя" />
+          <FlightConfusionMatrix counts={counts} posLabel="Задержка (1)" negLabel="Вовремя (0)" />
         </div>
       </div>
 
