@@ -273,13 +273,13 @@ export default function FlightDelaysPage() {
   const m = fullMetrics(counts);
   const ap = getAp(model);
   const brier = getBrier(model);
-  const bss = brierSkill(brier, prevalence);
   const cost = costPer1000(counts, cfp, cfn);
   const baselineCosts = models.filter((m) => m.is_baseline).map((m) => costPer1000(m.confusion_counts, cfp, cfn));
   const bestBaseline = baselineCosts.length ? Math.min(...baselineCosts) : NaN;
   const saving = isNum(bestBaseline) && bestBaseline > 0 ? 1 - cost / bestBaseline : NaN;
   const n = report.meta.narrative;
   const prevalence = report.meta.target_stats.prevalence;
+  const bss = brierSkill(brier, prevalence);
 
   const select = (i: number) => { setModelIdx(i); setThr(null); };
 
