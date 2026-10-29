@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
   Counts, FeatureImp, SparkBlock,
-  fmtCompact, fmtInt, fmtSeconds,
+  fmtCompact, fmtInt, fmtPct, fmtSeconds,
 } from "@/lib/data/reports";
 
 export const PALETTE = ["#6366f1", "#8b5cf6", "#0ea5e9", "#34d399", "#f59e0b", "#f43f5e", "#14b8a6", "#ec4899"];
@@ -75,12 +75,13 @@ export function HeroCard(props: {
 }
 
 export function MetricTile({
-  label, value, tone = "", hint,
-}: { label: string; value: string; tone?: string; hint?: string }) {
+  label, value, tone = "", hint, sub,
+}: { label: string; value: string; tone?: string; hint?: string; sub?: string }) {
   return (
     <Card className="p-3.5" title={hint}>
       <p className="text-[11px] text-slate-500 uppercase tracking-wide">{label}</p>
       <p className={`text-xl font-bold mt-1 ${tone}`}>{value}</p>
+      {sub && <p className="text-[10px] text-slate-500 mt-1 leading-snug">{sub}</p>}
     </Card>
   );
 }
@@ -239,28 +240,109 @@ export function ImportanceCard({ items, limit = 15 }: { items: FeatureImp[]; lim
   );
 }
 
-/* ---------- confusion 2×2 ---------- */
-function Tile({ label, value, tone }: { label: string; value: number; tone: string }) {
+/* ---------- confusion 2×2 (стандартный вид) ---------- */
+/**
+ * Строки — ФАКТИЧЕСКИЙ класс, столбцы — ПРЕДСКАЗАННЫЙ, положительный класс первым:
+ *
+ *                 Predicted +   Predicted −   Σ
+ *   Actual +         TP            FN         P   → Sensitivity
+ *   Actual −         FP            TN         N   → Specificity
+ *   Σ                PP            PN         n
+ *                  Precision       NPV
+ */
+function CmCell({
+  tag, caption, value, pct, tone, style,
+}: {
+  tag: string; caption: string; value: number; pct: string; tone: string; style: React.CSSProperties;
+}) {
   return (
-    <div className={`rounded-lg p-3 text-center ${tone}`}>
-      <p className="text-[10px] uppercase tracking-wide opacity-70">{label}</p>
-      <p className="text-2xl font-black">{fmtInt(value)}</p>
+    <div className={`rounded-lg p-3 text-center flex flex-col justify-center ${tone}`} style={style}>
+      <p className="text-[10px] uppercase tracking-wide opacity-80 font-semibold">{tag}</p>
+      <p className="text-2xl font-black leading-tight">{fmtInt(value)}</p>
+      <p className="text-[10px] opacity-70">{caption}</p>
+      <p className="text-[11px] font-mono opacity-90 mt-0.5">{pct}</p>
     </div>
   );
 }
 
+function Margin({
+  label, value, rate, rateLabel, style,
+}: { label: string; value: number; rate?: string; rateLabel?: string; style: React.CSSProperties }) {
+  return (
+    <div className="rounded-lg bg-slate-500/5 p-2 text-center flex flex-col justify-center" style={style}>
+      <p className="text-[10px] uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-sm font-bold font-mono">{fmtInt(value)}</p>
+      {rate && (
+        <p className="text-[10px] text-slate-500">
+          {rateLabel} <b className="font-mono text-slate-700 dark:text-slate-200">{rate}</b>
+        </p>
+      )}
+    </div>
+  );
+}
+
+const HEAD = "text-[11px] text-slate-500 flex items-center justify-center text-center font-medium";
+
 export function BinaryConfusion({
   counts, posLabel, negLabel,
 }: { counts: Counts; posLabel: string; negLabel: string }) {
+  const { tp, fp, fn, tn } = counts;
+  const P = tp + fn;
+  const N = fp + tn;
+  const PP = tp + fp;
+  const PN = fn + tn;
+  const n = P + N;
+  const share = (v: number, d: number) => (d > 0 ? fmtPct(v / d) : "—");
   return (
     <Card>
       <SectionTitle>Confusion matrix (тест)</SectionTitle>
-      <div className="grid grid-cols-2 gap-2 mt-4">
-        <Tile label={`TP · ${posLabel} найден`} value={counts.tp} tone="bg-emerald-500/15 text-emerald-500" />
-        <Tile label={`FP · ложная тревога`} value={counts.fp} tone="bg-amber-500/15 text-amber-500" />
-        <Tile label={`FN · ${posLabel} пропущен`} value={counts.fn} tone="bg-rose-500/15 text-rose-500" />
-        <Tile label={`TN · ${negLabel} отпущен`} value={counts.tn} tone="bg-sky-500/15 text-sky-500" />
+      <div className="mt-4 overflow-x-auto scrollbar-thin">
+        <div
+          className="grid gap-1.5 min-w-[440px]"
+          style={{ gridTemplateColumns: "22px 84px repeat(3, minmax(88px, 1fr))" }}
+        >
+          {/* шапка: Predicted */}
+          <div style={{ gridColumn: "3 / span 2", gridRow: 1 }} className={`${HEAD} uppercase tracking-widest`}>
+            Predicted (предсказано)
+          </div>
+          <div style={{ gridColumn: 5, gridRow: 1 }} />
+          <div style={{ gridColumn: 3, gridRow: 2 }} className={HEAD}>Positive · {posLabel}</div>
+          <div style={{ gridColumn: 4, gridRow: 2 }} className={HEAD}>Negative · {negLabel}</div>
+          <div style={{ gridColumn: 5, gridRow: 2 }} className={HEAD}>Σ actual</div>
+
+          {/* подпись Actual */}
+          <div
+            style={{ gridColumn: 1, gridRow: "3 / span 3", writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            className={`${HEAD} uppercase tracking-widest`}
+          >
+            Actual (факт)
+          </div>
+          <div style={{ gridColumn: 2, gridRow: 3 }} className={`${HEAD} justify-end pr-1`}>Positive · {posLabel}</div>
+          <div style={{ gridColumn: 2, gridRow: 4 }} className={`${HEAD} justify-end pr-1`}>Negative · {negLabel}</div>
+          <div style={{ gridColumn: 2, gridRow: 5 }} className={`${HEAD} justify-end pr-1`}>Σ predicted</div>
+
+          {/* ядро матрицы */}
+          <CmCell tag="TP" caption="истинно положительные" value={tp} pct={`${share(tp, P)} строки`}
+                tone="bg-emerald-500/15 text-emerald-500" style={{ gridColumn: 3, gridRow: 3 }} />
+          <CmCell tag="FN" caption="ложно отрицательные" value={fn} pct={`${share(fn, P)} строки`}
+                tone="bg-rose-500/15 text-rose-500" style={{ gridColumn: 4, gridRow: 3 }} />
+          <CmCell tag="FP" caption="ложно положительные" value={fp} pct={`${share(fp, N)} строки`}
+                tone="bg-amber-500/15 text-amber-500" style={{ gridColumn: 3, gridRow: 4 }} />
+          <CmCell tag="TN" caption="истинно отрицательные" value={tn} pct={`${share(tn, N)} строки`}
+                tone="bg-sky-500/15 text-sky-500" style={{ gridColumn: 4, gridRow: 4 }} />
+
+          {/* итоги по строкам и столбцам */}
+          <Margin label="P" value={P} rate={share(tp, P)} rateLabel="Sensitivity" style={{ gridColumn: 5, gridRow: 3 }} />
+          <Margin label="N" value={N} rate={share(tn, N)} rateLabel="Specificity" style={{ gridColumn: 5, gridRow: 4 }} />
+          <Margin label="PP" value={PP} rate={share(tp, PP)} rateLabel="Precision" style={{ gridColumn: 3, gridRow: 5 }} />
+          <Margin label="PN" value={PN} rate={share(tn, PN)} rateLabel="NPV" style={{ gridColumn: 4, gridRow: 5 }} />
+          <Margin label="всего" value={n} style={{ gridColumn: 5, gridRow: 5 }} />
+        </div>
       </div>
+      <p className="text-[11px] text-slate-500 mt-3">
+        Строки — фактический класс, столбцы — предсказанный; положительный класс первым. Проценты в клетках — доля от
+        суммы строки; справа — Sensitivity и Specificity, снизу — Precision и NPV.
+      </p>
     </Card>
   );
 }
