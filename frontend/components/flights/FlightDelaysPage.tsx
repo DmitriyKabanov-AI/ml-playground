@@ -18,7 +18,7 @@ import {
   countsAt, countsAtIdx, bestCostIdx, costPer1000,
   fmtPct, fmtNum, fmtInt, fmtCompact, isNum,
 } from "@/lib/data/reports";
-import { fullMetrics, getAp, getBrier, brierNoSkill } from "@/lib/data/binaryMetrics";
+import { fullMetrics, getAp, getBrier, brierNoSkill, brierSkill } from "@/lib/data/binaryMetrics";
 
 const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
@@ -273,6 +273,7 @@ export default function FlightDelaysPage() {
   const m = fullMetrics(counts);
   const ap = getAp(model);
   const brier = getBrier(model);
+  const bss = brierSkill(brier, prevalence);
   const cost = costPer1000(counts, cfp, cfn);
   const baselineCosts = models.filter((m) => m.is_baseline).map((m) => costPer1000(m.confusion_counts, cfp, cfn));
   const bestBaseline = baselineCosts.length ? Math.min(...baselineCosts) : NaN;
@@ -321,11 +322,14 @@ export default function FlightDelaysPage() {
         <MetricTile label="MCC" value={fmtNum(m.mcc)} sub="корреляция Мэтьюса, −1…1 · все 4 клетки" hint="Устойчив к дисбалансу классов" />
         <MetricTile label="AP" value={fmtNum(ap, 4)} sub={`Average Precision · без модели = ${fmtPct(prevalence)}`} hint="Не зависит от порога" />
         <MetricTile label="Brier Score" value={fmtNum(brier, 4)} tone="text-amber-500" sub={`средний (p − y)² · ниже лучше · no-skill ${brierNoSkill(prevalence).toFixed(4)}`} hint="Не зависит от порога; 0 — идеально" />
-        <MetricTile label="F0.5" value={fmtNum(m.f05)} sub="F-мера, вес precision выше recall" hint="β = 0.5" />
-        <MetricTile label="F2.0" value={fmtNum(m.f2)} sub="F-мера, вес recall выше precision" hint="β = 2" />
+        <MetricTile label="F0.5 · задержка" value={fmtNum(m.f05)} sub="Положительный сценарий: «задержка» — целевой класс · вес precision выше recall" hint="β = 0.5, precision = Precision, recall = Sensitivity" />
+        <MetricTile label="F2.0 · задержка" value={fmtNum(m.f2)} sub="Положительный сценарий: «задержка» — целевой класс · вес recall выше precision" hint="β = 2, precision = Precision, recall = Sensitivity" />
+        <MetricTile label="Brier Skill Score" value={fmtNum(bss, 3)} tone={isNum(bss) && bss > 0 ? "text-emerald-500" : "text-rose-500"} sub="1 − Brier / no-skill · выше лучше, > 0 — лучше константы prevalence" hint="Не зависит от порога; 1 — идеально, 0 — как предсказание prevalence" />
+        <MetricTile label="F0.5 · вовремя" value={fmtNum(m.f05Neg)} sub="Отрицательный сценарий: «вовремя» — целевой класс · вес NPV выше Specificity" hint="β = 0.5, precision = NPV, recall = Specificity" />
+        <MetricTile label="F2.0 · вовремя" value={fmtNum(m.f2Neg)} sub="Отрицательный сценарий: «вовремя» — целевой класс · вес Specificity выше NPV" hint="β = 2, precision = NPV, recall = Specificity" />
       </div>
       <p className="text-[11px] text-slate-500 -mt-3">
-        Sensitivity, Specificity, Precision, NPV, MCC, F0.5 и F2.0 — при пороге {(thr ?? model.threshold).toFixed(3)}; AP и Brier Score от порога не зависят.
+        Sensitivity, Specificity, Precision, NPV, MCC и F0.5 / F2.0 (для «задержки» и «вовремя») — при пороге {(thr ?? model.threshold).toFixed(3)}; AP, Brier Score и Brier Skill Score от порога не зависят.
       </p>
 
       <div className="grid lg:grid-cols-2 gap-5">
