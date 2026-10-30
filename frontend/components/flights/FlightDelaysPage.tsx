@@ -18,13 +18,44 @@ import {
   countsAt, countsAtIdx, bestCostIdx, costPer1000,
   fmtPct, fmtNum, fmtInt, fmtCompact, isNum,
 } from "@/lib/data/reports";
-import { fullMetrics, getAp, getBrier, brierNoSkill, brierSkill } from "@/lib/data/binaryMetrics";
+import { fullMetrics, getAp, getBrier, getCalibration, brierNoSkill, brierSkill } from "@/lib/data/binaryMetrics";
 
 const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
+/**
+ * Оценивает долю задержек по калибровочной кривой выбранной модели.
+ * Каждый observed rate взвешивается числом объектов в соответствующем бине.
+ * Если калибровка отсутствует (например, у baseline), возвращает prevalence.
+ */
+function calibratedDelayRate(model: BinaryModel, fallback: number): { rate: number; calibrated: boolean } {
+  const calibration = getCalibration(model);
+  if (!calibration || !Array.isArray(calibration.n) || !Array.isArray(calibration.obs_rate)) {
+    return { rate: fallback, calibrated: false };
+  }
+
+  const bins = Math.min(calibration.n.length, calibration.obs_rate.length);
+  let sampleCount = 0;
+  let delayedCount = 0;
+
+  for (let i = 0; i < bins; i += 1) {
+    const binSize = Number(calibration.n[i]);
+    const observedRate = Number(calibration.obs_rate[i]);
+    if (!Number.isFinite(binSize) || binSize <= 0 || !Number.isFinite(observedRate)) continue;
+
+    sampleCount += binSize;
+    delayedCount += binSize * observedRate;
+  }
+
+  if (sampleCount <= 0) return { rate: fallback, calibrated: false };
+  return {
+    rate: Math.min(1, Math.max(0, delayedCount / sampleCount)),
+    calibrated: true,
+  };
+}
+
 /* ---------- калькулятор цены ошибок ---------- */
 function CostExplorer({
-  model, models, cfp, cfn, unit, setCfp, setCfn, thr, onThr, defaults,
+  model, models, cfp, cfn, unit, setCfp, setCfn, thr, onThr, defaults, onReset,
 }: {
   model: BinaryModel;
   models: BinaryModel[];
@@ -36,6 +67,7 @@ function CostExplorer({
   thr: number | null;
   onThr: (t: number | null) => void;
   defaults: { fp: number; fn: number };
+  onReset: () => void;
 }) {
   const sw = model.sweep;
   const shown = thr ?? model.threshold;
@@ -76,7 +108,8 @@ function CostExplorer({
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <SectionTitle>Цена ошибок</SectionTitle>
         <button
-          onClick={() => { setCfp(defaults.fp); setCfn(defaults.fn); }}
+          onClick={onReset}
+          title={`вернуть FP = ${defaults.fp} ${unit}, FN = ${defaults.fn} ${unit}`}
           className="text-xs px-3 py-1 rounded-lg border border-border text-slate-500 hover:border-indigo-500/50"
         >
           сбросить цены
@@ -268,18 +301,27 @@ export default function FlightDelaysPage() {
   const cfp = costs?.fp ?? def.fp;
   const cfn = costs?.fn ?? def.fn;
   const unit = def.unit;
+  const updateCosts = (patch: Partial<{ fp: number; fn: number }>) => {
+    setCosts((current) => ({
+      fp: current?.fp ?? def.fp,
+      fn: current?.fn ?? def.fn,
+      ...patch,
+    }));
+  };
 
   const counts = thr === null ? model.confusion_counts : countsAt(model.sweep, thr);
   const m = fullMetrics(counts);
   const ap = getAp(model);
   const brier = getBrier(model);
   const cost = costPer1000(counts, cfp, cfn);
-  const baselineCosts = models.filter((m) => m.is_baseline).map((m) => costPer1000(m.confusion_counts, cfp, cfn));
-  const bestBaseline = baselineCosts.length ? Math.min(...baselineCosts) : NaN;
-  const saving = isNum(bestBaseline) && bestBaseline > 0 ? 1 - cost / bestBaseline : NaN;
   const n = report.meta.narrative;
   const prevalence = report.meta.target_stats.prevalence;
   const bss = brierSkill(brier, prevalence);
+  const calibratedRate = calibratedDelayRate(model, prevalence);
+  const delayPct = calibratedRate.rate * 100;
+  const onTimePct = (1 - calibratedRate.rate) * 100;
+  const delayPer1000 = Math.round(calibratedRate.rate * 1000);
+  const onTimePer1000 = 1000 - delayPer1000;
 
   const select = (i: number) => { setModelIdx(i); setThr(null); };
 
@@ -296,19 +338,26 @@ export default function FlightDelaysPage() {
         valueLabel="потери на 1000 рейсов"
         subtitle={report.meta.subtitle}
         side={
-          isNum(saving) && !model.is_baseline ? (
-            <Badge tone={saving > 0 ? "success" : "danger"}>
-              {saving > 0 ? "−" : "+"}{Math.abs(saving * 100).toFixed(1)}% к лучшему baseline
-            </Badge>
-          ) : undefined
+          <div className="flex flex-col items-start gap-1">
+            <Badge tone="info">AP {fmtNum(ap, 3)}</Badge>
+            <span className="text-[10px] text-slate-500">
+              Average Precision · random = {fmtPct(prevalence)} · выше лучше
+            </span>
+          </div>
         }
       />
 
-      <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-        <Badge>{report.meta.dataset}</Badge>
+      <div
+        className="flex flex-wrap gap-2 text-xs text-slate-500"
+        title={calibratedRate.calibrated
+          ? "Доля оценена по фактическим частотам в бинах калибровочной кривой выбранной модели, взвешенным по числу рейсов."
+          : "Для выбранной модели калибровочная кривая недоступна; используется фактическая доля классов из отчёта."}
+      >
+        <Badge>Flight-delays (Kaggle · BTS 2015)</Badge>
         <Badge>{fmtCompact(report.meta.n_samples)} рейсов</Badge>
         <Badge>train {fmtCompact(report.meta.n_train)} · val {fmtCompact(report.meta.n_val)} · test {fmtCompact(report.meta.n_test)}</Badge>
-        <Badge tone="warning">задержка ≥15 мин: {fmtPct(prevalence)}</Badge>
+        <Badge tone="warning">Задержка ≥15 мин: {delayPct.toFixed(1)}% · {delayPer1000} на 1000 рейсов</Badge>
+        <Badge tone="success">Вовремя (&lt;15 мин): {onTimePct.toFixed(1)}% · {onTimePer1000} на 1000 рейсов</Badge>
         <Badge tone="info">{report.meta.n_features} признаков</Badge>
       </div>
 
@@ -335,8 +384,8 @@ export default function FlightDelaysPage() {
       <div className="grid lg:grid-cols-2 gap-5">
         <CostExplorer
           model={model} models={models} cfp={cfp} cfn={cfn} unit={unit}
-          setCfp={(v) => setCosts({ fp: v, fn: cfn })} setCfn={(v) => setCosts({ fp: cfp, fn: v })}
-          thr={thr} onThr={setThr} defaults={def}
+          setCfp={(v) => updateCosts({ fp: v })} setCfn={(v) => updateCosts({ fn: v })}
+          thr={thr} onThr={setThr} defaults={def} onReset={() => setCosts(null)}
         />
         <BinaryConfusion counts={counts} posLabel="задержка" negLabel="вовремя" />
       </div>
@@ -375,3 +424,6 @@ export default function FlightDelaysPage() {
     </div>
   );
 }
+
+
+
