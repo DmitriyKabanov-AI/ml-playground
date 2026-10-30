@@ -195,3 +195,13 @@ export function stepPoints(recall: number[], precision: number[]): { x: number; 
 
 /** Короткое имя для оси X. */
 export const shortName = (name: string) => name.replace("Baseline · всегда ", "base · ").replace("Baseline · ", "base · ");
+
+/**
+ * Согласованное разбиение на 1000 рейсов: задержка + вовремя ровно 1000 штук и ровно 100.0 %.
+ * Процент и штуки считаются из одного округлённого значения, поэтому не расходятся.
+ */
+export function splitPer1000(prevalence: number) {
+  const late = Math.min(1000, Math.max(0, Math.round(prevalence * 1000)));
+  const onTime = 1000 - late;
+  return { late, onTime, latePct: late / 10, onTimePct: onTime / 10 };
+}
