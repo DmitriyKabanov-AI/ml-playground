@@ -329,6 +329,7 @@ export default function FlightDelaysPage() {
         <MetricTile label="Sensitivity" value={fmtPct(m.sensitivity)} tone="text-emerald-500" sub="TP / (TP + FN) · доля пойманных задержек" hint="Sensitivity = Recall = TPR" />
         <MetricTile label="Specificity" value={fmtPct(m.specificity)} tone="text-sky-500" sub="TN / (TN + FP) · доля верно отпущенных" hint="Specificity = TNR = 1 − FPR" />
         <MetricTile label="Precision" value={fmtPct(m.precision)} sub="TP / (TP + FP) · доля верных тревог" hint="Precision = PPV" />
+        <MetricTile label="AP" value={fmtNum(getAp(model), 4)} hint="Average Precision · качество ранжирования" />
         <MetricTile label="NPV" value={fmtPct(m.npv)} sub="TN / (TN + FN) · доля верных «вовремя»" hint="Negative Predictive Value" />
         <MetricTile label="MCC" value={fmtNum(m.mcc)} sub="корреляция Мэтьюса, −1…1 · все 4 клетки" hint="Устойчив к дисбалансу классов" />
         <MetricTile label="Brier Score" value={fmtNum(brier, 4)} tone="text-amber-500" sub={`средний (p − y)² · ниже лучше · no-skill ${brierNoSkill(prevalence).toFixed(4)}`} hint="Не зависит от порога; 0 — идеально" />
