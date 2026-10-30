@@ -18,40 +18,9 @@ import {
   countsAt, countsAtIdx, bestCostIdx, costPer1000,
   fmtPct, fmtNum, fmtInt, fmtCompact, isNum,
 } from "@/lib/data/reports";
-import { fullMetrics, getAp, getBrier, getCalibration, brierNoSkill, brierSkill } from "@/lib/data/binaryMetrics";
+import { fullMetrics, getAp, getBrier, brierNoSkill, brierSkill } from "@/lib/data/binaryMetrics";
 
 const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
-
-/**
- * Оценивает долю задержек по калибровочной кривой выбранной модели.
- * Каждый observed rate взвешивается числом объектов в соответствующем бине.
- * Если калибровка отсутствует (например, у baseline), возвращает prevalence.
- */
-function calibratedDelayRate(model: BinaryModel, fallback: number): { rate: number; calibrated: boolean } {
-  const calibration = getCalibration(model);
-  if (!calibration || !Array.isArray(calibration.n) || !Array.isArray(calibration.obs_rate)) {
-    return { rate: fallback, calibrated: false };
-  }
-
-  const bins = Math.min(calibration.n.length, calibration.obs_rate.length);
-  let sampleCount = 0;
-  let delayedCount = 0;
-
-  for (let i = 0; i < bins; i += 1) {
-    const binSize = Number(calibration.n[i]);
-    const observedRate = Number(calibration.obs_rate[i]);
-    if (!Number.isFinite(binSize) || binSize <= 0 || !Number.isFinite(observedRate)) continue;
-
-    sampleCount += binSize;
-    delayedCount += binSize * observedRate;
-  }
-
-  if (sampleCount <= 0) return { rate: fallback, calibrated: false };
-  return {
-    rate: Math.min(1, Math.max(0, delayedCount / sampleCount)),
-    calibrated: true,
-  };
-}
 
 /* ---------- калькулятор цены ошибок ---------- */
 function CostExplorer({
@@ -311,16 +280,19 @@ export default function FlightDelaysPage() {
 
   const counts = thr === null ? model.confusion_counts : countsAt(model.sweep, thr);
   const m = fullMetrics(counts);
-  const ap = getAp(model);
   const brier = getBrier(model);
   const cost = costPer1000(counts, cfp, cfn);
   const n = report.meta.narrative;
   const prevalence = report.meta.target_stats.prevalence;
   const bss = brierSkill(brier, prevalence);
-  const calibratedRate = calibratedDelayRate(model, prevalence);
-  const delayPct = calibratedRate.rate * 100;
-  const onTimePct = (1 - calibratedRate.rate) * 100;
-  const delayPer1000 = Math.round(calibratedRate.rate * 1000);
+  // Модельный состав рейсов при текущем пороге: predicted positive = TP + FP,
+  // predicted negative = TN + FN. Это меняется и при смене модели, и при смене порога.
+  const classifiedTotal = counts.tp + counts.fp + counts.fn + counts.tn;
+  const predictedDelayCount = counts.tp + counts.fp;
+  const delayShare = classifiedTotal > 0 ? predictedDelayCount / classifiedTotal : prevalence;
+  const delayPct = delayShare * 100;
+  const onTimePct = 100 - delayPct;
+  const delayPer1000 = Math.round(delayShare * 1000);
   const onTimePer1000 = 1000 - delayPer1000;
 
   const select = (i: number) => { setModelIdx(i); setThr(null); };
@@ -337,21 +309,11 @@ export default function FlightDelaysPage() {
         value={`${fmtInt(cost)} ${unit}`}
         valueLabel="потери на 1000 рейсов"
         subtitle={report.meta.subtitle}
-        side={
-          <div className="flex flex-col items-start gap-1">
-            <Badge tone="info">AP {fmtNum(ap, 3)}</Badge>
-            <span className="text-[10px] text-slate-500">
-              Average Precision · random = {fmtPct(prevalence)} · выше лучше
-            </span>
-          </div>
-        }
       />
 
       <div
         className="flex flex-wrap gap-2 text-xs text-slate-500"
-        title={calibratedRate.calibrated
-          ? "Доля оценена по фактическим частотам в бинах калибровочной кривой выбранной модели, взвешенным по числу рейсов."
-          : "Для выбранной модели калибровочная кривая недоступна; используется фактическая доля классов из отчёта."}
+        title={`Прогнозируемое распределение классов модели ${model.name} при пороге ${(thr ?? model.threshold).toFixed(3)}: задержка = TP + FP, вовремя = TN + FN.`}
       >
         <Badge>Flight-delays (Kaggle · BTS 2015)</Badge>
         <Badge>{fmtCompact(report.meta.n_samples)} рейсов</Badge>
@@ -369,7 +331,6 @@ export default function FlightDelaysPage() {
         <MetricTile label="Precision" value={fmtPct(m.precision)} sub="TP / (TP + FP) · доля верных тревог" hint="Precision = PPV" />
         <MetricTile label="NPV" value={fmtPct(m.npv)} sub="TN / (TN + FN) · доля верных «вовремя»" hint="Negative Predictive Value" />
         <MetricTile label="MCC" value={fmtNum(m.mcc)} sub="корреляция Мэтьюса, −1…1 · все 4 клетки" hint="Устойчив к дисбалансу классов" />
-        <MetricTile label="AP" value={fmtNum(ap, 4)} sub={`Average Precision · без модели = ${fmtPct(prevalence)}`} hint="Не зависит от порога" />
         <MetricTile label="Brier Score" value={fmtNum(brier, 4)} tone="text-amber-500" sub={`средний (p − y)² · ниже лучше · no-skill ${brierNoSkill(prevalence).toFixed(4)}`} hint="Не зависит от порога; 0 — идеально" />
         <MetricTile label="F0.5 · задержка" value={fmtNum(m.f05)} sub="Положительный сценарий: «задержка» — целевой класс · вес precision выше recall" hint="β = 0.5, precision = Precision, recall = Sensitivity" />
         <MetricTile label="F2.0 · задержка" value={fmtNum(m.f2)} sub="Положительный сценарий: «задержка» — целевой класс · вес recall выше precision" hint="β = 2, precision = Precision, recall = Sensitivity" />
