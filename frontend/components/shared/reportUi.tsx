@@ -192,18 +192,25 @@ export function SparkRunCard({ spark }: { spark: SparkBlock }) {
       </div>
 
       <div className="mt-5 space-y-1.5">
-        {timings.map(([name, sec]) => (
-          <div key={name} className="flex items-center gap-3 text-xs">
-            <span className="w-64 shrink-0 truncate text-slate-500" title={name}>{name}</span>
-            <div className="flex-1 h-2 rounded-full bg-slate-500/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
-                style={{ width: `${Math.max(2, (sec / maxT) * 100)}%` }}
-              />
+        {timings.map(([name, sec]) => {
+          const displayName = name.replace(
+            /^(обучение|оценка)(?=\s·)/i,
+            (word) => word[0].toUpperCase() + word.slice(1)
+          );
+
+          return (
+            <div key={name} className="flex items-center gap-3 text-xs">
+              <span className="w-64 shrink-0 truncate text-slate-500" title={displayName}>{displayName}</span>
+              <div className="flex-1 h-2 rounded-full bg-slate-500/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                  style={{ width: `${Math.max(2, (sec / maxT) * 100)}%` }}
+                />
+              </div>
+              <span className="w-16 text-right font-mono text-slate-500">{fmtSeconds(sec)}</span>
             </div>
-            <span className="w-16 text-right font-mono text-slate-500">{fmtSeconds(sec)}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <p className="text-[11px] text-slate-500 mt-4">

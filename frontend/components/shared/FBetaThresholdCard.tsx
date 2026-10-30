@@ -97,7 +97,7 @@ function Panel({
                   <span className="text-slate-500 font-normal"> · порог {row.t.toFixed(2)}</span>
                 </p>
                 {finite(b.val) && (
-                  <p className="text-[10px] text-slate-500">на валидации (ноутбук): порог {b.val.toFixed(3)}</p>
+                  <p className="text-[10px] text-slate-500">На валидации (ноутбук): порог {b.val.toFixed(3)}</p>
                 )}
               </div>
               <button
