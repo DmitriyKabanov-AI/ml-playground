@@ -327,12 +327,12 @@ export default function FlightDelaysPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <MetricTile label="Sensitivity" value={fmtPct(m.sensitivity)} tone="text-emerald-500" sub="TP / (TP + FN) · доля пойманных задержек" hint="Sensitivity = Recall = TPR" />
-        <MetricTile label="AP" value={fmtNum(getAp(model), 4)} sub={`Average Precision · без модели = ${fmtPct(prevalence)}`} hint="Не зависит от порога" />
+        <MetricTile label="AP" value={fmtNum(getAp(model), 4)} sub={`площадь под PR-кривой · базовая точность = ${fmtPct(prevalence)}`} hint="Формула: ∑ (Rₙ − Rₙ₋₁) · Pₙ. Оценивает ранжирование независимо от порога" />
         <MetricTile label="Precision" value={fmtPct(m.precision)} sub="TP / (TP + FP) · доля верных тревог" hint="Precision = PPV" />
         <MetricTile label="Specificity" value={fmtPct(m.specificity)} tone="text-sky-500" sub="TN / (TN + FP) · доля верно отпущенных" hint="Specificity = TNR = 1 − FPR" />
         <MetricTile label="NPV" value={fmtPct(m.npv)} sub="TN / (TN + FN) · доля верных «вовремя»" hint="Negative Predictive Value" />
         <MetricTile label="MCC" value={fmtNum(m.mcc)} sub="корреляция Мэтьюса, −1…1 · все 4 клетки" hint="Устойчив к дисбалансу классов" />
-        <MetricTile label="Brier Score" value={fmtNum(brier, 4)} tone="text-amber-500" sub={`средний (p − y)² · ниже лучше · no-skill ${brierNoSkill(prevalence).toFixed(4)}`} hint="Не зависит от порога; 0 — идеально" />
+        <MetricTile label="Brier Score" value={fmtNum(brier, 4)} tone="text-amber-500" sub="средний (p − y)² · ниже лучше" hint="Не зависит от порога; 0 — идеально" />
         <MetricTile label="F0.5 · задержка" value={fmtNum(m.f05)} sub="Положительный сценарий: «задержка» — целевой класс · вес precision выше recall" hint="β = 0.5, precision = Precision, recall = Sensitivity" />
         <MetricTile label="F2.0 · задержка" value={fmtNum(m.f2)} sub="Положительный сценарий: «задержка» — целевой класс · вес recall выше precision" hint="β = 2, precision = Precision, recall = Sensitivity" />
         <MetricTile label="Brier Skill Score" value={fmtNum(bss, 3)} tone={isNum(bss) && bss > 0 ? "text-emerald-500" : "text-rose-500"} sub="1 − Brier / no-skill · выше лучше, > 0 — лучше константы prevalence" hint="Не зависит от порога; 1 — идеально, 0 — как предсказание prevalence" />
