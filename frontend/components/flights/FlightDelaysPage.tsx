@@ -327,7 +327,7 @@ export default function FlightDelaysPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <MetricTile label="Sensitivity" value={fmtPct(m.sensitivity)} tone="text-emerald-500" sub="TP / (TP + FN) · доля пойманных задержек" hint="Sensitivity = Recall = TPR" />
-        <MetricTile label="AP" value={fmtNum(getAp(model), 4)} sub={`площадь под PR-кривой · базовая точность = ${fmtPct(prevalence)}`} hint="Формула: ∑ (Rₙ − Rₙ₋₁) · Pₙ. Оценивает ранжирование независимо от порога" />
+        <MetricTile label="AP" value={fmtNum(getAp(model), 4)} sub="Формула: ∑ (Rₙ − Rₙ₋₁) · Pₙ" hint="Площадь под PR-кривой (Average Precision). Оценивает качество ранжирования независимо от порога" />
         <MetricTile label="Precision" value={fmtPct(m.precision)} sub="TP / (TP + FP) · доля верных тревог" hint="Precision = PPV" />
         <MetricTile label="Specificity" value={fmtPct(m.specificity)} tone="text-sky-500" sub="TN / (TN + FP) · доля верно отпущенных" hint="Specificity = TNR = 1 − FPR" />
         <MetricTile label="NPV" value={fmtPct(m.npv)} sub="TN / (TN + FN) · доля верных «вовремя»" hint="Negative Predictive Value" />
