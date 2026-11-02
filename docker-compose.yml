@@ -65,11 +65,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.0'
+          cpus: '2.0'
           memory: 6g
           pids: 2048
         reservations:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: 1g
     shm_size: '1g'
 
@@ -222,7 +222,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '8.0'
+          cpus: '10.0'
           memory: 12g
           pids: 2048
         reservations:
