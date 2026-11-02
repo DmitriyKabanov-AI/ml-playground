@@ -52,7 +52,7 @@ services:
       SPARK_MASTER_URL: "spark://spark-master:7077"
       WEATHER_EXECUTION_MODE: "auto"
       WEATHER_SPARK_CORES: "8"                
-      WEATHER_SPARK_EXECUTOR_MEMORY: "8g"     
+      WEATHER_SPARK_EXECUTOR_MEMORY: "10g"     
     depends_on:
       db:
         condition: service_healthy
@@ -203,7 +203,7 @@ services:
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077
-      --cores 10
+      --cores 8
       --memory 12g
       --webui-port 8086
     environment:
@@ -222,8 +222,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '10.0'
-          memory: 12g
+          cpus: '8.0'
+          memory: 16g
           pids: 2048
         reservations:
           cpus: '1.0'
