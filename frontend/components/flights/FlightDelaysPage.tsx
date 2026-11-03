@@ -40,9 +40,28 @@ function CostExplorer({
 }) {
   const sw = model.sweep;
   const shown = thr ?? model.threshold;
-  const bestI = useMemo(() => bestCostIdx(sw, cfp, cfn), [sw, cfp, cfn]);
-  const bestThr = sw.thresholds[bestI];
-  const bestCost = costPer1000(countsAtIdx(sw, bestI), cfp, cfn);
+// Ищем порог с минимальной ценой потерь; при равенстве цены — самый низкий порог.
+const { bestThr, bestCost } = useMemo(() => {
+  let minCost = Infinity;
+  let bestThreshold = sw.thresholds[0] ?? 0;
+  for (let i = 0; i < sw.thresholds.length; i += 1) {
+    const t = sw.thresholds[i];
+    const cost = costPer1000(countsAtIdx(sw, i), cfp, cfn);
+    if (!Number.isFinite(t) || !Number.isFinite(cost)) continue;
+    if (cost < minCost - 1e-9 || (Math.abs(cost - minCost) <= 1e-9 && t < bestThreshold)) {
+      minCost = cost;
+      bestThreshold = t;
+    }
+  }
+  if (!Number.isFinite(minCost)) {
+    const fallback = bestCostIdx(sw, cfp, cfn);
+    return {
+      bestThr: sw.thresholds[fallback] ?? 0,
+      bestCost: costPer1000(countsAtIdx(sw, fallback), cfp, cfn),
+    };
+  }
+  return { bestThr: bestThreshold, bestCost: minCost };
+}, [sw, cfp, cfn]);
   const cur = costPer1000(thr === null ? model.confusion_counts : countsAt(sw, thr), cfp, cfn);
   const baselines = models.filter((m) => m.is_baseline);
   const theory = cfp + cfn > 0 ? cfp / (cfp + cfn) : 0.5;
@@ -190,8 +209,15 @@ function RateBars({
 
 /* ---------- таблица моделей ---------- */
 function ModelTable({
-  models, selectedName, cfp, cfn, unit,
-}: { models: BinaryModel[]; selectedName: string; cfp: number; cfn: number; unit: string }) {
+  models, selectedName, cfp, cfn, unit, onSelect,
+}: {
+  models: BinaryModel[];
+  selectedName: string;
+  cfp: number;
+  cfn: number;
+  unit: string;
+  onSelect: (name: string) => void;
+}) {
   const rows = [...models].sort(
     (a, b) =>
       Number(a.is_baseline) - Number(b.is_baseline) ||
@@ -214,8 +240,6 @@ function ModelTable({
               <th className="text-right px-2">MCC</th>
               <th className="text-right px-2">AP</th>
               <th className="text-right px-2">Brier</th>
-              <th className="text-right px-2">F0.5</th>
-              <th className="text-right px-2">F2.0</th>
               <th className="text-right">Train</th>
             </tr>
           </thead>
@@ -223,12 +247,25 @@ function ModelTable({
             {rows.map((m) => {
               const c = costPer1000(m.confusion_counts, cfp, cfn);
               const d = fullMetrics(m.confusion_counts);
+              const active = m.name === selectedName;
               return (
-                <tr key={m.name} className={`border-b border-border/50 ${m.name === selectedName ? "bg-indigo-500/5" : ""}`}>
+                <tr
+                  key={m.name}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelect(m.name)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelect(m.name);
+                    }
+                  }}
+                  className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-indigo-500/[0.07] ${active ? "bg-indigo-500/5" : ""}`}
+                >
                   <td className="py-2">
                     {m.name}
                     {m.is_baseline && <Badge tone="danger" className="ml-2">baseline</Badge>}
-                    {m.name === selectedName && <Badge tone="info" className="ml-2">selected</Badge>}
+                    {active && <Badge tone="info" className="ml-2">selected</Badge>}
                   </td>
                   <td className="text-right font-mono">{m.threshold.toFixed(3)}</td>
                   <td className="text-right font-mono font-bold">{fmtInt(c)}</td>
@@ -239,8 +276,6 @@ function ModelTable({
                   <td className="text-right font-mono px-2">{fmtNum(d.mcc)}</td>
                   <td className="text-right font-mono px-2">{fmtNum(getAp(m), 4)}</td>
                   <td className="text-right font-mono px-2">{fmtNum(getBrier(m), 4)}</td>
-                  <td className="text-right font-mono px-2">{fmtNum(d.f05)}</td>
-                  <td className="text-right font-mono px-2">{fmtNum(d.f2)}</td>
                   <td className="text-right font-mono text-slate-500">{isNum(m.train_seconds) ? `${m.train_seconds.toFixed(0)} с` : "—"}</td>
                 </tr>
               );
@@ -248,6 +283,9 @@ function ModelTable({
           </tbody>
         </table>
       </div>
+      <p className="text-[11px] text-slate-500 mt-2">
+        Клик по строке — переключить модель в шапке страницы, метриках и графиках.
+      </p>
     </Card>
   );
 }
@@ -368,7 +406,17 @@ export default function FlightDelaysPage() {
       <RateBars title="Доля задержек по авиакомпаниям" data={report.eda.by_airline} xKey="name" prevalence={prevalence} horizontal />
 
       <ImportanceCard items={model.feature_importance} />
-      <ModelTable models={models} selectedName={model.name} cfp={cfp} cfn={cfn} unit={unit} />
+      <ModelTable
+        models={models}
+        selectedName={model.name}
+        cfp={cfp}
+        cfn={cfn}
+        unit={unit}
+        onSelect={(name) => {
+          const i = models.findIndex((mm) => mm.name === name);
+          if (i >= 0) select(i);
+        }}
+      />
 
       <SparkRunCard spark={report.meta.spark} />
 
