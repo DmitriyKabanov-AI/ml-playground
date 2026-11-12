@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -9,85 +9,13 @@ import {
   HeroCard, MetricTile, ModelChips, NarrativeCard, SparkRunCard, ImportanceCard,
   BinaryConfusion, SectionTitle, ReportError, ReportSkeleton, PALETTE,
 } from "@/components/shared/reportUi";
-import { ThresholdExplorer } from "@/components/shared/ThresholdExplorer";
-import { CurvesCard } from "@/components/shared/CurvesCard";
+import {
+  IntrusionThresholdPanel, IntrusionAlertCard, IntrusionPrecisionRecallCard, IntrusionModelComparison,
+} from "@/components/intrusion/IntrusionInsights";
 import {
   IntrusionReport, BinaryModel, REPORT_SLUGS, useReport, countsAt, derive,
   fmtPct, fmtNum, fmtInt, fmtCompact,
 } from "@/lib/data/reports";
-
-/* ---------- accuracy / ROC-AUC насыщаются, PR-AUC и MCC — нет ---------- */
-function MetricParadox({ models }: { models: BinaryModel[] }) {
-  const data = models.map((m) => ({
-    name: m.name.replace("Baseline · ", "base · "),
-    accuracy: m.metrics.accuracy,
-    "ROC-AUC": m.roc_auc,
-    "PR-AUC": m.pr_auc,
-    MCC: Math.max(0, m.metrics.mcc),
-  }));
-  return (
-    <Card>
-      <SectionTitle>Какие метрики различают модели</SectionTitle>
-      <p className="text-xs text-slate-500 mt-2">
-        При такой доле редкого класса accuracy и ROC-AUC у всех моделей (и у baseline по accuracy) близки к 1 — выбирать по ним нечего.
-        PR-AUC и MCC расходятся.
-      </p>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} margin={{ left: 0, right: 8, top: 12 }}>
-          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-12} textAnchor="end" height={48} />
-          <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} width={34} />
-          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12 }} formatter={(v: number) => Number(v).toFixed(4)} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="accuracy" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="ROC-AUC" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="PR-AUC" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="MCC" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </Card>
-  );
-}
-
-/* ---------- настроенный порог против 0.5 ---------- */
-function ThresholdMatters({ model }: { model: BinaryModel }) {
-  const rows: [string, number, number][] = [
-    ["MCC", model.fixed_05.mcc, model.metrics.mcc],
-    ["Recall", model.fixed_05.recall_pos, model.metrics.recall_pos],
-    ["Precision", model.fixed_05.precision_pos, model.metrics.precision_pos],
-    ["F1", model.fixed_05.f1_pos, model.metrics.f1_pos],
-  ];
-  return (
-    <Card>
-      <SectionTitle>Порог 0.5 против настроенного ({model.threshold.toFixed(3)})</SectionTitle>
-      <table className="w-full text-sm mt-4">
-        <thead className="text-xs text-slate-500 border-b border-border">
-          <tr>
-            <th className="text-left py-2">Метрика</th>
-            <th className="text-right">@0.5</th>
-            <th className="text-right">настроенный</th>
-            <th className="text-right">Δ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([k, a, b]) => (
-            <tr key={k} className="border-b border-border/50">
-              <td className="py-2">{k}</td>
-              <td className="text-right font-mono">{fmtNum(a, 4)}</td>
-              <td className="text-right font-mono font-bold">{fmtNum(b, 4)}</td>
-              <td className={`text-right font-mono ${b - a >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                {b - a >= 0 ? "+" : ""}{(b - a).toFixed(4)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="text-[11px] text-slate-500 mt-3">
-        Веса классов и undersampling смещают вероятности вверх, поэтому «стандартные» 0.5 для таких моделей почти не имеют смысла.
-      </p>
-    </Card>
-  );
-}
 
 /* ---------- разбор по семействам атак ---------- */
 function FamilyCard({ model }: { model: BinaryModel }) {
@@ -224,7 +152,6 @@ export default function IntrusionPage() {
   const n = report.meta.narrative;
   const nr = n as unknown as Record<string, string>;
   const ts = report.meta.target_stats;
-  const imb = report.meta.imbalance;
   const select = (i: number) => { setModelIdx(i); setThr(null); };
 
   return (
@@ -245,9 +172,7 @@ export default function IntrusionPage() {
       <div className="flex flex-wrap gap-2">
         <Badge>{report.meta.dataset}</Badge>
         <Badge>{fmtCompact(report.meta.n_samples)} потоков после дедупликации</Badge>
-        <Badge tone="danger">редких атак: {fmtPct(ts.prevalence, 3)} · 1 : {fmtInt(ts.imbalance_ratio)}</Badge>
         <Badge tone="info">{report.meta.n_features} признаков потока</Badge>
-        {imb && <Badge tone="warning">вес редкого класса ≈ {fmtInt(imb.w_pos)} · undersampling {imb.under_ratio}:1</Badge>}
       </div>
 
       <ModelChips models={models} idx={idx} onSelect={select} />
@@ -266,18 +191,15 @@ export default function IntrusionPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <ThresholdExplorer
-          model={model} thr={thr} onThr={setThr} counts={counts}
-          lines={["precision", "recall", "f1", "mcc"]} tunedLabel="оптимум MCC на валидации"
-        />
+        <IntrusionThresholdPanel model={model} thr={thr} onThr={setThr} counts={counts} />
         <div className="space-y-5">
           <BinaryConfusion counts={counts} posLabel="редкая атака" negLabel="трафик" />
-          <ThresholdMatters model={model} />
+          <IntrusionAlertCard counts={counts} />
         </div>
       </div>
 
-      <MetricParadox models={models} />
-      <CurvesCard models={models} selectedName={model.name} prevalence={ts.prevalence_test ?? ts.prevalence} />
+      <IntrusionModelComparison models={models} selectedName={model.name} />
+      <IntrusionPrecisionRecallCard model={model} prevalence={ts.prevalence_test ?? ts.prevalence} counts={counts} />
       <FamilyCard model={model} />
 
       <div className="grid lg:grid-cols-2 gap-5">
