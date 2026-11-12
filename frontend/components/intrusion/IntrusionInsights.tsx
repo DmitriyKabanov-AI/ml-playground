@@ -259,7 +259,7 @@ export function IntrusionModelComparison({
             <div key={m.name} className={`grid gap-x-3 gap-y-3 rounded-xl border px-3 py-3 sm:grid-cols-[minmax(170px,1.6fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-center ${active ? "border-indigo-500/40 bg-indigo-500/[0.055]" : "border-border/50"}`}>
               <div className="col-span-2 min-w-0 sm:col-span-1">
                 <p className="break-words text-xs font-semibold leading-relaxed">{m.name}</p>
-                <p className="mt-0.5 text-[10px] text-slate-500">{active ? "Выбранная модель" : m.is_baseline ? "Без обнаружения атак" : m.is_best ? "Лучшая по MCC" : ""}</p>
+                <p className="mt-0.5 text-[10px] text-slate-500">{active ? "Выбранная модель" : m.is_baseline ? (m.name === "Baseline · только атаки" ? "Все потоки считаются атаками" : "Без обнаружения атак") : m.is_best ? "Лучшая по MCC" : ""}</p>
               </div>
               {([
                 ["MCC", m.metrics.mcc, "bg-emerald-500"],

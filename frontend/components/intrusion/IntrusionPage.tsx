@@ -26,7 +26,7 @@ function FamilyCard({ model }: { model: BinaryModel }) {
     return (
       <Card>
         <SectionTitle>Разбор по семействам</SectionTitle>
-        <p className="text-sm text-slate-500 mt-4">Для baseline разбор не считается: он не помечает ничего.</p>
+        <p className="text-sm text-slate-500 mt-4">Для baseline детализация по семействам не рассчитывается.</p>
       </Card>
     );
   }
