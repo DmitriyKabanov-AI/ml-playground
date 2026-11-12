@@ -19,8 +19,21 @@ export default function IrisPage() {
   // FIX: теперь useIrisData возвращает error — не застрянем в skeleton
   const { iris, loading: il, error: iErr } = useIrisData();
 
-  const models = useMemo(() => modelsFromReport(report), [report]);
-  const currentModelId = selectedModel["iris"] ?? report?.headline?.best_model ?? models[0]?.id;
+  // Чипы моделей — по убыванию MCC (та же метрика, что в HeroMetric).
+  const models = useMemo(() => {
+    const list = modelsFromReport(report) ?? [];
+    const mccOf = (id: string) => {
+      const found = report?.models?.find((m: any) => m.name === id);
+      const raw = found ? metricsFromModel(found).mcc : undefined;
+      const n = raw == null ? NaN : Number(raw);
+      return Number.isFinite(n) ? n : -Infinity;
+    };
+    return [...list].sort((a, b) => mccOf(b.id) - mccOf(a.id));
+  }, [report]);
+
+  // По умолчанию выбираем модель с лучшим MCC (= models[0]),
+  // а headline.best_model оставляем как запасной вариант.
+  const currentModelId = selectedModel["iris"] ?? models[0]?.id ?? report?.headline?.best_model;
   const currentModel = useMemo(
     () => report?.models?.find((m: any) => m.name === currentModelId) ?? report?.models?.[0],
     [report, currentModelId]
@@ -56,8 +69,8 @@ export default function IrisPage() {
       <HeroMetric
         title="Iris · Многоклассовая классификация"
         model={currentModel?.name ?? ""}
-        metricLabel="F1-macro"
-        metricValue={metrics.f1Macro != null ? Number(metrics.f1Macro).toFixed(3) : "—"}
+        metricLabel="MCC"
+        metricValue={metrics.mcc != null ? Number(metrics.mcc).toFixed(3) : "—"}
         tone="success"
         extra="Сбалансированный датасет, 3 класса по 50 образцов"
       />
