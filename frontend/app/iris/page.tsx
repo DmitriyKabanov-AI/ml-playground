@@ -49,7 +49,7 @@ export default function IrisPage() {
   }
 
   const labels: string[] = report.meta?.classes ?? [];
-  const matrix: number[][] = currentModel?.confusion_matrix ?? [];
+  const matrix: number[][] = currentModel?.full_confusion_matrix ?? currentModel?.confusion_matrix ?? [];
 
   return (
     <div className="space-y-6">
