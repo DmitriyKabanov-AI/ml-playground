@@ -174,7 +174,7 @@ function ConfusionCard({ model, classes }: { model: MulticlassModel; classes: st
 /* ---------- карта выборки ---------- */
 function AccidentMap({ meta }: { meta?: MapData }) {
   return <Card>
-    <SectionTitle>Где и в каких авариях модель ошиблась в оценке тяжести</SectionTitle>
+    <SectionTitle>Карта аварий США — результаты модели</SectionTitle>
     {meta ? <><p className="text-xs text-slate-500 mt-2">Карта построена для лучшей по macro-F1 модели: {meta.model}. Переключение модели выше не меняет эту карту.</p><AccidentGeoMap meta={meta} /></> : <p className="mt-3 text-sm text-slate-500">Для полной карты необходимо выполнить обновлённый ноутбук 04_accident_severity_multiclass.ipynb.</p>}
   </Card>;
 }
