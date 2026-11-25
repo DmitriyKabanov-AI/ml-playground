@@ -1,18 +1,19 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, CartesianGrid,
-  LineChart, Line, ScatterChart, Scatter, ZAxis,
+  LineChart, Line,
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import AccidentGeoMap from "./AccidentGeoMap";
 import {
   HeroCard, MetricTile, ModelChips, NarrativeCard, SparkRunCard, ImportanceCard,
   SectionTitle, ReportError, ReportSkeleton,
 } from "@/components/shared/reportUi";
 import {
   AccidentsReport, MulticlassModel, AccidentSample, REPORT_SLUGS, useReport,
-  fmtPct, fmtNum, fmtInt, fmtCompact, isNum,
+  fmtPct, fmtNum, fmtInt, fmtCompact,
 } from "@/lib/data/reports";
 
 const CLASS_COLORS: Record<string, string> = {
@@ -174,7 +175,6 @@ function ConfusionCard({ model, classes }: { model: MulticlassModel; classes: st
 /* ---------- карта выборки ---------- */
 function AccidentMap({ samples, classes }: { samples: AccidentSample[]; classes: string[] }) {
   const [onlyErrors, setOnlyErrors] = useState(false);
-  const shown = useMemo(() => (onlyErrors ? samples.filter((s) => !s.correct) : samples), [samples, onlyErrors]);
   const acc = samples.length ? samples.filter((s) => s.correct).length / samples.length : NaN;
   if (!samples.length) {
     return (
@@ -194,36 +194,9 @@ function AccidentMap({ samples, classes }: { samples: AccidentSample[]; classes:
         </label>
       </div>
       <p className="text-xs text-slate-500 mt-2">
-        Цвет — истинная тяжесть. Выборка ≈ поровну по классам (поэтому на карте редкие классы видны), доля верных в ней {fmtPct(acc)} — это не accuracy на всех данных.
+        Выборка ≈ поровну по классам (поэтому на карте редкие классы видны), доля верных в ней {fmtPct(acc)} — это не accuracy на всех данных.
       </p>
-      <ResponsiveContainer width="100%" height={380}>
-        <ScatterChart margin={{ left: 0, right: 12, top: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-          <XAxis type="number" dataKey="lng" name="lng" domain={[-125, -66]} tick={{ fontSize: 10 }} />
-          <YAxis type="number" dataKey="lat" name="lat" domain={[24, 50]} tick={{ fontSize: 10 }} width={34} />
-          <ZAxis range={[26, 26]} />
-          <Tooltip
-            cursor={{ strokeDasharray: "3 3" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const s = payload[0].payload as AccidentSample;
-              return (
-                <div className="glass rounded-xl px-3 py-2 text-xs space-y-0.5">
-                  <p className="font-bold">{s.state} · {String(s.hour).padStart(2, "0")}:00</p>
-                  <p>истина <b>{s.true}</b> → предсказано <b className={s.correct ? "text-emerald-500" : "text-rose-500"}>{s.predicted}</b></p>
-                  <p className="text-slate-500">
-                    {isNum(s.temperature_f) ? `${s.temperature_f.toFixed(0)}°F` : "—"} · видимость {isNum(s.visibility_mi) ? `${s.visibility_mi.toFixed(1)} mi` : "—"}
-                  </p>
-                </div>
-              );
-            }}
-          />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
-          {classes.map((c) => (
-            <Scatter key={c} name={c} data={shown.filter((s) => s.true === c)} fill={colorOf(c)} fillOpacity={0.7} isAnimationActive={false} />
-          ))}
-        </ScatterChart>
-      </ResponsiveContainer>
+      <AccidentGeoMap samples={samples} classes={classes} onlyErrors={onlyErrors} />
     </Card>
   );
 }
